@@ -1,0 +1,91 @@
+name: NEXA 1.48 verification
+
+on:
+  push:
+    branches:
+      - nexa-1.48-verification
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: nexa
+          POSTGRES_PASSWORD: nexa-ci-password
+          POSTGRES_DB: nexa_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexa -d nexa_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://nexa:nexa-ci-password@127.0.0.1:5432/nexa_test
+      AI_GATEWAY_API_KEY: ci-placeholder-not-used-for-live-model-calls
+      RATE_LIMIT_SECRET: ci-only-rate-limit-secret-0123456789abcdef
+      NEXA_DB_POOL_MAX: '5'
+      NEXA_DB_STATEMENT_TIMEOUT_MS: '15000'
+      NEXA_MODEL: openai/gpt-5.6-sol
+      NEXA_AI_TOTAL_TIMEOUT_MS: '120000'
+      NEXA_AI_STEP_TIMEOUT_MS: '45000'
+      NEXA_AI_CHUNK_TIMEOUT_MS: '15000'
+      NEXA_AI_MAX_RETRIES: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify chunk set
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq -w 0 20); do
+            test -s ".nexa-verify/part-$i"
+          done
+
+      - name: Reconstruct NEXA payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nexa-src
+          cat .nexa-verify/part-* | base64 -d > /tmp/nexa.tar.xz
+          echo "852e6b74d5e84fa7ea623db27d48c26de9213a431906210e8d6fba7cf9012f12  /tmp/nexa.tar.xz" | sha256sum -c -
+          tar -xJf /tmp/nexa.tar.xz -C /tmp/nexa-src
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+
+      - name: Pin npm
+        run: npm install --global npm@10.9.2
+
+      - name: Resolve lockfile
+        working-directory: /tmp/nexa-src
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Restore dependencies
+        working-directory: /tmp/nexa-src
+        run: npm ci --no-audit --no-fund
+
+      - name: Apply migrations
+        working-directory: /tmp/nexa-src
+        run: npm run migrate
+
+      - name: Full verification gate
+        working-directory: /tmp/nexa-src
+        run: npm run verify:ci
+
+      - name: Preserve lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexa-package-lock
+          path: /tmp/nexa-src/package-lock.json
+          if-no-files-found: error
+          retention-days: 14
