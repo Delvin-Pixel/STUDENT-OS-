@@ -1,4 +1,4 @@
-name: NEXA 1.48 RC verification
+name: NEXA 1.48 final verification
 
 on:
   workflow_dispatch:
@@ -61,7 +61,7 @@ jobs:
           set -euo pipefail
           patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$GITHUB_WORKSPACE/.nexa-verify/nexa-1.48-ci-fix.patch"
 
-      - name: Promote reconstructed candidate to RC2
+      - name: Promote reconstructed candidate to final 1.48
         shell: bash
         run: |
           set -euo pipefail
@@ -76,9 +76,21 @@ jobs:
                   text = path.read_text()
               except UnicodeDecodeError:
                   continue
-              updated = text.replace("1.48.0-rc.1", "1.48.0-rc.2").replace("nexa-1-48-rc1", "nexa-1-48-rc2")
+              updated = text.replace("1.48.0-rc.1", "1.48.0").replace("nexa-1-48-rc1", "nexa-1-48")
               if updated != text:
                   path.write_text(updated)
+          readme = root / "README.md"
+          text = readme.read_text()
+          text = text.replace("# NEXA 1.48.0\n", "# NEXA 1.48.0 — Verified release\n", 1)
+          text = text.replace(
+              "NEXA 1.48.0 adds a networked release-verification gate rather than claiming a dependency-backed build from an offline source archive.",
+              "NEXA 1.48.0 is the dependency-backed verified release of the 1.48 reliability cycle.",
+          )
+          text = text.replace(
+              "The generated lockfile is preserved as a CI artifact so it can be reviewed and committed before promoting the RC to a final release.",
+              "The generated lockfile is preserved as a CI artifact and is part of the exact dependency tree verified for this release.",
+          )
+          readme.write_text(text)
           account = root / "lib/account.ts"
           text = account.read_text()
           text = text.replace("EXPORT_SCHEMA_VERSION = '1.17'", "EXPORT_SCHEMA_VERSION = '1.18'")
@@ -95,7 +107,7 @@ jobs:
               p = root / rel
               p.write_text(p.read_text().replace("EXPORT_SCHEMA_VERSION = '1.17'", "EXPORT_SCHEMA_VERSION = '1.18'"))
           PY
-          grep -q '"version": "1.48.0-rc.2"' "$RUNNER_TEMP/nexa/package.json"
+          grep -q '"version": "1.48.0"' "$RUNNER_TEMP/nexa/package.json"
           grep -q "EXPORT_SCHEMA_VERSION = '1.18'" "$RUNNER_TEMP/nexa/lib/account.ts"
           grep -q "project_id, workflow_id, request_id, execution_attempt_id" "$RUNNER_TEMP/nexa/lib/account.ts"
 
@@ -123,19 +135,19 @@ jobs:
         working-directory: ${{ runner.temp }}/nexa
         run: npm run verify:ci
 
-      - name: Prepare verified RC2 source artifact
+      - name: Prepare verified final source artifact
         if: success()
         shell: bash
         run: |
           set -euo pipefail
-          tar --exclude='./node_modules' --exclude='./.next' -cJf "$RUNNER_TEMP/nexa-1.48-rc2-verified.tar.xz" -C "$RUNNER_TEMP/nexa" .
+          tar --exclude='./node_modules' --exclude='./.next' -cJf "$RUNNER_TEMP/nexa-1.48.0-verified.tar.xz" -C "$RUNNER_TEMP/nexa" .
 
-      - name: Preserve verified RC2 source
+      - name: Preserve verified final source
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-1.48-rc2-verified
-          path: ${{ runner.temp }}/nexa-1.48-rc2-verified.tar.xz
+          name: nexa-1.48.0-verified
+          path: ${{ runner.temp }}/nexa-1.48.0-verified.tar.xz
           if-no-files-found: error
           retention-days: 14
 
