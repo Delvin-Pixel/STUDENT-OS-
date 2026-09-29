@@ -55,6 +55,12 @@ jobs:
           tar -xJf "$RUNNER_TEMP/nexa-payload.tar.xz" -C "$RUNNER_TEMP/nexa"
           grep -q '"version": "1.48.0-rc.1"' "$RUNNER_TEMP/nexa/package.json"
 
+      - name: Apply audited CI-discovered repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$GITHUB_WORKSPACE/.nexa-verify/nexa-1.48-ci-fix.patch"
+
       - name: Use Node 22.16.0
         uses: actions/setup-node@v4
         with:
