@@ -246,14 +246,21 @@ diff -ruN a/lib/memory-tools.ts b/lib/memory-tools.ts
          const value = input as Record<string, unknown>;
 diff -ruN a/lib/project-intelligence-tools.ts b/lib/project-intelligence-tools.ts
 --- a/lib/project-intelligence-tools.ts	2026-09-28 00:00:34.000000000 +0000
-+++ b/lib/project-intelligence-tools.ts	2026-09-29 23:24:05.008599609 +0000
++++ b/lib/project-intelligence-tools.ts	2026-09-29 23:28:19.861803400 +0000
 @@ -1,4 +1,4 @@
 -import { tool } from 'ai';
-+import { jsonSchema, tool } from 'ai';
++import { jsonSchema, tool, type ToolSet } from 'ai';
  import { retrieveProjectContext } from '@/lib/project-intelligence';
  
  const querySchema = {
-@@ -17,7 +17,7 @@
+@@ -11,13 +11,13 @@
+   additionalProperties: false,
+ } as const;
+ 
+-export function createProjectIntelligenceTools(user: { id: string; memoryEnabled?: boolean }, projectId?: string | null) {
++export function createProjectIntelligenceTools(user: { id: string; memoryEnabled?: boolean }, projectId?: string | null): ToolSet {
+   if (!projectId) return {};
+   return {
      search_project: tool({
        title: 'Search project context',
        description: 'Search the active project across relevant conversations, artifacts, project memory, and workflow state. Use this when exact project history or prior decisions matter.',
@@ -352,14 +359,22 @@ diff -ruN a/lib/tools.ts b/lib/tools.ts
      try {
 diff -ruN a/lib/workflow-tools.ts b/lib/workflow-tools.ts
 --- a/lib/workflow-tools.ts	2026-09-28 00:00:34.000000000 +0000
-+++ b/lib/workflow-tools.ts	2026-09-29 23:24:05.008650596 +0000
++++ b/lib/workflow-tools.ts	2026-09-29 23:28:19.861693054 +0000
 @@ -1,4 +1,4 @@
 -import { tool } from 'ai';
-+import { jsonSchema, tool } from 'ai';
++import { jsonSchema, tool, type ToolSet } from 'ai';
  import { getArtifact } from '@/lib/artifacts';
  import { getWorkflow } from '@/lib/workflows';
  import { getNextCheckpoint, consumeCheckpoint, listCheckpoints } from '@/lib/agent-checkpoints';
-@@ -21,11 +21,11 @@
+@@ -14,18 +14,18 @@
+   additionalProperties: false,
+ } as const;
+ 
+-export function createWorkflowTools(user: { id: string }, workflowId?: string | null, projectId?: string | null) {
++export function createWorkflowTools(user: { id: string }, workflowId?: string | null, projectId?: string | null): ToolSet {
+   if (!workflowId) return {};
+ 
+   return {
      checkpoint_status: tool({
        title: 'Inspect workflow checkpoints',
        description: 'Inspect resumable agent checkpoints for the active workflow before continuing or recovering work.',
