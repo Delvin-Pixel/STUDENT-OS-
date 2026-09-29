@@ -66,8 +66,9 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
+          import os
           from pathlib import Path
-          root = Path(r"${RUNNER_TEMP}") / "nexa"
+          root = Path(os.environ["RUNNER_TEMP"]) / "nexa"
           for path in root.rglob("*"):
               if not path.is_file() or path.name.startswith("README_"):
                   continue
