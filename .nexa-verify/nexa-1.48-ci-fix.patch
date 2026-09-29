@@ -1,0 +1,91 @@
+--- a/db/031_execution_telemetry_fences.sql
++++ b/db/031_execution_telemetry_fences.sql
+@@ -1,3 +1,10 @@
++alter table tool_runs
++  add column if not exists workflow_id uuid references workflows(id) on delete set null;
++
++create index if not exists tool_runs_workflow_created_idx
++  on tool_runs(workflow_id, created_at desc)
++  where workflow_id is not null;
++
+ create unique index if not exists workflow_execution_attempts_identity_idx
+   on workflow_execution_attempts(id, workflow_id, user_id);
+ 
+--- a/lib/tool-engine.ts
++++ b/lib/tool-engine.ts
+@@ -192,9 +192,9 @@
+         executionAttemptId: input.executionAttemptId,
+       });
+       await client.query(
+-        `insert into tool_runs (user_id, conversation_id, project_id, request_id, execution_attempt_id, tool_name, risk, status, attempt, input_hash, blocked_reason, duration_ms, error_message)
+-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+-        [input.userId, input.conversationId ?? null, input.projectId ?? null, input.requestId ?? null, input.executionAttemptId ?? null, input.toolName, input.risk, input.status, input.attempt, input.inputHash, input.blockedReason ?? null, input.durationMs ?? 0, input.error ?? null],
++        `insert into tool_runs (user_id, conversation_id, project_id, workflow_id, request_id, execution_attempt_id, tool_name, risk, status, attempt, input_hash, blocked_reason, duration_ms, error_message)
++         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
++        [input.userId, input.conversationId ?? null, input.projectId ?? null, input.workflowId ?? null, input.requestId ?? null, input.executionAttemptId ?? null, input.toolName, input.risk, input.status, input.attempt, input.inputHash, input.blockedReason ?? null, input.durationMs ?? 0, input.error ?? null],
+       );
+     });
+   } catch {
+--- a/scripts/test-execution-attempt-telemetry.mjs
++++ b/scripts/test-execution-attempt-telemetry.mjs
+@@ -3,6 +3,7 @@
+ import { readFileSync } from 'node:fs';
+ 
+ const migration = readFileSync(new URL('../db/030_execution_attempt_telemetry.sql', import.meta.url), 'utf8');
++const fences = readFileSync(new URL('../db/031_execution_telemetry_fences.sql', import.meta.url), 'utf8');
+ const ai = readFileSync(new URL('../lib/ai-runs.ts', import.meta.url), 'utf8');
+ const tools = readFileSync(new URL('../lib/tool-engine.ts', import.meta.url), 'utf8');
+ const agent = readFileSync(new URL('../lib/agent.ts', import.meta.url), 'utf8');
+@@ -18,10 +19,14 @@
+ assert.match(migration, /add column if not exists execution_attempt_id uuid references workflow_execution_attempts/);
+ assert.match(migration, /ai_runs_execution_attempt_created_idx/);
+ assert.match(migration, /tool_runs_execution_attempt_created_idx/);
++assert.match(fences, /alter table tool_runs[\s\S]*add column if not exists workflow_id uuid references workflows/);
++assert.match(fences, /tool_runs_workflow_created_idx/);
+ assert.match(ai, /executionAttemptId\?: string \| null/);
+ assert.match(ai, /execution_attempt_id/);
+ assert.match(tools, /executionAttemptId\?: string \| null/);
+ assert.match(tools, /execution_attempt_id/);
++assert.match(tools, /insert into tool_runs \(user_id, conversation_id, project_id, workflow_id, request_id, execution_attempt_id/);
++assert.match(tools, /input\.workflowId \?\? null/);
+ assert.match(agent, /executionAttemptId\?: string \| null/);
+ assert.match(chat, /executionAttemptId: executionLeaseAttemptId/);
+ assert.match(activity, /execution_attempt_id/);
+--- a/scripts/test-workflow-telemetry-correlation.mjs
++++ b/scripts/test-workflow-telemetry-correlation.mjs
+@@ -4,6 +4,7 @@
+ const correlation = await readFile(new URL('../lib/execution-attempt-correlation.ts', import.meta.url), 'utf8');
+ const ai = await readFile(new URL('../lib/ai-runs.ts', import.meta.url), 'utf8');
+ const tools = await readFile(new URL('../lib/tool-engine.ts', import.meta.url), 'utf8');
++const fences = await readFile(new URL('../db/031_execution_telemetry_fences.sql', import.meta.url), 'utf8');
+ const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+ 
+ if (pkg.version !== '1.48.0-rc.1') throw new Error(`Expected 1.48.0-rc.1, got ${pkg.version}`);
+@@ -12,4 +13,6 @@
+ if (!/assertExecutionAttemptCorrelation\(client/.test(ai)) throw new Error('AI telemetry is not guarded by execution-attempt correlation.');
+ if (!/assertExecutionAttemptCorrelation\(client/.test(tools)) throw new Error('Tool telemetry is not guarded by execution-attempt correlation.');
+ if (!/execution_attempt_id/.test(ai) || !/execution_attempt_id/.test(tools)) throw new Error('AI/tool telemetry does not persist execution_attempt_id.');
++if (!/alter table tool_runs[\s\S]*add column if not exists workflow_id uuid references workflows/.test(fences)) throw new Error('Tool telemetry schema is missing workflow_id correlation.');
++if (!/insert into tool_runs \(user_id, conversation_id, project_id, workflow_id, request_id, execution_attempt_id/.test(tools)) throw new Error('Tool telemetry does not persist workflow_id with execution_attempt_id.');
+ console.log('NEXA workflow telemetry correlation enforcement tests passed.');
+--- a/scripts/test-tool-governance.mjs
++++ b/scripts/test-tool-governance.mjs
+@@ -36,7 +36,7 @@
+ assert.match(source, /total_budget/);
+ 
+ assert.match(engine, /requestId\?: string \| null/);
+-assert.match(engine, /insert into tool_runs \(user_id, conversation_id, project_id, request_id, execution_attempt_id, tool_name/);
++assert.match(engine, /insert into tool_runs \(user_id, conversation_id, project_id, workflow_id, request_id, execution_attempt_id, tool_name/);
+ assert.match(engine, /function safeToolError\(\)/);
+ assert.doesNotMatch(engine, /error: error instanceof Error \? error\.message/);
+ assert.match(engine, /Internal details were withheld/);
+--- a/scripts/validate.mjs
++++ b/scripts/validate.mjs
+@@ -94,6 +94,7 @@
+ if (!chatRouteForMessages.includes('if (existingAssistant.rows[0])') && chatRouteForMessages.includes('assistantMessageId = existingAssistant.rows[0].id')) failures.push('Assistant message persistence is not exactly-once per execution attempt.');
+ const telemetryFenceMigration = await read('db/031_execution_telemetry_fences.sql');
+ if (!telemetryFenceMigration.includes('ai_runs_execution_attempt_identity_fk') || !telemetryFenceMigration.includes('tool_runs_execution_attempt_identity_fk')) failures.push('Execution telemetry identity foreign keys are missing.');
++if (!telemetryFenceMigration.includes('add column if not exists workflow_id uuid references workflows') || !telemetryFenceMigration.includes('tool_runs_workflow_created_idx')) failures.push('Tool telemetry workflow correlation schema is missing.');
+ if (!telemetryFenceMigration.includes('on delete set null (execution_attempt_id, workflow_id)')) failures.push('Execution telemetry identity foreign keys are not deletion-safe.');
+ const executionAttemptHistory = await read('lib/conversation-execution-attempts.ts');
+ const executionAttemptHistoryRoute = await read('app/api/conversations/[id]/execution-attempts/route.ts');
