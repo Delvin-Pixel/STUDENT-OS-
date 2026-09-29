@@ -497,3 +497,258 @@ diff -ruN a/scripts/validate.mjs b/scripts/validate.mjs
  if (!telemetryFenceMigration.includes('on delete set null (execution_attempt_id, workflow_id)')) failures.push('Execution telemetry identity foreign keys are not deletion-safe.');
  const executionAttemptHistory = await read('lib/conversation-execution-attempts.ts');
  const executionAttemptHistoryRoute = await read('app/api/conversations/[id]/execution-attempts/route.ts');
+diff -ruN '--exclude=README_*' nexa-rc1/lib/chat-turn-idempotency.ts nexa-wallclock/lib/chat-turn-idempotency.ts
+--- nexa-rc1/lib/chat-turn-idempotency.ts	2026-09-28 00:57:23.000000000 +0000
++++ nexa-wallclock/lib/chat-turn-idempotency.ts	2026-09-29 23:31:17.734734800 +0000
+@@ -83,7 +83,7 @@
+        )
+        values (
+          $1, $2, $3, 'running', now() + ($4 * interval '1 second'),
+-         $5, gen_random_uuid(), now(), now() + ($6::int * interval '1 millisecond')
++         $5, gen_random_uuid(), clock_timestamp(), clock_timestamp() + ($6::int * interval '1 millisecond')
+        )
+        on conflict (user_id, idempotency_key) do nothing
+        returning id, owner_attempt_id`,
+@@ -144,8 +144,8 @@
+         `update chat_turns
+          set owner_request_id = $3,
+              owner_attempt_id = gen_random_uuid(),
+-             heartbeat_at = now(),
+-             lease_expires_at = now() + ($4::int * interval '1 millisecond'),
++             heartbeat_at = clock_timestamp(),
++             lease_expires_at = clock_timestamp() + ($4::int * interval '1 millisecond'),
+              recovery_count = recovery_count + 1,
+              updated_at = now()
+          where id = $1 and user_id = $2 and status = 'running'
+@@ -193,7 +193,7 @@
+        and status = 'running'
+        and owner_request_id = $3
+        and owner_attempt_id = $4::uuid
+-       and lease_expires_at > now()
++       and lease_expires_at > clock_timestamp()
+      for update`,
+     [input.turnId, input.userId, input.requestId, input.attemptId],
+   );
+@@ -207,15 +207,15 @@
+   const leaseMs = boundedLeaseMs(input.leaseMs);
+   const result = await query(
+     `update chat_turns
+-     set heartbeat_at = now(),
+-         lease_expires_at = now() + ($5::int * interval '1 millisecond'),
++     set heartbeat_at = clock_timestamp(),
++         lease_expires_at = clock_timestamp() + ($5::int * interval '1 millisecond'),
+          updated_at = now()
+      where id = $1
+        and user_id = $2
+        and status = 'running'
+        and owner_request_id = $3
+        and owner_attempt_id = $4::uuid
+-       and lease_expires_at > now()
++       and lease_expires_at > clock_timestamp()
+      returning id`,
+     [input.turnId, input.userId, input.requestId, input.attemptId, leaseMs],
+   );
+@@ -283,7 +283,7 @@
+        and status = 'running'
+        and owner_request_id = $3
+        and owner_attempt_id = $4::uuid
+-       and lease_expires_at > now()
++       and lease_expires_at > clock_timestamp()
+      returning id`,
+     [turnId, userId, lease.requestId, lease.attemptId, update.conversationId ?? null, update.workflowId ?? null, update.executionAttemptId ?? null, update.userMessageId ?? null],
+   );
+@@ -389,13 +389,13 @@
+   const statement = `update chat_turns
+      set status = 'completed', assistant_message_id = $5::uuid,
+          error_message = null, response_status = 200, updated_at = now(), completed_at = now(),
+-         lease_expires_at = now()
++         lease_expires_at = clock_timestamp()
+      where id = $1
+        and user_id = $2
+        and status = 'running'
+        and owner_request_id = $3
+        and owner_attempt_id = $4::uuid
+-       and lease_expires_at > now()
++       and lease_expires_at > clock_timestamp()
+      returning id`;
+   const values = [turnId, userId, lease.requestId, lease.attemptId, assistantMessageId];
+   const result = client ? await client.query(statement, values) : await query(statement, values);
+@@ -413,13 +413,13 @@
+   const result = await query(
+     `update chat_turns
+      set status = $5, error_message = $6, response_status = $7, updated_at = now(), completed_at = now(),
+-         lease_expires_at = now()
++         lease_expires_at = clock_timestamp()
+      where id = $1
+        and user_id = $2
+        and status = 'running'
+        and owner_request_id = $3
+        and owner_attempt_id = $4::uuid
+-       and lease_expires_at > now()
++       and lease_expires_at > clock_timestamp()
+      returning id`,
+     [turnId, userId, lease.requestId, lease.attemptId, status, errorMessage?.slice(0, 500) ?? null, responseStatus],
+   );
+diff -ruN '--exclude=README_*' nexa-rc1/lib/workflow-execution-lease.ts nexa-wallclock/lib/workflow-execution-lease.ts
+--- nexa-rc1/lib/workflow-execution-lease.ts	2026-09-28 00:59:55.000000000 +0000
++++ nexa-wallclock/lib/workflow-execution-lease.ts	2026-09-29 23:31:17.735061487 +0000
+@@ -170,7 +170,7 @@
+       }
+       await client.query(
+         `update workflow_execution_attempts
+-         set acquired_at = now(), heartbeat_at = now(), completed_at = null
++         set acquired_at = clock_timestamp(), heartbeat_at = clock_timestamp(), completed_at = null
+          where id = $1 and user_id = $2 and status = 'running'`,
+         [attemptId, input.userId],
+       );
+@@ -181,7 +181,7 @@
+     await client.query(
+       `insert into workflow_execution_leases
+          (workflow_id, user_id, request_id, attempt_id, acquired_at, heartbeat_at, expires_at)
+-       values ($1, $2, $3, $4, now(), now(), now() + ($5::int * interval '1 millisecond'))
++       values ($1, $2, $3, $4, clock_timestamp(), clock_timestamp(), clock_timestamp() + ($5::int * interval '1 millisecond'))
+        on conflict (workflow_id) do update
+          set user_id = excluded.user_id,
+              request_id = excluded.request_id,
+@@ -209,20 +209,20 @@
+   return withTransaction(async (client) => {
+     const renewed = await client.query<{ attempt_id: string }>(
+       `update workflow_execution_leases
+-       set heartbeat_at = now(),
+-           expires_at = now() + ($5::int * interval '1 millisecond')
++       set heartbeat_at = clock_timestamp(),
++           expires_at = clock_timestamp() + ($5::int * interval '1 millisecond')
+        where workflow_id = $1
+          and user_id = $2
+          and request_id = $3
+          and attempt_id = $4
+-         and expires_at > now()
++         and expires_at > clock_timestamp()
+        returning attempt_id`,
+       [input.workflowId, input.userId, input.requestId, input.attemptId, leaseMs],
+     );
+     if (!renewed.rows[0]) return false;
+     await client.query(
+       `update workflow_execution_attempts
+-       set heartbeat_at = now()
++       set heartbeat_at = clock_timestamp()
+        where id = $1 and workflow_id = $2 and user_id = $3 and status = 'running'`,
+       [input.attemptId, input.workflowId, input.userId],
+     );
+@@ -241,7 +241,7 @@
+        and user_id = $2
+        and request_id = $3
+        and ($4::uuid is null or attempt_id = $4::uuid)
+-       and expires_at > now()
++       and expires_at > clock_timestamp()
+      for update`,
+     [input.workflowId, input.userId, input.requestId, input.attemptId ?? null],
+   );
+diff -ruN '--exclude=README_*' nexa-rc1/scripts/test-chat-turn-recovery.mjs nexa-wallclock/scripts/test-chat-turn-recovery.mjs
+--- nexa-rc1/scripts/test-chat-turn-recovery.mjs	2026-09-28 10:53:35.000000000 +0000
++++ nexa-wallclock/scripts/test-chat-turn-recovery.mjs	2026-09-29 23:31:17.735307110 +0000
+@@ -17,6 +17,7 @@
+ assert.match(helper, /assertChatTurnLease/);
+ assert.match(helper, /NEXA_CHAT_TURN_LEASE_LOST/);
+ assert.match(helper, /leaseIsLive/);
++assert.match(helper, /lease_expires_at > clock_timestamp\(\)/);
+ assert.match(helper, /recovery_count = recovery_count \+ 1/);
+ assert.match(helper, /consumeChatTurnQuota/);
+ assert.match(helper, /quota_consumed_at/);
+diff -ruN '--exclude=README_*' nexa-rc1/scripts/test-execution-lease.mjs nexa-wallclock/scripts/test-execution-lease.mjs
+--- nexa-rc1/scripts/test-execution-lease.mjs	2026-09-28 10:53:35.000000000 +0000
++++ nexa-wallclock/scripts/test-execution-lease.mjs	2026-09-29 23:31:17.735348879 +0000
+@@ -19,7 +19,7 @@
+ assert.match(chat, /if \(!workflowCancelled && !leaseLost && workflow\)/);
+ assert.match(chat, /releaseWorkflowExecutionLease/);
+ assert.match(lease, /on conflict \(workflow_id\) do update/);
+-assert.match(lease, /expires_at > now\(\)/);
++assert.match(lease, /expires_at > clock_timestamp\(\)/);
+ assert.match(lease, /expired before ownership was replaced/);
+ assert.match(lease, /requestId/);
+ assert.match(lease, /Math\.max\(10_000, Math\.min\(120_000/);
+diff -ruN '--exclude=README_*' nexa-rc1/scripts/test-postgres-chat-turn-recovery.mjs nexa-wallclock/scripts/test-postgres-chat-turn-recovery.mjs
+--- nexa-rc1/scripts/test-postgres-chat-turn-recovery.mjs	2026-09-28 10:53:35.000000000 +0000
++++ nexa-wallclock/scripts/test-postgres-chat-turn-recovery.mjs	2026-09-29 23:31:17.735232865 +0000
+@@ -77,7 +77,7 @@
+   await pool.query(
+     `update chat_turns
+      set conversation_id = $2, user_message_id = $3, quota_consumed_at = now(),
+-         lease_expires_at = now() - interval '1 second', updated_at = now()
++         lease_expires_at = clock_timestamp() - interval '1 second', updated_at = now()
+      where id = $1`,
+     [turnId, conversationId, userMessageId],
+   );
+@@ -99,8 +99,8 @@
+       `update chat_turns
+        set owner_request_id = $3,
+            owner_attempt_id = $4::uuid,
+-           heartbeat_at = now(),
+-           lease_expires_at = now() + interval '250 milliseconds',
++           heartbeat_at = clock_timestamp(),
++           lease_expires_at = clock_timestamp() + interval '250 milliseconds',
+            recovery_count = recovery_count + 1,
+            updated_at = now()
+        where id = $1 and user_id = $2 and status = 'running'
+@@ -123,7 +123,7 @@
+     `select id from chat_turns
+      where id = $1 and user_id = $2 and status = 'running'
+        and owner_request_id = $3 and owner_attempt_id = $4::uuid
+-       and lease_expires_at > now()`,
++       and lease_expires_at > clock_timestamp()`,
+     [turnId, userId, requestA, attemptA],
+   );
+   assert.equal(staleOwned.rows.length, 0, 'Recovered ownership must fence the stale owner immediately.');
+@@ -137,7 +137,7 @@
+       `select id from chat_turns
+        where id = $1 and user_id = $2 and status = 'running'
+          and owner_request_id = $3 and owner_attempt_id = $4::uuid
+-         and lease_expires_at > now()
++         and lease_expires_at > clock_timestamp()
+        for update`,
+       [turnId, userId, requestB, attemptB],
+     );
+@@ -156,10 +156,10 @@
+       `update chat_turns
+        set status = 'completed', assistant_message_id = $5::uuid,
+            error_message = null, response_status = 200, updated_at = now(), completed_at = now(),
+-           lease_expires_at = now()
++           lease_expires_at = clock_timestamp()
+        where id = $1 and user_id = $2 and status = 'running'
+          and owner_request_id = $3 and owner_attempt_id = $4::uuid
+-         and lease_expires_at > now()
++         and lease_expires_at > clock_timestamp()
+        returning id`,
+       [turnId, userId, requestB, attemptB, rolledBackAssistantId],
+     );
+@@ -174,7 +174,7 @@
+ 
+   await pool.query(
+     `update chat_turns
+-     set heartbeat_at = now(), lease_expires_at = now() + interval '15 seconds', updated_at = now()
++     set heartbeat_at = now(), lease_expires_at = clock_timestamp() + interval '15 seconds', updated_at = now()
+      where id = $1 and user_id = $2 and status = 'running'
+        and owner_request_id = $3 and owner_attempt_id = $4::uuid`,
+     [turnId, userId, requestB, attemptB],
+@@ -188,7 +188,7 @@
+       `select id from chat_turns
+        where id = $1 and user_id = $2 and status = 'running'
+          and owner_request_id = $3 and owner_attempt_id = $4::uuid
+-         and lease_expires_at > now()
++         and lease_expires_at > clock_timestamp()
+        for update`,
+       [turnId, userId, requestB, attemptB],
+     );
+@@ -206,10 +206,10 @@
+       `update chat_turns
+        set status = 'completed', assistant_message_id = $5::uuid,
+            error_message = null, response_status = 200, updated_at = now(), completed_at = now(),
+-           lease_expires_at = now()
++           lease_expires_at = clock_timestamp()
+        where id = $1 and user_id = $2 and status = 'running'
+          and owner_request_id = $3 and owner_attempt_id = $4::uuid
+-         and lease_expires_at > now()
++         and lease_expires_at > clock_timestamp()
+        returning id`,
+       [turnId, userId, requestB, attemptB, assistantMessageId],
+     );
