@@ -1,5 +1,120 @@
---- a/db/031_execution_telemetry_fences.sql
-+++ b/db/031_execution_telemetry_fences.sql
+diff -ruN /mnt/data/nexa_rc_original/app/api/chat/route.ts /mnt/data/nexa_rc_full/app/api/chat/route.ts
+--- /mnt/data/nexa_rc_original/app/api/chat/route.ts	2026-09-28 00:59:55.000000000 +0000
++++ /mnt/data/nexa_rc_full/app/api/chat/route.ts	2026-09-29 23:24:24.847351569 +0000
+@@ -399,6 +399,48 @@
+         controller: executionController,
+       }).stop;
+     }
++    let streamErrorCleanupPromise: Promise<void> | null = null;
++    const handleStreamError = (error: unknown) => {
++      if (streamErrorCleanupPromise) return streamErrorCleanupPromise;
++      streamErrorCleanupPromise = (async () => {
++        stopCancellationWatcher?.();
++        stopCancellationWatcher = null;
++        stopExecutionLeaseHeartbeat?.();
++        stopExecutionLeaseHeartbeat = null;
++        stopChatTurnLeaseHeartbeat?.();
++        stopChatTurnLeaseHeartbeat = null;
++        request.signal.removeEventListener('abort', requestAbortHandler);
++        const workflowLeaseLost = executionController.signal.reason === 'NEXA_WORKFLOW_LEASE_LOST';
++        const chatLeaseLost = executionController.signal.reason === 'NEXA_CHAT_TURN_LEASE_LOST';
++        const leaseLost = workflowLeaseLost || chatLeaseLost;
++        await failAiRun({ id: aiRunId, executionAttemptId: aiRunExecutionAttemptId, durationMs: Date.now() - aiRunStartedAt, stepCount: aiStepCount, errorName: workflowLeaseLost ? 'WorkflowExecutionLeaseLost' : chatLeaseLost ? 'ChatTurnLeaseLost' : error instanceof Error ? error.name : 'UnknownError' });
++        if (chatTurnId && chatTurnLease) {
++          const turnStatus = leaseLost || executionController.signal.reason === 'REQUEST_ABORTED' ? 'aborted' : 'failed';
++          await failChatTurn(user.id, chatTurnId, chatTurnLease, turnStatus, turnStatus === 'failed' ? 'NEXA could not complete that chat turn.' : 'The chat turn was interrupted before completion.');
++        }
++        if (workflow && !leaseLost) {
++          const liveWorkflow = await getWorkflow(user.id, workflow.id);
++          if (liveWorkflow && ['queued', 'running', 'verifying'].includes(liveWorkflow.status)) {
++            await failWorkflow(user.id, workflow.id, error instanceof Error ? error.message : 'NEXA stream interrupted before the workflow completed.', { userId: user.id, workflowId: workflow.id, requestId, attemptId: executionLeaseAttemptId });
++          }
++        }
++        if (executionLeaseWorkflowId && executionLeaseAttemptId) {
++          const attemptStatus = leaseLost ? 'lease_lost' : executionController.signal.reason === 'REQUEST_ABORTED' ? 'aborted' : 'failed';
++          await releaseWorkflowExecutionLease({
++            userId: user.id,
++            workflowId: executionLeaseWorkflowId,
++            requestId,
++            attemptId: executionLeaseAttemptId,
++            status: attemptStatus,
++            terminalReason: error instanceof Error ? error.name : 'Execution stream error.',
++          });
++          executionLeaseWorkflowId = null;
++          executionLeaseUserId = null;
++          executionLeaseAttemptId = null;
++        }
++      })();
++      return streamErrorCleanupPromise;
++    };
+     const streamOptions: Parameters<typeof agent.stream>[0] & {
+     } = {
+       abortSignal: executionController.signal,
+@@ -472,44 +514,11 @@
+           if (!advanced && !executionController.signal.aborted) executionController.abort('NEXA_WORKFLOW_LEASE_LOST');
+         }
+       },
+-      onError: async ({ error }) => {
+-        stopCancellationWatcher?.();
+-        stopCancellationWatcher = null;
+-        stopExecutionLeaseHeartbeat?.();
+-        stopExecutionLeaseHeartbeat = null;
+-        stopChatTurnLeaseHeartbeat?.();
+-        stopChatTurnLeaseHeartbeat = null;
+-        request.signal.removeEventListener('abort', requestAbortHandler);
+-        const workflowLeaseLost = executionController.signal.reason === 'NEXA_WORKFLOW_LEASE_LOST';
+-        const chatLeaseLost = executionController.signal.reason === 'NEXA_CHAT_TURN_LEASE_LOST';
+-        const leaseLost = workflowLeaseLost || chatLeaseLost;
+-        await failAiRun({ id: aiRunId, executionAttemptId: aiRunExecutionAttemptId, durationMs: Date.now() - aiRunStartedAt, stepCount: aiStepCount, errorName: workflowLeaseLost ? 'WorkflowExecutionLeaseLost' : chatLeaseLost ? 'ChatTurnLeaseLost' : error instanceof Error ? error.name : 'UnknownError' });
+-        if (chatTurnId && chatTurnLease) {
+-          const turnStatus = leaseLost || executionController.signal.reason === 'REQUEST_ABORTED' ? 'aborted' : 'failed';
+-          await failChatTurn(user.id, chatTurnId, chatTurnLease, turnStatus, turnStatus === 'failed' ? 'NEXA could not complete that chat turn.' : 'The chat turn was interrupted before completion.');
+-        }
+-        if (workflow && !leaseLost) {
+-          const liveWorkflow = await getWorkflow(user.id, workflow.id);
+-          if (liveWorkflow && ['queued', 'running', 'verifying'].includes(liveWorkflow.status)) {
+-            await failWorkflow(user.id, workflow.id, error instanceof Error ? error.message : 'NEXA stream interrupted before the workflow completed.', { userId: user.id, workflowId: workflow.id, requestId, attemptId: executionLeaseAttemptId });
+-          }
+-        }
+-        if (executionLeaseWorkflowId && executionLeaseAttemptId) {
+-          const attemptStatus = leaseLost ? 'lease_lost' : executionController.signal.reason === 'REQUEST_ABORTED' ? 'aborted' : 'failed';
+-          await releaseWorkflowExecutionLease({
+-            userId: user.id,
+-            workflowId: executionLeaseWorkflowId,
+-            requestId,
+-            attemptId: executionLeaseAttemptId,
+-            status: attemptStatus,
+-            terminalReason: error instanceof Error ? error.name : 'Execution stream error.',
+-          });
+-          executionLeaseWorkflowId = null;
+-          executionLeaseUserId = null;
+-          executionLeaseAttemptId = null;
+-        }
+-      },
+       onFinish: async ({ text, usage, finishReason }) => {
++        if (finishReason === 'error') {
++          await handleStreamError(new Error('AI stream finished with an error.'));
++          return;
++        }
+         stopCancellationWatcher?.();
+         stopCancellationWatcher = null;
+         request.signal.removeEventListener('abort', requestAbortHandler);
+@@ -652,8 +661,10 @@
+     };
+     let result;
+     try {
+-      result = agent.stream(streamOptions);
+-      result.consumeStream();
++      result = await agent.stream(streamOptions);
++      void result.consumeStream({
++        onError: (error) => { void handleStreamError(error); },
++      });
+     } catch (error) {
+       stopCancellationWatcher?.();
+       stopCancellationWatcher = null;
+diff -ruN /mnt/data/nexa_rc_original/db/031_execution_telemetry_fences.sql /mnt/data/nexa_rc_full/db/031_execution_telemetry_fences.sql
+--- /mnt/data/nexa_rc_original/db/031_execution_telemetry_fences.sql	2026-09-27 10:57:21.000000000 +0000
++++ /mnt/data/nexa_rc_full/db/031_execution_telemetry_fences.sql	2026-09-29 23:14:59.370202414 +0000
 @@ -1,3 +1,10 @@
 +alter table tool_runs
 +  add column if not exists workflow_id uuid references workflows(id) on delete set null;
@@ -11,8 +126,199 @@
  create unique index if not exists workflow_execution_attempts_identity_idx
    on workflow_execution_attempts(id, workflow_id, user_id);
  
---- a/lib/tool-engine.ts
-+++ b/lib/tool-engine.ts
+diff -ruN /mnt/data/nexa_rc_original/lib/account.ts /mnt/data/nexa_rc_full/lib/account.ts
+--- /mnt/data/nexa_rc_original/lib/account.ts	2026-09-28 00:00:34.000000000 +0000
++++ /mnt/data/nexa_rc_full/lib/account.ts	2026-09-29 23:24:05.008696866 +0000
+@@ -1,4 +1,4 @@
+-import type { PoolClient } from 'pg';
++import type { PoolClient, QueryResultRow } from 'pg';
+ import { query, withTransaction } from '@/lib/db';
+ import { verifyPassword } from '@/lib/auth';
+ import { recordSecurityEvent } from '@/lib/audit';
+@@ -31,7 +31,7 @@
+ 
+ type Collection = { name: string; rows: unknown[] };
+ 
+-async function fetchCollection<T>(
++async function fetchCollection<T extends QueryResultRow>(
+   client: PoolClient,
+   name: string,
+   sql: string,
+diff -ruN /mnt/data/nexa_rc_original/lib/agent-checkpoints.ts /mnt/data/nexa_rc_full/lib/agent-checkpoints.ts
+--- /mnt/data/nexa_rc_original/lib/agent-checkpoints.ts	2026-09-28 00:00:34.000000000 +0000
++++ /mnt/data/nexa_rc_full/lib/agent-checkpoints.ts	2026-09-29 23:24:05.008742394 +0000
+@@ -1,5 +1,5 @@
+ import { query } from '@/lib/db';
+-import type { PoolClient } from 'pg';
++import type { PoolClient, QueryResultRow } from 'pg';
+ 
+ export type CheckpointStatus = 'pending' | 'ready' | 'consumed' | 'blocked';
+ 
+@@ -35,7 +35,7 @@
+   lastError?: string | null;
+   client?: PoolClient;
+ }) {
+-  const run = <T extends unknown>(text: string, values: unknown[] = []) => params.client ? params.client.query<T>(text, values) : query<T>(text, values);
++  const run = <T extends QueryResultRow>(text: string, values: unknown[] = []) => params.client ? params.client.query<T>(text, values) : query<T>(text, values);
+   const result = await run<AgentCheckpoint>(
+     `insert into workflow_checkpoints (workflow_id, step_order, checkpoint_key, status, state, last_error)
+      select $1, $2, $3, $4, $5::jsonb, $6
+diff -ruN /mnt/data/nexa_rc_original/lib/artifact-tools.ts /mnt/data/nexa_rc_full/lib/artifact-tools.ts
+--- /mnt/data/nexa_rc_original/lib/artifact-tools.ts	2026-09-28 00:00:34.000000000 +0000
++++ /mnt/data/nexa_rc_full/lib/artifact-tools.ts	2026-09-29 23:24:05.008556024 +0000
+@@ -1,4 +1,4 @@
+-import { tool } from 'ai';
++import { jsonSchema, tool } from 'ai';
+ import { createArtifact, getArtifact, listArtifacts, updateArtifact } from '@/lib/artifacts';
+ 
+ const createSchema = {
+@@ -53,7 +53,7 @@
+     create_artifact: tool({
+       title: 'Create artifact',
+       description: 'Create a durable project file when the user asks for a document, report, code file, note, JSON/CSV dataset, or other reusable deliverable. Do not create artifacts for ordinary conversational answers.',
+-      inputSchema: createSchema,
++      inputSchema: jsonSchema<Record<string, unknown>>(createSchema),
+       execute: async (input) => {
+         const value = input as Record<string, unknown>;
+         const artifact = await createArtifact({
+@@ -83,7 +83,7 @@
+     list_artifacts: tool({
+       title: 'List artifacts',
+       description: 'List durable artifacts belonging to the user, especially the active project when one exists.',
+-      inputSchema: listSchema,
++      inputSchema: jsonSchema<Record<string, unknown>>(listSchema),
+       execute: async (input) => {
+         const value = input as Record<string, unknown>;
+         const projectOnly = Boolean(context?.projectId) ? true : Boolean(value.projectOnly ?? false);
+@@ -97,7 +97,7 @@
+     get_artifact: tool({
+       title: 'Get artifact',
+       description: 'Read a durable artifact before modifying it or answering a question about its exact contents.',
+-      inputSchema: getSchema,
++      inputSchema: jsonSchema<Record<string, unknown>>(getSchema),
+       execute: async (input) => {
+         const value = input as Record<string, unknown>;
+         const artifact = await getArtifact(user.id, String(value.artifactId ?? ''), context?.projectId);
+@@ -108,7 +108,7 @@
+     update_artifact: tool({
+       title: 'Update artifact',
+       description: 'Update an existing durable artifact after the user asks to revise, correct, extend, or replace it. Read it first when exact content matters.',
+-      inputSchema: updateSchema,
++      inputSchema: jsonSchema<Record<string, unknown>>(updateSchema),
+       execute: async (input) => {
+         const value = input as Record<string, unknown>;
+         const artifact = await updateArtifact(user.id, user.plan, String(value.artifactId ?? ''), {
+diff -ruN /mnt/data/nexa_rc_original/lib/memory-tools.ts /mnt/data/nexa_rc_full/lib/memory-tools.ts
+--- /mnt/data/nexa_rc_original/lib/memory-tools.ts	2026-09-28 00:00:34.000000000 +0000
++++ /mnt/data/nexa_rc_full/lib/memory-tools.ts	2026-09-29 23:24:05.008488602 +0000
+@@ -1,4 +1,4 @@
+-import { tool } from 'ai';
++import { jsonSchema, tool } from 'ai';
+ import { createMemory, deleteMemory, searchMemories } from '@/lib/memory';
+ 
+ const querySchema = {
+@@ -41,7 +41,7 @@
+     search_memory: tool({
+       title: 'Search memory',
+       description: 'Search the user’s saved memory and, when a project is active, relevant project memory. Use this before making personalization assumptions.',
+-      inputSchema: querySchema,
++      inputSchema: jsonSchema<Record<string, unknown>>(querySchema),
+       execute: async (input) => {
+         if (!memoryEnabled) return disabled();
+         const queryText = typeof input === 'object' && input && 'query' in input ? String(input.query) : '';
+@@ -52,7 +52,7 @@
+     save_memory: tool({
+       title: 'Save memory',
+       description: 'Save something only when the user explicitly asks NEXA to remember, save, keep, or retain it. Do not save sensitive information unless the user clearly asks and it is appropriate.',
+-      inputSchema: saveSchema,
++      inputSchema: jsonSchema<Record<string, unknown>>(saveSchema),
+       execute: async (input) => {
+         if (!memoryEnabled) return disabled();
+         const value = input as Record<string, unknown>;
+@@ -73,7 +73,7 @@
+     forget_memory: tool({
+       title: 'Forget memory',
+       description: 'Delete a memory only when the user asks NEXA to forget or remove it, or when the user identifies a specific memory to delete.',
+-      inputSchema: forgetSchema,
++      inputSchema: jsonSchema<Record<string, unknown>>(forgetSchema),
+       execute: async (input) => {
+         if (!memoryEnabled) return disabled();
+         const value = input as Record<string, unknown>;
+diff -ruN /mnt/data/nexa_rc_original/lib/project-intelligence-tools.ts /mnt/data/nexa_rc_full/lib/project-intelligence-tools.ts
+--- /mnt/data/nexa_rc_original/lib/project-intelligence-tools.ts	2026-09-28 00:00:34.000000000 +0000
++++ /mnt/data/nexa_rc_full/lib/project-intelligence-tools.ts	2026-09-29 23:24:05.008599609 +0000
+@@ -1,4 +1,4 @@
+-import { tool } from 'ai';
++import { jsonSchema, tool } from 'ai';
+ import { retrieveProjectContext } from '@/lib/project-intelligence';
+ 
+ const querySchema = {
+@@ -17,7 +17,7 @@
+     search_project: tool({
+       title: 'Search project context',
+       description: 'Search the active project across relevant conversations, artifacts, project memory, and workflow state. Use this when exact project history or prior decisions matter.',
+-      inputSchema: querySchema,
++      inputSchema: jsonSchema<Record<string, unknown>>(querySchema),
+       execute: async (input) => {
+         const value = input as Record<string, unknown>;
+         const result = await retrieveProjectContext(user.id, projectId, String(value.query ?? ''), { limit: Number(value.limit ?? 8), includeMemory: user.memoryEnabled !== false });
+diff -ruN /mnt/data/nexa_rc_original/lib/project-intelligence.ts /mnt/data/nexa_rc_full/lib/project-intelligence.ts
+--- /mnt/data/nexa_rc_original/lib/project-intelligence.ts	2026-09-28 00:00:34.000000000 +0000
++++ /mnt/data/nexa_rc_full/lib/project-intelligence.ts	2026-09-29 23:24:05.008923046 +0000
+@@ -31,7 +31,7 @@
+   return Number((sourceWeight + rank * 2 + recency).toFixed(4));
+ }
+ 
+-async function searchProjectConversations(userId: string, projectId: string, queryText: string, limit: number) {
++async function searchProjectConversations(userId: string, projectId: string, queryText: string, limit: number): Promise<ProjectContextResult[]> {
+   const result = await query<{
+     id: string;
+     conversation_id: string;
+@@ -69,7 +69,7 @@
+   }));
+ }
+ 
+-async function searchProjectArtifacts(userId: string, projectId: string, queryText: string, limit: number) {
++async function searchProjectArtifacts(userId: string, projectId: string, queryText: string, limit: number): Promise<ProjectContextResult[]> {
+   const result = await query<{
+     id: string;
+     title: string;
+@@ -109,7 +109,7 @@
+   }));
+ }
+ 
+-async function searchProjectWorkflows(userId: string, projectId: string, queryText: string, limit: number) {
++async function searchProjectWorkflows(userId: string, projectId: string, queryText: string, limit: number): Promise<ProjectContextResult[]> {
+   const result = await query<{
+     id: string;
+     title: string;
+@@ -143,7 +143,7 @@
+   }));
+ }
+ 
+-async function recentProjectConversations(userId: string, projectId: string, limit: number) {
++async function recentProjectConversations(userId: string, projectId: string, limit: number): Promise<ProjectContextResult[]> {
+   const result = await query<{
+     id: string;
+     title: string;
+@@ -210,12 +210,12 @@
+     getRecentWorkflowState(userId, projectId),
+   ]);
+ 
+-  let items = [...conversationResults, ...artifactResults, ...workflowResults];
++  let items: ProjectContextResult[] = [...conversationResults, ...artifactResults, ...workflowResults];
+   if (!items.length) items = await recentProjectConversations(userId, projectId, Math.min(5, limit));
+   items.sort((a, b) => b.relevance - a.relevance || new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+   items = items.slice(0, limit);
+ 
+-  const memoryItems = memories.map((memory: Memory) => ({
++  const memoryItems: ProjectContextResult[] = memories.map((memory: Memory) => ({
+     id: memory.id,
+     source: 'memory' as const,
+     title: memory.label || `${memory.scope} ${memory.kind}`,
+diff -ruN /mnt/data/nexa_rc_original/lib/tool-engine.ts /mnt/data/nexa_rc_full/lib/tool-engine.ts
+--- /mnt/data/nexa_rc_original/lib/tool-engine.ts	2026-09-28 00:01:57.000000000 +0000
++++ /mnt/data/nexa_rc_full/lib/tool-engine.ts	2026-09-29 23:14:59.370335735 +0000
 @@ -192,9 +192,9 @@
          executionAttemptId: input.executionAttemptId,
        });
@@ -26,8 +332,92 @@
        );
      });
    } catch {
---- a/scripts/test-execution-attempt-telemetry.mjs
-+++ b/scripts/test-execution-attempt-telemetry.mjs
+diff -ruN /mnt/data/nexa_rc_original/lib/tools.ts /mnt/data/nexa_rc_full/lib/tools.ts
+--- /mnt/data/nexa_rc_original/lib/tools.ts	2026-09-28 00:00:34.000000000 +0000
++++ /mnt/data/nexa_rc_full/lib/tools.ts	2026-09-29 23:24:05.008331266 +0000
+@@ -1,4 +1,4 @@
+-import { gateway, tool } from 'ai';
++import { gateway, jsonSchema, tool } from 'ai';
+ 
+ const calculatorInputSchema = {
+   type: 'object',
+@@ -129,7 +129,7 @@
+ export const calculatorTool = tool({
+   title: 'Calculator',
+   description: 'Solve arithmetic accurately. Use this instead of doing multi-step numerical arithmetic mentally.',
+-  inputSchema: calculatorInputSchema,
++  inputSchema: jsonSchema<{ expression: string }>(calculatorInputSchema),
+   execute: async (input) => {
+     const expression = typeof input === 'object' && input && 'expression' in input ? String(input.expression) : '';
+     try {
+diff -ruN /mnt/data/nexa_rc_original/lib/workflow-tools.ts /mnt/data/nexa_rc_full/lib/workflow-tools.ts
+--- /mnt/data/nexa_rc_original/lib/workflow-tools.ts	2026-09-28 00:00:34.000000000 +0000
++++ /mnt/data/nexa_rc_full/lib/workflow-tools.ts	2026-09-29 23:24:05.008650596 +0000
+@@ -1,4 +1,4 @@
+-import { tool } from 'ai';
++import { jsonSchema, tool } from 'ai';
+ import { getArtifact } from '@/lib/artifacts';
+ import { getWorkflow } from '@/lib/workflows';
+ import { getNextCheckpoint, consumeCheckpoint, listCheckpoints } from '@/lib/agent-checkpoints';
+@@ -21,11 +21,11 @@
+     checkpoint_status: tool({
+       title: 'Inspect workflow checkpoints',
+       description: 'Inspect resumable agent checkpoints for the active workflow before continuing or recovering work.',
+-      inputSchema: {
++      inputSchema: jsonSchema<Record<string, never>>({
+         type: 'object',
+         properties: {},
+         additionalProperties: false,
+-      } as const,
++      }),
+       execute: async () => {
+         const activeWorkflow = await getWorkflow(user.id, workflowId, projectId);
+         if (!activeWorkflow) return { workflowId, next: null, checkpoints: [], error: 'Workflow does not belong to the active project.' };
+@@ -37,11 +37,11 @@
+     resume_checkpoint: tool({
+       title: 'Resume from checkpoint',
+       description: 'Consume the next resumable checkpoint and return its saved state so the agent can continue without repeating completed work.',
+-      inputSchema: {
++      inputSchema: jsonSchema<Record<string, never>>({
+         type: 'object',
+         properties: {},
+         additionalProperties: false,
+-      } as const,
++      }),
+       execute: async () => {
+         const activeWorkflow = await getWorkflow(user.id, workflowId, projectId);
+         if (!activeWorkflow) return { resumed: false, reason: 'Workflow does not belong to the active project.' };
+@@ -57,7 +57,7 @@
+     verify_workflow: tool({
+       title: 'Verify workflow output',
+       description: 'Perform a final structural verification of the active workflow and any specified artifact. Use before the final answer on complex tasks.',
+-      inputSchema: verifySchema,
++      inputSchema: jsonSchema<Record<string, unknown>>(verifySchema),
+       execute: async (input) => {
+         const value = input as Record<string, unknown>;
+         const requestedWorkflowId = String(value.workflowId ?? workflowId);
+diff -ruN /mnt/data/nexa_rc_original/lib/workflows.ts /mnt/data/nexa_rc_full/lib/workflows.ts
+--- /mnt/data/nexa_rc_original/lib/workflows.ts	2026-09-28 00:53:31.000000000 +0000
++++ /mnt/data/nexa_rc_full/lib/workflows.ts	2026-09-29 23:24:05.008803476 +0000
+@@ -1,5 +1,5 @@
+ import { query, withTransaction } from '@/lib/db';
+-import type { PoolClient } from 'pg';
++import type { PoolClient, QueryResultRow } from 'pg';
+ import { buildWorkflowPlan, detectWorkflowType, shouldCreateWorkflow } from '@/lib/workflow-planner';
+ import { recordWorkflowEvent } from '@/lib/workflow-events';
+ import { assertWorkflowExecutionLease, recordWorkflowExecutionAttemptEvent as recordExecutionAttemptEventWithSequence } from '@/lib/workflow-execution-lease';
+@@ -187,7 +187,7 @@
+   executionLease?: { userId: string; workflowId: string; requestId: string; attemptId?: string | null },
+ ) {
+   const nextOutput = output ?? {};
+-  const run = <T extends unknown>(text: string, values: unknown[] = []) => client ? client.query<T>(text, values) : query<T>(text, values);
++  const run = <T extends QueryResultRow>(text: string, values: unknown[] = []) => client ? client.query<T>(text, values) : query<T>(text, values);
+   if (client && executionLease) {
+     const owned = await assertWorkflowExecutionLease(client, executionLease);
+     if (!owned) return false;
+diff -ruN /mnt/data/nexa_rc_original/scripts/test-execution-attempt-telemetry.mjs /mnt/data/nexa_rc_full/scripts/test-execution-attempt-telemetry.mjs
+--- /mnt/data/nexa_rc_original/scripts/test-execution-attempt-telemetry.mjs	2026-09-28 10:53:35.000000000 +0000
++++ /mnt/data/nexa_rc_full/scripts/test-execution-attempt-telemetry.mjs	2026-09-29 23:14:59.370420332 +0000
 @@ -3,6 +3,7 @@
  import { readFileSync } from 'node:fs';
  
@@ -51,8 +441,21 @@
  assert.match(agent, /executionAttemptId\?: string \| null/);
  assert.match(chat, /executionAttemptId: executionLeaseAttemptId/);
  assert.match(activity, /execution_attempt_id/);
---- a/scripts/test-workflow-telemetry-correlation.mjs
-+++ b/scripts/test-workflow-telemetry-correlation.mjs
+diff -ruN /mnt/data/nexa_rc_original/scripts/test-tool-governance.mjs /mnt/data/nexa_rc_full/scripts/test-tool-governance.mjs
+--- /mnt/data/nexa_rc_original/scripts/test-tool-governance.mjs	2026-09-28 10:53:35.000000000 +0000
++++ /mnt/data/nexa_rc_full/scripts/test-tool-governance.mjs	2026-09-29 23:15:15.215781860 +0000
+@@ -36,7 +36,7 @@
+ assert.match(source, /total_budget/);
+ 
+ assert.match(engine, /requestId\?: string \| null/);
+-assert.match(engine, /insert into tool_runs \(user_id, conversation_id, project_id, request_id, execution_attempt_id, tool_name/);
++assert.match(engine, /insert into tool_runs \(user_id, conversation_id, project_id, workflow_id, request_id, execution_attempt_id, tool_name/);
+ assert.match(engine, /function safeToolError\(\)/);
+ assert.doesNotMatch(engine, /error: error instanceof Error \? error\.message/);
+ assert.match(engine, /Internal details were withheld/);
+diff -ruN /mnt/data/nexa_rc_original/scripts/test-workflow-telemetry-correlation.mjs /mnt/data/nexa_rc_full/scripts/test-workflow-telemetry-correlation.mjs
+--- /mnt/data/nexa_rc_original/scripts/test-workflow-telemetry-correlation.mjs	2026-09-28 10:53:35.000000000 +0000
++++ /mnt/data/nexa_rc_full/scripts/test-workflow-telemetry-correlation.mjs	2026-09-29 23:14:59.370466621 +0000
 @@ -4,6 +4,7 @@
  const correlation = await readFile(new URL('../lib/execution-attempt-correlation.ts', import.meta.url), 'utf8');
  const ai = await readFile(new URL('../lib/ai-runs.ts', import.meta.url), 'utf8');
@@ -68,19 +471,9 @@
 +if (!/alter table tool_runs[\s\S]*add column if not exists workflow_id uuid references workflows/.test(fences)) throw new Error('Tool telemetry schema is missing workflow_id correlation.');
 +if (!/insert into tool_runs \(user_id, conversation_id, project_id, workflow_id, request_id, execution_attempt_id/.test(tools)) throw new Error('Tool telemetry does not persist workflow_id with execution_attempt_id.');
  console.log('NEXA workflow telemetry correlation enforcement tests passed.');
---- a/scripts/test-tool-governance.mjs
-+++ b/scripts/test-tool-governance.mjs
-@@ -36,7 +36,7 @@
- assert.match(source, /total_budget/);
- 
- assert.match(engine, /requestId\?: string \| null/);
--assert.match(engine, /insert into tool_runs \(user_id, conversation_id, project_id, request_id, execution_attempt_id, tool_name/);
-+assert.match(engine, /insert into tool_runs \(user_id, conversation_id, project_id, workflow_id, request_id, execution_attempt_id, tool_name/);
- assert.match(engine, /function safeToolError\(\)/);
- assert.doesNotMatch(engine, /error: error instanceof Error \? error\.message/);
- assert.match(engine, /Internal details were withheld/);
---- a/scripts/validate.mjs
-+++ b/scripts/validate.mjs
+diff -ruN /mnt/data/nexa_rc_original/scripts/validate.mjs /mnt/data/nexa_rc_full/scripts/validate.mjs
+--- /mnt/data/nexa_rc_original/scripts/validate.mjs	2026-09-28 10:53:35.000000000 +0000
++++ /mnt/data/nexa_rc_full/scripts/validate.mjs	2026-09-29 23:15:15.215931435 +0000
 @@ -94,6 +94,7 @@
  if (!chatRouteForMessages.includes('if (existingAssistant.rows[0])') && chatRouteForMessages.includes('assistantMessageId = existingAssistant.rows[0].id')) failures.push('Assistant message persistence is not exactly-once per execution attempt.');
  const telemetryFenceMigration = await read('db/031_execution_telemetry_fences.sql');
