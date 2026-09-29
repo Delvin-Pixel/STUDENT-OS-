@@ -1,6 +1,6 @@
-diff -ruN /mnt/data/nexa_rc_original/app/api/chat/route.ts /mnt/data/nexa_rc_full/app/api/chat/route.ts
---- /mnt/data/nexa_rc_original/app/api/chat/route.ts	2026-09-28 00:59:55.000000000 +0000
-+++ /mnt/data/nexa_rc_full/app/api/chat/route.ts	2026-09-29 23:24:24.847351569 +0000
+diff -ruN a/app/api/chat/route.ts b/app/api/chat/route.ts
+--- a/app/api/chat/route.ts	2026-09-28 00:59:55.000000000 +0000
++++ b/app/api/chat/route.ts	2026-09-29 23:24:24.847351569 +0000
 @@ -399,6 +399,48 @@
          controller: executionController,
        }).stop;
@@ -112,9 +112,9 @@ diff -ruN /mnt/data/nexa_rc_original/app/api/chat/route.ts /mnt/data/nexa_rc_ful
      } catch (error) {
        stopCancellationWatcher?.();
        stopCancellationWatcher = null;
-diff -ruN /mnt/data/nexa_rc_original/db/031_execution_telemetry_fences.sql /mnt/data/nexa_rc_full/db/031_execution_telemetry_fences.sql
---- /mnt/data/nexa_rc_original/db/031_execution_telemetry_fences.sql	2026-09-27 10:57:21.000000000 +0000
-+++ /mnt/data/nexa_rc_full/db/031_execution_telemetry_fences.sql	2026-09-29 23:14:59.370202414 +0000
+diff -ruN a/db/031_execution_telemetry_fences.sql b/db/031_execution_telemetry_fences.sql
+--- a/db/031_execution_telemetry_fences.sql	2026-09-27 10:57:21.000000000 +0000
++++ b/db/031_execution_telemetry_fences.sql	2026-09-29 23:14:59.370202414 +0000
 @@ -1,3 +1,10 @@
 +alter table tool_runs
 +  add column if not exists workflow_id uuid references workflows(id) on delete set null;
@@ -126,9 +126,9 @@ diff -ruN /mnt/data/nexa_rc_original/db/031_execution_telemetry_fences.sql /mnt/
  create unique index if not exists workflow_execution_attempts_identity_idx
    on workflow_execution_attempts(id, workflow_id, user_id);
  
-diff -ruN /mnt/data/nexa_rc_original/lib/account.ts /mnt/data/nexa_rc_full/lib/account.ts
---- /mnt/data/nexa_rc_original/lib/account.ts	2026-09-28 00:00:34.000000000 +0000
-+++ /mnt/data/nexa_rc_full/lib/account.ts	2026-09-29 23:24:05.008696866 +0000
+diff -ruN a/lib/account.ts b/lib/account.ts
+--- a/lib/account.ts	2026-09-28 00:00:34.000000000 +0000
++++ b/lib/account.ts	2026-09-29 23:24:05.008696866 +0000
 @@ -1,4 +1,4 @@
 -import type { PoolClient } from 'pg';
 +import type { PoolClient, QueryResultRow } from 'pg';
@@ -144,9 +144,9 @@ diff -ruN /mnt/data/nexa_rc_original/lib/account.ts /mnt/data/nexa_rc_full/lib/a
    client: PoolClient,
    name: string,
    sql: string,
-diff -ruN /mnt/data/nexa_rc_original/lib/agent-checkpoints.ts /mnt/data/nexa_rc_full/lib/agent-checkpoints.ts
---- /mnt/data/nexa_rc_original/lib/agent-checkpoints.ts	2026-09-28 00:00:34.000000000 +0000
-+++ /mnt/data/nexa_rc_full/lib/agent-checkpoints.ts	2026-09-29 23:24:05.008742394 +0000
+diff -ruN a/lib/agent-checkpoints.ts b/lib/agent-checkpoints.ts
+--- a/lib/agent-checkpoints.ts	2026-09-28 00:00:34.000000000 +0000
++++ b/lib/agent-checkpoints.ts	2026-09-29 23:24:05.008742394 +0000
 @@ -1,5 +1,5 @@
  import { query } from '@/lib/db';
 -import type { PoolClient } from 'pg';
@@ -163,9 +163,9 @@ diff -ruN /mnt/data/nexa_rc_original/lib/agent-checkpoints.ts /mnt/data/nexa_rc_
    const result = await run<AgentCheckpoint>(
      `insert into workflow_checkpoints (workflow_id, step_order, checkpoint_key, status, state, last_error)
       select $1, $2, $3, $4, $5::jsonb, $6
-diff -ruN /mnt/data/nexa_rc_original/lib/artifact-tools.ts /mnt/data/nexa_rc_full/lib/artifact-tools.ts
---- /mnt/data/nexa_rc_original/lib/artifact-tools.ts	2026-09-28 00:00:34.000000000 +0000
-+++ /mnt/data/nexa_rc_full/lib/artifact-tools.ts	2026-09-29 23:24:05.008556024 +0000
+diff -ruN a/lib/artifact-tools.ts b/lib/artifact-tools.ts
+--- a/lib/artifact-tools.ts	2026-09-28 00:00:34.000000000 +0000
++++ b/lib/artifact-tools.ts	2026-09-29 23:24:05.008556024 +0000
 @@ -1,4 +1,4 @@
 -import { tool } from 'ai';
 +import { jsonSchema, tool } from 'ai';
@@ -208,9 +208,9 @@ diff -ruN /mnt/data/nexa_rc_original/lib/artifact-tools.ts /mnt/data/nexa_rc_ful
        execute: async (input) => {
          const value = input as Record<string, unknown>;
          const artifact = await updateArtifact(user.id, user.plan, String(value.artifactId ?? ''), {
-diff -ruN /mnt/data/nexa_rc_original/lib/memory-tools.ts /mnt/data/nexa_rc_full/lib/memory-tools.ts
---- /mnt/data/nexa_rc_original/lib/memory-tools.ts	2026-09-28 00:00:34.000000000 +0000
-+++ /mnt/data/nexa_rc_full/lib/memory-tools.ts	2026-09-29 23:24:05.008488602 +0000
+diff -ruN a/lib/memory-tools.ts b/lib/memory-tools.ts
+--- a/lib/memory-tools.ts	2026-09-28 00:00:34.000000000 +0000
++++ b/lib/memory-tools.ts	2026-09-29 23:24:05.008488602 +0000
 @@ -1,4 +1,4 @@
 -import { tool } from 'ai';
 +import { jsonSchema, tool } from 'ai';
@@ -244,9 +244,9 @@ diff -ruN /mnt/data/nexa_rc_original/lib/memory-tools.ts /mnt/data/nexa_rc_full/
        execute: async (input) => {
          if (!memoryEnabled) return disabled();
          const value = input as Record<string, unknown>;
-diff -ruN /mnt/data/nexa_rc_original/lib/project-intelligence-tools.ts /mnt/data/nexa_rc_full/lib/project-intelligence-tools.ts
---- /mnt/data/nexa_rc_original/lib/project-intelligence-tools.ts	2026-09-28 00:00:34.000000000 +0000
-+++ /mnt/data/nexa_rc_full/lib/project-intelligence-tools.ts	2026-09-29 23:24:05.008599609 +0000
+diff -ruN a/lib/project-intelligence-tools.ts b/lib/project-intelligence-tools.ts
+--- a/lib/project-intelligence-tools.ts	2026-09-28 00:00:34.000000000 +0000
++++ b/lib/project-intelligence-tools.ts	2026-09-29 23:24:05.008599609 +0000
 @@ -1,4 +1,4 @@
 -import { tool } from 'ai';
 +import { jsonSchema, tool } from 'ai';
@@ -262,9 +262,9 @@ diff -ruN /mnt/data/nexa_rc_original/lib/project-intelligence-tools.ts /mnt/data
        execute: async (input) => {
          const value = input as Record<string, unknown>;
          const result = await retrieveProjectContext(user.id, projectId, String(value.query ?? ''), { limit: Number(value.limit ?? 8), includeMemory: user.memoryEnabled !== false });
-diff -ruN /mnt/data/nexa_rc_original/lib/project-intelligence.ts /mnt/data/nexa_rc_full/lib/project-intelligence.ts
---- /mnt/data/nexa_rc_original/lib/project-intelligence.ts	2026-09-28 00:00:34.000000000 +0000
-+++ /mnt/data/nexa_rc_full/lib/project-intelligence.ts	2026-09-29 23:24:05.008923046 +0000
+diff -ruN a/lib/project-intelligence.ts b/lib/project-intelligence.ts
+--- a/lib/project-intelligence.ts	2026-09-28 00:00:34.000000000 +0000
++++ b/lib/project-intelligence.ts	2026-09-29 23:24:05.008923046 +0000
 @@ -31,7 +31,7 @@
    return Number((sourceWeight + rank * 2 + recency).toFixed(4));
  }
@@ -316,9 +316,9 @@ diff -ruN /mnt/data/nexa_rc_original/lib/project-intelligence.ts /mnt/data/nexa_
      id: memory.id,
      source: 'memory' as const,
      title: memory.label || `${memory.scope} ${memory.kind}`,
-diff -ruN /mnt/data/nexa_rc_original/lib/tool-engine.ts /mnt/data/nexa_rc_full/lib/tool-engine.ts
---- /mnt/data/nexa_rc_original/lib/tool-engine.ts	2026-09-28 00:01:57.000000000 +0000
-+++ /mnt/data/nexa_rc_full/lib/tool-engine.ts	2026-09-29 23:14:59.370335735 +0000
+diff -ruN a/lib/tool-engine.ts b/lib/tool-engine.ts
+--- a/lib/tool-engine.ts	2026-09-28 00:01:57.000000000 +0000
++++ b/lib/tool-engine.ts	2026-09-29 23:14:59.370335735 +0000
 @@ -192,9 +192,9 @@
          executionAttemptId: input.executionAttemptId,
        });
@@ -332,9 +332,9 @@ diff -ruN /mnt/data/nexa_rc_original/lib/tool-engine.ts /mnt/data/nexa_rc_full/l
        );
      });
    } catch {
-diff -ruN /mnt/data/nexa_rc_original/lib/tools.ts /mnt/data/nexa_rc_full/lib/tools.ts
---- /mnt/data/nexa_rc_original/lib/tools.ts	2026-09-28 00:00:34.000000000 +0000
-+++ /mnt/data/nexa_rc_full/lib/tools.ts	2026-09-29 23:24:05.008331266 +0000
+diff -ruN a/lib/tools.ts b/lib/tools.ts
+--- a/lib/tools.ts	2026-09-28 00:00:34.000000000 +0000
++++ b/lib/tools.ts	2026-09-29 23:24:05.008331266 +0000
 @@ -1,4 +1,4 @@
 -import { gateway, tool } from 'ai';
 +import { gateway, jsonSchema, tool } from 'ai';
@@ -350,9 +350,9 @@ diff -ruN /mnt/data/nexa_rc_original/lib/tools.ts /mnt/data/nexa_rc_full/lib/too
    execute: async (input) => {
      const expression = typeof input === 'object' && input && 'expression' in input ? String(input.expression) : '';
      try {
-diff -ruN /mnt/data/nexa_rc_original/lib/workflow-tools.ts /mnt/data/nexa_rc_full/lib/workflow-tools.ts
---- /mnt/data/nexa_rc_original/lib/workflow-tools.ts	2026-09-28 00:00:34.000000000 +0000
-+++ /mnt/data/nexa_rc_full/lib/workflow-tools.ts	2026-09-29 23:24:05.008650596 +0000
+diff -ruN a/lib/workflow-tools.ts b/lib/workflow-tools.ts
+--- a/lib/workflow-tools.ts	2026-09-28 00:00:34.000000000 +0000
++++ b/lib/workflow-tools.ts	2026-09-29 23:24:05.008650596 +0000
 @@ -1,4 +1,4 @@
 -import { tool } from 'ai';
 +import { jsonSchema, tool } from 'ai';
@@ -396,9 +396,9 @@ diff -ruN /mnt/data/nexa_rc_original/lib/workflow-tools.ts /mnt/data/nexa_rc_ful
        execute: async (input) => {
          const value = input as Record<string, unknown>;
          const requestedWorkflowId = String(value.workflowId ?? workflowId);
-diff -ruN /mnt/data/nexa_rc_original/lib/workflows.ts /mnt/data/nexa_rc_full/lib/workflows.ts
---- /mnt/data/nexa_rc_original/lib/workflows.ts	2026-09-28 00:53:31.000000000 +0000
-+++ /mnt/data/nexa_rc_full/lib/workflows.ts	2026-09-29 23:24:05.008803476 +0000
+diff -ruN a/lib/workflows.ts b/lib/workflows.ts
+--- a/lib/workflows.ts	2026-09-28 00:53:31.000000000 +0000
++++ b/lib/workflows.ts	2026-09-29 23:24:05.008803476 +0000
 @@ -1,5 +1,5 @@
  import { query, withTransaction } from '@/lib/db';
 -import type { PoolClient } from 'pg';
@@ -415,9 +415,9 @@ diff -ruN /mnt/data/nexa_rc_original/lib/workflows.ts /mnt/data/nexa_rc_full/lib
    if (client && executionLease) {
      const owned = await assertWorkflowExecutionLease(client, executionLease);
      if (!owned) return false;
-diff -ruN /mnt/data/nexa_rc_original/scripts/test-execution-attempt-telemetry.mjs /mnt/data/nexa_rc_full/scripts/test-execution-attempt-telemetry.mjs
---- /mnt/data/nexa_rc_original/scripts/test-execution-attempt-telemetry.mjs	2026-09-28 10:53:35.000000000 +0000
-+++ /mnt/data/nexa_rc_full/scripts/test-execution-attempt-telemetry.mjs	2026-09-29 23:14:59.370420332 +0000
+diff -ruN a/scripts/test-execution-attempt-telemetry.mjs b/scripts/test-execution-attempt-telemetry.mjs
+--- a/scripts/test-execution-attempt-telemetry.mjs	2026-09-28 10:53:35.000000000 +0000
++++ b/scripts/test-execution-attempt-telemetry.mjs	2026-09-29 23:14:59.370420332 +0000
 @@ -3,6 +3,7 @@
  import { readFileSync } from 'node:fs';
  
@@ -441,9 +441,9 @@ diff -ruN /mnt/data/nexa_rc_original/scripts/test-execution-attempt-telemetry.mj
  assert.match(agent, /executionAttemptId\?: string \| null/);
  assert.match(chat, /executionAttemptId: executionLeaseAttemptId/);
  assert.match(activity, /execution_attempt_id/);
-diff -ruN /mnt/data/nexa_rc_original/scripts/test-tool-governance.mjs /mnt/data/nexa_rc_full/scripts/test-tool-governance.mjs
---- /mnt/data/nexa_rc_original/scripts/test-tool-governance.mjs	2026-09-28 10:53:35.000000000 +0000
-+++ /mnt/data/nexa_rc_full/scripts/test-tool-governance.mjs	2026-09-29 23:15:15.215781860 +0000
+diff -ruN a/scripts/test-tool-governance.mjs b/scripts/test-tool-governance.mjs
+--- a/scripts/test-tool-governance.mjs	2026-09-28 10:53:35.000000000 +0000
++++ b/scripts/test-tool-governance.mjs	2026-09-29 23:15:15.215781860 +0000
 @@ -36,7 +36,7 @@
  assert.match(source, /total_budget/);
  
@@ -453,9 +453,9 @@ diff -ruN /mnt/data/nexa_rc_original/scripts/test-tool-governance.mjs /mnt/data/
  assert.match(engine, /function safeToolError\(\)/);
  assert.doesNotMatch(engine, /error: error instanceof Error \? error\.message/);
  assert.match(engine, /Internal details were withheld/);
-diff -ruN /mnt/data/nexa_rc_original/scripts/test-workflow-telemetry-correlation.mjs /mnt/data/nexa_rc_full/scripts/test-workflow-telemetry-correlation.mjs
---- /mnt/data/nexa_rc_original/scripts/test-workflow-telemetry-correlation.mjs	2026-09-28 10:53:35.000000000 +0000
-+++ /mnt/data/nexa_rc_full/scripts/test-workflow-telemetry-correlation.mjs	2026-09-29 23:14:59.370466621 +0000
+diff -ruN a/scripts/test-workflow-telemetry-correlation.mjs b/scripts/test-workflow-telemetry-correlation.mjs
+--- a/scripts/test-workflow-telemetry-correlation.mjs	2026-09-28 10:53:35.000000000 +0000
++++ b/scripts/test-workflow-telemetry-correlation.mjs	2026-09-29 23:14:59.370466621 +0000
 @@ -4,6 +4,7 @@
  const correlation = await readFile(new URL('../lib/execution-attempt-correlation.ts', import.meta.url), 'utf8');
  const ai = await readFile(new URL('../lib/ai-runs.ts', import.meta.url), 'utf8');
@@ -471,9 +471,9 @@ diff -ruN /mnt/data/nexa_rc_original/scripts/test-workflow-telemetry-correlation
 +if (!/alter table tool_runs[\s\S]*add column if not exists workflow_id uuid references workflows/.test(fences)) throw new Error('Tool telemetry schema is missing workflow_id correlation.');
 +if (!/insert into tool_runs \(user_id, conversation_id, project_id, workflow_id, request_id, execution_attempt_id/.test(tools)) throw new Error('Tool telemetry does not persist workflow_id with execution_attempt_id.');
  console.log('NEXA workflow telemetry correlation enforcement tests passed.');
-diff -ruN /mnt/data/nexa_rc_original/scripts/validate.mjs /mnt/data/nexa_rc_full/scripts/validate.mjs
---- /mnt/data/nexa_rc_original/scripts/validate.mjs	2026-09-28 10:53:35.000000000 +0000
-+++ /mnt/data/nexa_rc_full/scripts/validate.mjs	2026-09-29 23:15:15.215931435 +0000
+diff -ruN a/scripts/validate.mjs b/scripts/validate.mjs
+--- a/scripts/validate.mjs	2026-09-28 10:53:35.000000000 +0000
++++ b/scripts/validate.mjs	2026-09-29 23:15:15.215931435 +0000
 @@ -94,6 +94,7 @@
  if (!chatRouteForMessages.includes('if (existingAssistant.rows[0])') && chatRouteForMessages.includes('assistantMessageId = existingAssistant.rows[0].id')) failures.push('Assistant message persistence is not exactly-once per execution attempt.');
  const telemetryFenceMigration = await read('db/031_execution_telemetry_fences.sql');
