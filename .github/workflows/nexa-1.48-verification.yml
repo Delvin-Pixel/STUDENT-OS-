@@ -1,0 +1,89 @@
+name: NEXA 1.48 RC verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - nexa-1.48-verification
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: nexa
+          POSTGRES_PASSWORD: nexa-ci-password
+          POSTGRES_DB: nexa_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexa -d nexa_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://nexa:nexa-ci-password@127.0.0.1:5432/nexa_test
+      AI_GATEWAY_API_KEY: ci-placeholder-not-used-for-live-model-calls
+      RATE_LIMIT_SECRET: ci-only-rate-limit-secret-0123456789abcdef
+      NEXA_DB_POOL_MAX: '5'
+      NEXA_DB_STATEMENT_TIMEOUT_MS: '15000'
+      NEXA_MODEL: openai/gpt-5.6-sol
+      NEXA_AI_TOTAL_TIMEOUT_MS: '120000'
+      NEXA_AI_STEP_TIMEOUT_MS: '45000'
+      NEXA_AI_CHUNK_TIMEOUT_MS: '15000'
+      NEXA_AI_MAX_RETRIES: '1'
+
+    steps:
+      - name: Checkout verification branch
+        uses: actions/checkout@v4
+
+      - name: Reconstruct exact NEXA RC payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nexa"
+          cat .nexa-verify/v2-part-* | tr -d '\r\n\t ' | base64 --decode > "$RUNNER_TEMP/nexa-payload.tar.xz"
+          echo "59d9ce1c9ae6bbb7f4f6d55ad2cced614c674083c98c7638a5d8611ad217df96  $RUNNER_TEMP/nexa-payload.tar.xz" | sha256sum -c -
+          tar -xJf "$RUNNER_TEMP/nexa-payload.tar.xz" -C "$RUNNER_TEMP/nexa"
+          grep -q '"version": "1.48.0-rc.1"' "$RUNNER_TEMP/nexa/package.json"
+
+      - name: Use Node 22.16.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+
+      - name: Pin npm
+        run: npm install --global npm@10.9.2
+
+      - name: Resolve dependency lock for this verification run
+        working-directory: ${{ runner.temp }}/nexa
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Restore exact resolved dependency tree
+        working-directory: ${{ runner.temp }}/nexa
+        run: npm ci --no-audit --no-fund
+
+      - name: Apply PostgreSQL migrations
+        working-directory: ${{ runner.temp }}/nexa
+        run: npm run migrate
+
+      - name: Full verification gate
+        working-directory: ${{ runner.temp }}/nexa
+        run: npm run verify:ci
+
+      - name: Preserve resolved lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexa-package-lock
+          path: ${{ runner.temp }}/nexa/package-lock.json
+          if-no-files-found: error
+          retention-days: 14
