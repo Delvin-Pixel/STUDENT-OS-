@@ -264,7 +264,7 @@ jobs:
           echo "4dcb0d276d8459ebbd51b05fa7602f4c42c753f6e5c588f8b733f5aa656f8361  $RUNNER_TEMP/nexa-1.51.0-durable-semantic.patch.xz" | sha256sum -c -
           xz -dc "$RUNNER_TEMP/nexa-1.51.0-durable-semantic.patch.xz" > "$RUNNER_TEMP/nexa-1.51.0-durable-semantic.patch"
           echo "2f763ae493da23ddd073323c0a1186d1dbe70613c228f4ce0e51b6ece8f34af4  $RUNNER_TEMP/nexa-1.51.0-durable-semantic.patch" | sha256sum -c -
-          patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$RUNNER_TEMP/nexa-1.51.0-durable-semantic.patch"
+          patch --batch --forward -p4 -d "$RUNNER_TEMP/nexa" < "$RUNNER_TEMP/nexa-1.51.0-durable-semantic.patch"
           echo "3243645ace10bd283d028ccf71a24014f3fbc7af8ec344191f9f91197d639d22  $RUNNER_TEMP/nexa/package-lock.json" | sha256sum -c -
           grep -q '"version": "1.51.0"' "$RUNNER_TEMP/nexa/package.json"
           grep -q "export const NEXA_VERSION = '1.51.0'" "$RUNNER_TEMP/nexa/lib/version.ts"
