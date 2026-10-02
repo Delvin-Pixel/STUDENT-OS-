@@ -1,0 +1,111 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786578538638,
+      "tag": "0000_remarkable_vengeance",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786585957072,
+      "tag": "0001_lying_vapor",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786611136635,
+      "tag": "0002_absent_earthquake",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1787313494292,
+      "tag": "0003_brown_polaris",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1787391967211,
+      "tag": "0004_rainy_butterfly",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1787393003627,
+      "tag": "0005_romantic_jack_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1787429474318,
+      "tag": "0006_large_master_mold",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1787445055038,
+      "tag": "0007_oval_punisher",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1787447133233,
+      "tag": "0008_empty_fallen_one",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1787480914210,
+      "tag": "0009_secret_wendell_vaughn",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1787481229194,
+      "tag": "0010_small_black_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1787486445033,
+      "tag": "0011_good_veda",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1787486747365,
+      "tag": "0012_daily_skullbuster",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1787652777128,
+      "tag": "0013_pretty_cardiac",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "5",
+      "when": 1790523457543,
+      "tag": "0014_student_os_entitlements",
+      "breakpoints": true
+    }
+  ]
+}

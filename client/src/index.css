@@ -1,0 +1,558 @@
+/*
+ * STUDENT OS — "Daybreak Workspace" design system
+ * Warm light-first canvas, Daybreak Coral primary (oklch 0.65 0.19 35),
+ * deep warm ink text, subject color coding (coral/teal/violet/amber/sky/emerald).
+ * Dark theme = deep warm aubergine-slate. Outfit (display) + Public Sans (body).
+ * Motion: snappy ease-out, <300ms; buttons scale(0.97) on active.
+ */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", "Public Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 1rem;
+  /* Daybreak Coral primary */
+  --primary: oklch(0.65 0.19 35);
+  --primary-foreground: oklch(0.99 0.005 85);
+  --background: oklch(0.977 0.011 85);
+  --foreground: oklch(0.24 0.02 40);
+  --card: oklch(0.995 0.004 90);
+  --card-foreground: oklch(0.24 0.02 40);
+  --popover: oklch(0.995 0.004 90);
+  --popover-foreground: oklch(0.24 0.02 40);
+  --secondary: oklch(0.945 0.02 75);
+  --secondary-foreground: oklch(0.35 0.03 40);
+  --muted: oklch(0.945 0.012 85);
+  --muted-foreground: oklch(0.5 0.02 50);
+  --accent: oklch(0.93 0.04 55);
+  --accent-foreground: oklch(0.32 0.05 40);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.9 0.015 80);
+  --input: oklch(0.9 0.015 80);
+  --ring: oklch(0.65 0.19 35);
+  /* Subject chart palette */
+  --chart-1: oklch(0.65 0.19 35);
+  --chart-2: oklch(0.62 0.11 195);
+  --chart-3: oklch(0.55 0.18 295);
+  --chart-4: oklch(0.78 0.15 75);
+  --chart-5: oklch(0.68 0.12 235);
+  --chart-6: oklch(0.62 0.15 155);
+  --sidebar: oklch(0.965 0.014 85);
+  --sidebar-foreground: oklch(0.24 0.02 40);
+  --sidebar-primary: oklch(0.65 0.19 35);
+  --sidebar-primary-foreground: oklch(0.99 0.005 85);
+  --sidebar-accent: oklch(0.92 0.03 55);
+  --sidebar-accent-foreground: oklch(0.32 0.05 40);
+  --sidebar-border: oklch(0.9 0.015 80);
+  --sidebar-ring: oklch(0.65 0.19 35);
+}
+
+.dark {
+  --primary: oklch(0.7 0.18 40);
+  --primary-foreground: oklch(0.15 0.02 40);
+  --background: oklch(0.19 0.02 320);
+  --foreground: oklch(0.92 0.012 80);
+  --card: oklch(0.235 0.022 320);
+  --card-foreground: oklch(0.92 0.012 80);
+  --popover: oklch(0.235 0.022 320);
+  --popover-foreground: oklch(0.92 0.012 80);
+  --secondary: oklch(0.28 0.025 320);
+  --secondary-foreground: oklch(0.8 0.015 80);
+  --muted: oklch(0.28 0.022 320);
+  --muted-foreground: oklch(0.65 0.02 60);
+  --accent: oklch(0.3 0.04 40);
+  --accent-foreground: oklch(0.9 0.03 60);
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.7 0.18 40);
+  --chart-1: oklch(0.72 0.17 40);
+  --chart-2: oklch(0.68 0.11 195);
+  --chart-3: oklch(0.62 0.16 295);
+  --chart-4: oklch(0.8 0.14 78);
+  --chart-5: oklch(0.72 0.12 235);
+  --chart-6: oklch(0.68 0.14 155);
+  --sidebar: oklch(0.21 0.022 320);
+  --sidebar-foreground: oklch(0.92 0.012 80);
+  --sidebar-primary: oklch(0.7 0.18 40);
+  --sidebar-primary-foreground: oklch(0.15 0.02 40);
+  --sidebar-accent: oklch(0.29 0.035 40);
+  --sidebar-accent-foreground: oklch(0.92 0.03 60);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.7 0.18 40);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+      max-width: 1280px;
+    }
+  }
+
+  /* Card lift on hover (desktop) */
+  .lift-card {
+    transition:
+      transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
+      box-shadow 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @media (hover: hover) {
+    .lift-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px -8px rgb(244 116 88 / 0.18);
+    }
+  }
+
+  /* Active press feedback for all interactive buttons */
+  button:active,
+  [role="button"]:active,
+  a[role="button"]:active {
+    transform: scale(0.97);
+    transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  /* ── Premium "Sunrise" buttons ──
+     Signature STUDENT OS action button: warm gradient, soft glow halo,
+     shimmer sweep on hover, confident lift. Primary CTA style. */
+  .btn-sunrise {
+    position: relative;
+    background: linear-gradient(
+      120deg,
+      oklch(0.68 0.21 40),
+      oklch(0.68 0.17 60) 55%,
+      oklch(0.72 0.16 78)
+    );
+    background-size: 200% 200%;
+    color: oklch(0.99 0.005 85);
+    font-weight: 600;
+    border-radius: 9999px;
+    border: 1px solid oklch(0.99 0.005 85 / 25%);
+    box-shadow:
+      0 4px 16px -4px oklch(0.65 0.19 35 / 45%),
+      inset 0 1px 0 oklch(1 0 0 / 30%);
+    overflow: hidden;
+    transition:
+      transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+      box-shadow 220ms cubic-bezier(0.23, 1, 0.32, 1),
+      background-position 600ms ease;
+  }
+  .btn-sunrise::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-110%) skewX(-20deg);
+    background: linear-gradient(
+      100deg,
+      transparent 20%,
+      oklch(1 0 0 / 42%) 45%,
+      transparent 70%
+    );
+    transition: transform 480ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @media (hover: hover) {
+    .btn-sunrise:hover {
+      transform: translateY(-2px);
+      background-position: 100% 100%;
+      box-shadow:
+        0 8px 28px -6px oklch(0.65 0.19 35 / 55%),
+        0 0 0 4px oklch(0.65 0.19 35 / 12%),
+        inset 0 1px 0 oklch(1 0 0 / 35%);
+    }
+    .btn-sunrise:hover::after {
+      transform: translateX(110%) skewX(-20deg);
+    }
+  }
+  .btn-sunrise:active {
+    transform: translateY(0) scale(0.97) !important;
+    transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  /* ── Glass surface ──
+     Soft frosted card for hero moments (dashboard greeting, streak banner). */
+  .glass {
+    background: linear-gradient(
+      135deg,
+      oklch(0.995 0.004 90 / 85%),
+      oklch(0.985 0.01 85 / 65%)
+    );
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .dark .glass {
+    background: linear-gradient(
+      135deg,
+      oklch(0.26 0.025 320 / 80%),
+      oklch(0.22 0.02 320 / 60%)
+    );
+  }
+
+  /* ── Animated gradient hero ── */
+  .sunrise-sweep {
+    background: linear-gradient(
+      -45deg,
+      oklch(0.68 0.21 40),
+      oklch(0.75 0.14 75),
+      oklch(0.62 0.16 295),
+      oklch(0.62 0.12 195)
+    );
+    background-size: 300% 300%;
+    animation: sunriseSweep 9s ease infinite;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes sunriseSweep {
+      0%,
+      100% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+    }
+  }
+
+  /* ── Confetti burst particles (for celebrations) ── */
+  @media (prefers-reduced-motion: no-preference) {
+    .pop-in {
+      animation: popIn 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: scale(0.85) translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+    .float-up {
+      animation: floatUp 600ms cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+    @keyframes floatUp {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .wiggle {
+      animation: wiggle 0.5s ease-in-out;
+    }
+    @keyframes wiggle {
+      0%,
+      100% {
+        transform: rotate(0deg);
+      }
+      25% {
+        transform: rotate(-4deg);
+      }
+      75% {
+        transform: rotate(4deg);
+      }
+    }
+  }
+
+  /* Flashcard 3D flip */
+  .flip-container {
+    perspective: 1200px;
+  }
+  .flip-inner {
+    transition: transform 260ms cubic-bezier(0.77, 0, 0.175, 1);
+    transform-style: preserve-3d;
+  }
+  .flip-inner.flipped {
+    transform: rotateY(180deg);
+  }
+
+  /* Command palette shimmer on focused input */
+  .kbd-cmd {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 2px 7px;
+    border-radius: 6px;
+    border: 1px solid oklch(0.85 0.02 80);
+    color: oklch(0.5 0.02 50);
+    background: oklch(0.96 0.01 90);
+    box-shadow: 0 1px 0 oklch(0.9 0.01 80);
+  }
+  .dark .kbd-cmd {
+    border-color: oklch(1 0 0 / 15%);
+    color: oklch(0.7 0.015 80);
+    background: oklch(0.28 0.02 320);
+  }
+
+  /* ── Loading skeleton shimmer ── */
+  @media (prefers-reduced-motion: no-preference) {
+    .skeleton-shimmer {
+      background: linear-gradient(
+        100deg,
+        hsl(var(--accent) / 0.55) 0%,
+        hsl(var(--accent) / 0.9) 45%,
+        hsl(var(--accent) / 0.45) 55%,
+        hsl(var(--accent) / 0.55) 100%
+      );
+      background-size: 220% 100%;
+      animation: skeletonShimmer 1.8s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+    }
+    @keyframes skeletonShimmer {
+      0% {
+        background-position: 220% 0;
+      }
+      100% {
+        background-position: -220% 0;
+      }
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .gentle-bob {
+      animation: gentleBob 1.9s ease-in-out infinite;
+    }
+    @keyframes gentleBob {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-6px);
+      }
+    }
+  }
+
+  .flip-face {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .flip-back {
+    transform: rotateY(180deg);
+  }
+
+  /* Page entrance */
+  @media (prefers-reduced-motion: no-preference) {
+    .page-in {
+      animation: pageIn 320ms cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+    @keyframes pageIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  }
+
+  /* Streak flame pulse */
+  @media (prefers-reduced-motion: no-preference) {
+    .flame-pulse {
+      animation: flamePulse 1.6s ease-in-out infinite;
+    }
+    @keyframes flamePulse {
+      0%,
+      100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.12);
+      }
+    }
+  }
+}
+
+/* Timer ring */
+.timer-ring {
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+.timer-ring circle.progress {
+  transition: stroke-dashoffset 500ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* A final guard covers transitions declared outside individual motion blocks. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Hide scrollbar but keep scroll */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Educational loading scene: lesson preparation ── */
+@media (prefers-reduced-motion: no-preference) {
+  .lesson-orbit {
+    animation: lessonOrbit 16s linear infinite;
+    transform-origin: center;
+  }
+  .lesson-orbit-reverse {
+    animation: lessonOrbitReverse 16s linear infinite;
+    transform-origin: center;
+  }
+  .lesson-float {
+    animation: lessonFloat 2.4s ease-in-out infinite;
+  }
+  .particle-drift {
+    animation: particleDrift 5s ease-in infinite;
+  }
+  @keyframes lessonOrbit {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes lessonOrbitReverse {
+    from {
+      transform: rotate(360deg);
+    }
+    to {
+      transform: rotate(0deg);
+    }
+  }
+  @keyframes lessonFloat {
+    0%,
+    100% {
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+    50% {
+      transform: translate(-50%, calc(-50% - 7px)) rotate(4deg);
+    }
+  }
+  @keyframes particleDrift {
+    0% {
+      transform: translateY(0) scale(0.6);
+      opacity: 0;
+    }
+    15% {
+      opacity: 0.9;
+    }
+    85% {
+      opacity: 0.5;
+    }
+    100% {
+      transform: translateY(-9rem) scale(1.25);
+      opacity: 0;
+    }
+  }
+}
