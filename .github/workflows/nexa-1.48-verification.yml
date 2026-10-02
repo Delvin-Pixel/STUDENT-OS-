@@ -444,12 +444,24 @@ jobs:
           test -f "$RUNNER_TEMP/nexa/.github/workflows/verify.yml"
           grep -q 'branches: \[nexa-main\]' "$RUNNER_TEMP/nexa/.github/workflows/verify.yml"
 
-          rsync -a --delete --exclude='.git/' "$RUNNER_TEMP/nexa/" "$GITHUB_WORKSPACE/"
+          # The GitHub Actions token cannot create/update workflow files on push.
+          # Preserve the already-tracked staging workflow unchanged for this handoff;
+          # the connector installs the verified canonical workflow after nexa-main exists.
+          cp "$GITHUB_WORKSPACE/.github/workflows/nexa-1.48-verification.yml" "$RUNNER_TEMP/promotion-workflow.yml"
+          rsync -a --delete --exclude='.git/' --exclude='.github/workflows/' "$RUNNER_TEMP/nexa/" "$GITHUB_WORKSPACE/"
+          mkdir -p "$GITHUB_WORKSPACE/.github/workflows"
+          cp "$RUNNER_TEMP/promotion-workflow.yml" "$GITHUB_WORKSPACE/.github/workflows/nexa-1.48-verification.yml"
+          rm -f "$GITHUB_WORKSPACE/.github/workflows/verify.yml"
           rm -rf "$GITHUB_WORKSPACE/node_modules" "$GITHUB_WORKSPACE/.next" "$GITHUB_WORKSPACE/release-artifacts"
 
           git -C "$GITHUB_WORKSPACE" config user.name "github-actions[bot]"
           git -C "$GITHUB_WORKSPACE" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git -C "$GITHUB_WORKSPACE" add -A
+          if ! git -C "$GITHUB_WORKSPACE" diff --cached --quiet -- .github/workflows; then
+            echo "Promotion unexpectedly changes workflow files; refusing handoff." >&2
+            git -C "$GITHUB_WORKSPACE" diff --cached -- .github/workflows >&2
+            exit 1
+          fi
           git -C "$GITHUB_WORKSPACE" diff --cached --quiet && {
             echo "Canonical promotion produced no Git changes." >&2
             exit 1
