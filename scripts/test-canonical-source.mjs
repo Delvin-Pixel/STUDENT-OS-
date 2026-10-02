@@ -17,7 +17,7 @@ assert.match(workflow, /actions\/checkout@v7/);
 assert.match(workflow, /actions\/setup-node@v7/);
 assert.match(workflow, /nexa-1\.55\.0-verified/);
 assert.match(workflow, /nexa-1\.55\.0-verification-evidence/);
-assert.match(workflow, /--exclude='\\.\/\\.git'/);
+assert.match(workflow, /--exclude='\.\/\.git'/);
 assert.doesNotMatch(workflow, /\.nexa-verify/);
 assert.doesNotMatch(workflow, /Reconstruct exact NEXA|Reconstruct and apply NEXA/);
 
