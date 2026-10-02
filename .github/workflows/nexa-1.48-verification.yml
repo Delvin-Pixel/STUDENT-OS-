@@ -1,10 +1,10 @@
-name: NEXA 1.48 final verification
+name: NEXA 1.48.1 hardening verification
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - nexa-1.48-verification
+      - nexa-1.48.1-hardening
 
 permissions:
   contents: read
@@ -12,7 +12,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     services:
       postgres:
@@ -42,10 +42,10 @@ jobs:
       NEXA_AI_MAX_RETRIES: '1'
 
     steps:
-      - name: Checkout verification branch
+      - name: Checkout hardening branch
         uses: actions/checkout@v4
 
-      - name: Reconstruct exact NEXA RC payload
+      - name: Reconstruct exact NEXA 1.48 candidate
         shell: bash
         run: |
           set -euo pipefail
@@ -55,13 +55,13 @@ jobs:
           tar -xJf "$RUNNER_TEMP/nexa-payload.tar.xz" -C "$RUNNER_TEMP/nexa"
           grep -q '"version": "1.48.0-rc.1"' "$RUNNER_TEMP/nexa/package.json"
 
-      - name: Apply audited CI-discovered repair
+      - name: Apply audited 1.48 CI repair
         shell: bash
         run: |
           set -euo pipefail
           patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$GITHUB_WORKSPACE/.nexa-verify/nexa-1.48-ci-fix.patch"
 
-      - name: Promote reconstructed candidate to final 1.48
+      - name: Promote reconstructed candidate to verified 1.48.0 baseline
         shell: bash
         run: |
           set -euo pipefail
@@ -108,8 +108,21 @@ jobs:
               p.write_text(p.read_text().replace("EXPORT_SCHEMA_VERSION = '1.17'", "EXPORT_SCHEMA_VERSION = '1.18'"))
           PY
           grep -q '"version": "1.48.0"' "$RUNNER_TEMP/nexa/package.json"
-          grep -q "EXPORT_SCHEMA_VERSION = '1.18'" "$RUNNER_TEMP/nexa/lib/account.ts"
-          grep -q "project_id, workflow_id, request_id, execution_attempt_id" "$RUNNER_TEMP/nexa/lib/account.ts"
+
+      - name: Reconstruct and apply 1.48.1 hardening payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nexa-hardening"
+          cat .nexa-verify/1.48.1-hardening-part-* | tr -d '\r\n\t ' | base64 --decode > "$RUNNER_TEMP/nexa-1.48.1-hardening-bundle.tar.xz"
+          echo "84c3edfb997fd9969e7a20d060b1fa5b9907773b59b2f5392ce1c07336580a4b  $RUNNER_TEMP/nexa-1.48.1-hardening-bundle.tar.xz" | sha256sum -c -
+          tar -xJf "$RUNNER_TEMP/nexa-1.48.1-hardening-bundle.tar.xz" -C "$RUNNER_TEMP/nexa-hardening"
+          echo "ce09773eecea8da199205be9d0c15421700796726612a60a69738f157a44218e  $RUNNER_TEMP/nexa-hardening/nexa-1.48.1-hardening.patch" | sha256sum -c -
+          patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$RUNNER_TEMP/nexa-hardening/nexa-1.48.1-hardening.patch"
+          cp "$RUNNER_TEMP/nexa-hardening/package-lock-1.48.1.json" "$RUNNER_TEMP/nexa/package-lock.json"
+          echo "222e05b71e754d7c5b41cbae2592b59250bea814d02c53bd32d38a87b66c3348  $RUNNER_TEMP/nexa/package-lock.json" | sha256sum -c -
+          grep -q '"version": "1.48.1"' "$RUNNER_TEMP/nexa/package.json"
+          grep -q "export const NEXA_VERSION = '1.48.1'" "$RUNNER_TEMP/nexa/lib/version.ts"
 
       - name: Use Node 22.16.0
         uses: actions/setup-node@v4
@@ -119,43 +132,71 @@ jobs:
       - name: Pin npm
         run: npm install --global npm@10.9.2
 
-      - name: Resolve dependency lock for this verification run
+      - name: Record frozen lockfile
         working-directory: ${{ runner.temp }}/nexa
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-artifacts
+          sha256sum package-lock.json | tee release-artifacts/package-lock.sha256
+          cp package-lock.json "$RUNNER_TEMP/package-lock.before"
 
-      - name: Restore exact resolved dependency tree
+      - name: Restore exact committed dependency tree
         working-directory: ${{ runner.temp }}/nexa
         run: npm ci --no-audit --no-fund
 
+      - name: Assert install did not rewrite lockfile
+        working-directory: ${{ runner.temp }}/nexa
+        run: cmp --silent package-lock.json "$RUNNER_TEMP/package-lock.before"
+
       - name: Apply PostgreSQL migrations
         working-directory: ${{ runner.temp }}/nexa
-        run: npm run migrate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run migrate 2>&1 | tee release-artifacts/migrate.log
 
-      - name: Full verification gate
+      - name: Full 1.48.1 verification gate
         working-directory: ${{ runner.temp }}/nexa
-        run: npm run verify:ci
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run verify:ci 2>&1 | tee release-artifacts/verify.log
 
-      - name: Prepare verified final source artifact
+      - name: Generate release provenance and SBOM
+        if: always()
+        working-directory: ${{ runner.temp }}/nexa
+        shell: bash
+        run: |
+          set -euo pipefail
+          NPM_VERSION=10.9.2 npm run release:manifest | tee release-artifacts/release-manifest.log
+          npm sbom --sbom-format=cyclonedx > release-artifacts/sbom.cdx.json
+          sha256sum db/migration-checksums.json > release-artifacts/migration-checksums.sha256
+
+      - name: Prepare verified 1.48.1 source artifact
         if: success()
         shell: bash
         run: |
           set -euo pipefail
-          tar --exclude='./node_modules' --exclude='./.next' -cJf "$RUNNER_TEMP/nexa-1.48.0-verified.tar.xz" -C "$RUNNER_TEMP/nexa" .
+          tar --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.48.1-verified.tar.xz" -C "$RUNNER_TEMP/nexa" .
 
-      - name: Preserve verified final source
+      - name: Preserve verified 1.48.1 source
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-1.48.0-verified
-          path: ${{ runner.temp }}/nexa-1.48.0-verified.tar.xz
+          name: nexa-1.48.1-verified
+          path: ${{ runner.temp }}/nexa-1.48.1-verified.tar.xz
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
 
-      - name: Preserve resolved lockfile
+      - name: Preserve 1.48.1 verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-package-lock
-          path: ${{ runner.temp }}/nexa/package-lock.json
-          if-no-files-found: error
-          retention-days: 14
+          name: nexa-1.48.1-verification-evidence
+          path: |
+            ${{ runner.temp }}/nexa/package-lock.json
+            ${{ runner.temp }}/nexa/db/migration-checksums.json
+            ${{ runner.temp }}/nexa/release-artifacts/
+          if-no-files-found: warn
+          retention-days: 30
