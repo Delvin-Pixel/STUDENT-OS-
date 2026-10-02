@@ -1,0 +1,26 @@
+export const ENV = {
+  appId: process.env.VITE_APP_ID ?? "",
+  cookieSecret: process.env.JWT_SECRET ?? "",
+  databaseUrl: process.env.DATABASE_URL ?? "",
+  oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
+  ownerSubject: process.env.OWNER_SUBJECT ?? process.env.OWNER_OPEN_ID ?? "",
+  isProduction: process.env.NODE_ENV === "production",
+  storageBucket: process.env.STORAGE_BUCKET ?? "",
+  storageRegion: process.env.STORAGE_REGION ?? "",
+  storageEndpoint: process.env.STORAGE_ENDPOINT ?? "",
+  storageForcePathStyle: /^(1|true|yes)$/i.test(
+    process.env.STORAGE_FORCE_PATH_STYLE ?? ""
+  ),
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? "",
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
+  vapidSubject: process.env.VAPID_SUBJECT ?? "notifications@studentos.local",
+  openAiApiKey: process.env.OPENAI_API_KEY ?? "",
+  openAiApiBaseUrl: process.env.OPENAI_API_BASE_URL ?? "https://api.openai.com",
+  googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY ?? "",
+  schedulerApiUrl: process.env.SCHEDULER_API_URL ?? "",
+  schedulerApiKey: process.env.SCHEDULER_API_KEY ?? "",
+  ownerNotificationWebhookUrl: process.env.OWNER_NOTIFICATION_WEBHOOK_URL ?? "",
+  ownerNotificationWebhookKey: process.env.OWNER_NOTIFICATION_WEBHOOK_KEY ?? "",
+  dataApiBaseUrl: process.env.DATA_API_BASE_URL ?? "",
+  dataApiKey: process.env.DATA_API_KEY ?? "",
+};
