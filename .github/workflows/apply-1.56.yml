@@ -1,0 +1,59 @@
+name: NEXA 1.56 source staging
+
+on:
+  push:
+    branches: [nexa-1.56.0-external-provenance]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ hashFiles('.nexa-build/1.56.0-source.patch.xz.b64') != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout staged branch
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify staged payload and apply exact source patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .nexa-build/1.56.0-source.patch.xz.b64)" = "027e17ecfeccb21520e01de2a1ecf923a1bcdd7c"
+          base64 --decode .nexa-build/1.56.0-source.patch.xz.b64 > "$RUNNER_TEMP/nexa-1.56.0-source.patch.xz"
+          xz -t "$RUNNER_TEMP/nexa-1.56.0-source.patch.xz"
+          xz -dc "$RUNNER_TEMP/nexa-1.56.0-source.patch.xz" > "$RUNNER_TEMP/nexa-1.56.0-source.patch"
+          sha256sum "$RUNNER_TEMP/nexa-1.56.0-source.patch.xz"
+          sha256sum "$RUNNER_TEMP/nexa-1.56.0-source.patch"
+
+          git apply --check --exclude=.github/workflows/verify.yml "$RUNNER_TEMP/nexa-1.56.0-source.patch"
+          git apply --exclude=.github/workflows/verify.yml "$RUNNER_TEMP/nexa-1.56.0-source.patch"
+
+          test "$(node -p "require('./package.json').version")" = "1.56.0"
+          grep -q "export const NEXA_VERSION = '1.56.0'" lib/version.ts
+          test -f db/039_external_source_provenance.sql
+          test -f lib/external-sources.ts
+          test -f scripts/test-external-provenance.mjs
+          test -f scripts/test-postgres-external-provenance.mjs
+          node scripts/validate.mjs
+          node scripts/test-external-provenance.mjs
+          node scripts/test-grounding-provenance.mjs
+          node scripts/test-canonical-source.mjs
+
+      - name: Commit ordinary 1.56 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .nexa-build
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet -- .github/workflows/verify.yml; then
+            echo "verify.yml unexpectedly changed during payload application" >&2
+            exit 1
+          fi
+          git commit -m "feat(nexa): durable external source provenance"
+          git push origin HEAD:nexa-1.56.0-external-provenance
