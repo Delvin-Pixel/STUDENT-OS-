@@ -1,10 +1,10 @@
-name: NEXA 1.48.1 hardening verification
+name: NEXA 1.49.0 project files verification
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - nexa-1.48.1-hardening
+      - nexa-1.49.0-project-files
 
 permissions:
   contents: read
@@ -42,7 +42,7 @@ jobs:
       NEXA_AI_MAX_RETRIES: '1'
 
     steps:
-      - name: Checkout hardening branch
+      - name: Checkout verification branch
         uses: actions/checkout@v4
 
       - name: Reconstruct exact NEXA 1.48 candidate
@@ -190,6 +190,19 @@ jobs:
           echo "518dfb581b64c3b896d0cd315bcdece29195174a14773b064df275d67393f377  $GITHUB_WORKSPACE/.nexa-verify/nexa-1.48.1-integrity-checker.patch" | sha256sum -c -
           patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$GITHUB_WORKSPACE/.nexa-verify/nexa-1.48.1-integrity-checker.patch"
 
+      - name: Reconstruct and apply NEXA 1.49.0 project files payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .nexa-verify/1.49.0-project-files-part-* | tr -d '\r\n\t ' | base64 --decode > "$RUNNER_TEMP/nexa-1.49.0-project-files.patch.xz"
+          echo "65c9e750ee35dcdece951be7869bb16f274e56808c44ef337ec0e709f7e6e054  $RUNNER_TEMP/nexa-1.49.0-project-files.patch.xz" | sha256sum -c -
+          xz -dc "$RUNNER_TEMP/nexa-1.49.0-project-files.patch.xz" > "$RUNNER_TEMP/nexa-1.49.0-project-files.patch"
+          echo "e3ad5463cb4128e467c724ef32246fb72e9902a55436f30cec045c4f0ffe1472  $RUNNER_TEMP/nexa-1.49.0-project-files.patch" | sha256sum -c -
+          patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$RUNNER_TEMP/nexa-1.49.0-project-files.patch"
+          grep -q '"version": "1.49.0"' "$RUNNER_TEMP/nexa/package.json"
+          grep -q "export const NEXA_VERSION = '1.49.0'" "$RUNNER_TEMP/nexa/lib/version.ts"
+          grep -q '"035_project_knowledge_files.sql"' "$RUNNER_TEMP/nexa/db/migration-checksums.json"
+
       - name: Use Node 22.16.0
         uses: actions/setup-node@v4
         with:
@@ -222,7 +235,7 @@ jobs:
           set -euo pipefail
           npm run migrate 2>&1 | tee release-artifacts/migrate.log
 
-      - name: Full 1.48.1 verification gate
+      - name: Full 1.49.0 verification gate
         working-directory: ${{ runner.temp }}/nexa
         shell: bash
         run: |
@@ -240,27 +253,27 @@ jobs:
           npm sbom --sbom-format=cyclonedx > release-artifacts/sbom.cdx.json
           sha256sum db/migration-checksums.json > release-artifacts/migration-checksums.sha256
 
-      - name: Prepare verified 1.48.1 source artifact
+      - name: Prepare verified 1.49.0 source artifact
         if: success()
         shell: bash
         run: |
           set -euo pipefail
-          tar --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.48.1-verified.tar.xz" -C "$RUNNER_TEMP/nexa" .
+          tar --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.49.0-verified.tar.xz" -C "$RUNNER_TEMP/nexa" .
 
-      - name: Preserve verified 1.48.1 source
+      - name: Preserve verified 1.49.0 source
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-1.48.1-verified
-          path: ${{ runner.temp }}/nexa-1.48.1-verified.tar.xz
+          name: nexa-1.49.0-verified
+          path: ${{ runner.temp }}/nexa-1.49.0-verified.tar.xz
           if-no-files-found: error
           retention-days: 30
 
-      - name: Preserve 1.48.1 verification evidence
+      - name: Preserve 1.49.0 verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-1.48.1-verification-evidence
+          name: nexa-1.49.0-verification-evidence
           path: |
             ${{ runner.temp }}/nexa/package-lock.json
             ${{ runner.temp }}/nexa/db/migration-checksums.json
