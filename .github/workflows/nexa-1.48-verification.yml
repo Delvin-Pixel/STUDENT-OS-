@@ -1,10 +1,10 @@
-name: NEXA 1.53.0 grounded answer provenance verification
+name: NEXA 1.54.0 capability health verification
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - nexa-1.53.0-grounded-provenance
+      - nexa-1.54.0-capability-diagnostics
 
 permissions:
   contents: read
@@ -315,6 +315,27 @@ jobs:
           node "$RUNNER_TEMP/nexa/scripts/test-grounding-provenance.mjs"
           node "$RUNNER_TEMP/nexa/scripts/validate.mjs"
 
+      - name: Reconstruct and apply NEXA 1.54.0 capability diagnostics payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .nexa-verify/1.54.0-capability-diagnostics-part-* | tr -d '\r\n\t ' | base64 --decode > "$RUNNER_TEMP/nexa-1.54.0-capability-diagnostics.patch.xz"
+          echo "0b3c45264d3c2dde2f5ba0896997158c13629c296b84a48ed687a087b32a14c0  $RUNNER_TEMP/nexa-1.54.0-capability-diagnostics.patch.xz" | sha256sum -c -
+          xz -dc "$RUNNER_TEMP/nexa-1.54.0-capability-diagnostics.patch.xz" > "$RUNNER_TEMP/nexa-1.54.0-capability-diagnostics.patch"
+          echo "b29111d288a00b9afe90b17bf53632e86c9fd0e9edea6f0a9bf974c8a0c55748  $RUNNER_TEMP/nexa-1.54.0-capability-diagnostics.patch" | sha256sum -c -
+          patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$RUNNER_TEMP/nexa-1.54.0-capability-diagnostics.patch"
+          echo "3e0707c8f04df351692b25946e004c8595ee50a8d003e3142d7e0f775c9c4256  $RUNNER_TEMP/nexa/package-lock.json" | sha256sum -c -
+          grep -q '"name": "nexa-1-54"' "$RUNNER_TEMP/nexa/package.json"
+          grep -q '"version": "1.54.0"' "$RUNNER_TEMP/nexa/package.json"
+          grep -q "export const NEXA_VERSION = '1.54.0'" "$RUNNER_TEMP/nexa/lib/version.ts"
+          grep -q '"038_grounded_answer_provenance.sql"' "$RUNNER_TEMP/nexa/db/migration-checksums.json"
+          test -f "$RUNNER_TEMP/nexa/lib/capability-diagnostics.ts"
+          test -f "$RUNNER_TEMP/nexa/app/api/health/capabilities/route.ts"
+          test -f "$RUNNER_TEMP/nexa/scripts/smoke-capabilities.mjs"
+          test -f "$RUNNER_TEMP/nexa/scripts/test-capability-diagnostics.mjs"
+          node "$RUNNER_TEMP/nexa/scripts/test-capability-diagnostics.mjs"
+          node "$RUNNER_TEMP/nexa/scripts/validate.mjs"
+
       - name: Use Node 22.16.0
         uses: actions/setup-node@v4
         with:
@@ -347,7 +368,7 @@ jobs:
           set -euo pipefail
           npm run migrate 2>&1 | tee release-artifacts/migrate.log
 
-      - name: Full 1.53.0 verification gate
+      - name: Full 1.54.0 verification gate
         working-directory: ${{ runner.temp }}/nexa
         shell: bash
         run: |
@@ -365,27 +386,27 @@ jobs:
           npm sbom --sbom-format=cyclonedx > release-artifacts/sbom.cdx.json
           sha256sum db/migration-checksums.json > release-artifacts/migration-checksums.sha256
 
-      - name: Prepare verified 1.53.0 source artifact
+      - name: Prepare verified 1.54.0 source artifact
         if: success()
         shell: bash
         run: |
           set -euo pipefail
-          tar --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.53.0-verified.tar.xz" -C "$RUNNER_TEMP/nexa" .
+          tar --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.54.0-verified.tar.xz" -C "$RUNNER_TEMP/nexa" .
 
-      - name: Preserve verified 1.53.0 source
+      - name: Preserve verified 1.54.0 source
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-1.53.0-verified
-          path: ${{ runner.temp }}/nexa-1.53.0-verified.tar.xz
+          name: nexa-1.54.0-verified
+          path: ${{ runner.temp }}/nexa-1.54.0-verified.tar.xz
           if-no-files-found: error
           retention-days: 30
 
-      - name: Preserve 1.53.0 verification evidence
+      - name: Preserve 1.54.0 verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-1.53.0-verification-evidence
+          name: nexa-1.54.0-verification-evidence
           path: |
             ${{ runner.temp }}/nexa/package-lock.json
             ${{ runner.temp }}/nexa/db/migration-checksums.json
