@@ -12,7 +12,7 @@ CREATE TABLE `material_uploads` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`openId` varchar(64) NOT NULL,
 	`contentSha256` varchar(64) NOT NULL,
-	`storageKey` varchar(1024),
+	`storageKey` varchar(1024) CHARACTER SET ascii COLLATE ascii_bin,
 	`sizeBytes` int NOT NULL,
 	`mimeType` varchar(128) NOT NULL,
 	`status` enum('pending','stored') NOT NULL DEFAULT 'pending',

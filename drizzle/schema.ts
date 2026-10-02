@@ -22,6 +22,9 @@ import {
 const pushEndpoint = customType<{ data: string }>({
   dataType: () => "varchar(2048) CHARACTER SET ascii COLLATE ascii_bin",
 });
+const storageKey = customType<{ data: string }>({
+  dataType: () => "varchar(1024) CHARACTER SET ascii COLLATE ascii_bin",
+});
 
 /**
  * Core user table backing auth flow.
@@ -338,7 +341,7 @@ export const materialUploads = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     openId: varchar("openId", { length: 64 }).notNull(),
     contentSha256: varchar("contentSha256", { length: 64 }).notNull(),
-    storageKey: varchar("storageKey", { length: 1_024 }),
+    storageKey: storageKey("storageKey"),
     sizeBytes: int("sizeBytes").notNull(),
     mimeType: varchar("mimeType", { length: 128 }).notNull(),
     status: mysqlEnum("status", ["pending", "stored"])

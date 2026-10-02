@@ -113,6 +113,13 @@
       "when": 1790965306632,
       "tag": "0015_harsh_micromacro",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "5",
+      "when": 1790966000000,
+      "tag": "0016_storage_key_ascii",
+      "breakpoints": true
     }
   ]
 }
