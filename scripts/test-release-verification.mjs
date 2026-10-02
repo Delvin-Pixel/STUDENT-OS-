@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+const workflow = await readFile(new URL('../.github/workflows/verify.yml', import.meta.url), 'utf8');
+const integration = await readFile(new URL('./test-postgres-chat-turn-recovery.mjs', import.meta.url), 'utf8');
+const deps = await readFile(new URL('./verify-dependencies.mjs', import.meta.url), 'utf8');
+
+assert.equal(pkg.version, '1.55.0');
+assert.equal(pkg.name, 'nexa-1-55');
+assert.equal(pkg.packageManager, 'npm@10.9.2');
+assert.match(pkg.scripts['verify:ci'], /verify:deps/);
+assert.match(pkg.scripts['verify:ci'], /typecheck/);
+assert.match(pkg.scripts['verify:ci'], /test:postgres-project-files/);
+assert.match(pkg.scripts['verify:ci'], /test:postgres-project-semantic/);
+assert.match(pkg.scripts['verify:ci'], /test:postgres-chat-recovery/);
+assert.match(pkg.scripts['verify:ci'], /build/);
+assert.match(pkg.scripts['test'], /test:voice-input/);
+assert.match(pkg.scripts['test'], /test:capability-diagnostics/);
+assert.match(pkg.scripts['verify:ci'], /test:capability-diagnostics/);
+assert.match(pkg.scripts['ops:smoke-capabilities'], /smoke-capabilities/);
+assert.match(workflow, /postgres:17-alpine/);
+assert.match(workflow, /branches: \[nexa-main\]/);
+assert.doesNotMatch(workflow, /branches: \[main\]/);
+assert.match(workflow, /actions\/checkout@v7/);
+assert.match(workflow, /actions\/setup-node@v7/);
+assert.doesNotMatch(workflow, /\.nexa-verify/);
+assert.doesNotMatch(workflow, /npm install --package-lock-only/);
+assert.match(workflow, /cmp --silent package-lock\.json/);
+assert.match(workflow, /npm ci/);
+assert.match(workflow, /npm run verify:ci/);
+assert.match(workflow, /DATABASE_URL/);
+assert.match(integration, /pg_sleep\(0\.35\)/);
+assert.match(integration, /Recovery must not double-charge daily quota/);
+assert.match(integration, /Assistant insert must roll back/);
+assert.match(deps, /installed version differs from package\.json/);
+assert.match(workflow, /release:manifest/);
+assert.match(workflow, /npm sbom/);
+assert.match(workflow, /verification-evidence/);
+console.log('NEXA release verification contract tests passed.');

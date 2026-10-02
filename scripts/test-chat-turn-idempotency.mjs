@@ -1,0 +1,46 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+const helper = await readFile(new URL('../lib/chat-turn-idempotency.ts', import.meta.url), 'utf8');
+const chat = await readFile(new URL('../app/api/chat/route.ts', import.meta.url), 'utf8');
+const migration = await readFile(new URL('../db/033_chat_turn_idempotency.sql', import.meta.url), 'utf8');
+const recoveryMigration = await readFile(new URL('../db/034_chat_turn_recovery_leases.sql', import.meta.url), 'utf8');
+const account = await readFile(new URL('../lib/account.ts', import.meta.url), 'utf8');
+const prune = await readFile(new URL('../scripts/prune-ops.mjs', import.meta.url), 'utf8');
+const validate = await readFile(new URL('../scripts/validate.mjs', import.meta.url), 'utf8');
+
+assert.equal(pkg.version, '1.55.0');
+assert.match(pkg.scripts.test, /test:chat-turn-idempotency/);
+assert.match(helper, /on conflict \(user_id, idempotency_key\) do nothing/);
+assert.match(helper, /if \(inserted\.rows\[0\]\)/);
+assert.ok(helper.indexOf('if (inserted.rows[0])') < helper.indexOf("if (row.status === 'running')"), 'A newly inserted chat turn must be claimed before existing running turns are classified as in-progress.');
+assert.match(helper, /claimChatTurn\(userId: string, key: string, requestHash: string, requestId: string\)/);
+assert.match(helper, /owner_request_id/);
+assert.match(helper, /owner_attempt_id/);
+assert.match(helper, /lease_expires_at/);
+assert.match(helper, /recovery_count = recovery_count \+ 1/);
+assert.match(helper, /previousRequestId/);
+assert.match(helper, /expires_at <= now\(\)/);
+assert.match(helper, /getReplayAssistantMessage/);
+assert.match(chat, /finalizeClaimedTurnError/);
+assert.match(chat, /getChatTurnIdempotencyKey/);
+assert.match(chat, /claimChatTurn/);
+assert.match(chat, /hashChatTurnRequest/);
+assert.match(chat, /getReplayAssistantMessage/);
+assert.match(chat, /completeChatTurn/);
+assert.match(chat, /failChatTurn/);
+assert.match(chat, /X-NEXA-Idempotent-Replayed/);
+assert.match(migration, /create table if not exists chat_turns/);
+assert.match(migration, /unique \(user_id, idempotency_key\)/);
+assert.match(recoveryMigration, /owner_request_id text/);
+assert.match(recoveryMigration, /owner_attempt_id uuid/);
+assert.match(recoveryMigration, /heartbeat_at timestamptz/);
+assert.match(recoveryMigration, /lease_expires_at timestamptz/);
+assert.match(recoveryMigration, /quota_consumed_at timestamptz/);
+assert.match(account, /fetchCollection\(client, 'chat_turns'/);
+assert.match(prune, /delete from chat_turns/);
+assert.match(prune, /expires_at <= now\(\)/);
+assert.match(validate, /chat_turns/);
+console.log('NEXA chat turn idempotency tests passed.');

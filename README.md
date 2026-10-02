@@ -1,5 +1,196 @@
-# Student OS
+# NEXA 1.55.0 — Canonical Source Promotion
 
-Canonical source repository for Student OS 2.0.
+NEXA 1.55.0 promotes the verified application source into ordinary Git-tracked files on the dedicated `nexa-main` branch. Student OS `main` remains separate and untouched. Future NEXA releases branch from `nexa-main` instead of replaying the historical 1.48→current payload reconstruction chain.
 
-Current release line: B58.1 hardening. B59 must not start until the B58.1 verification workflow is green on the canonical commit.
+The canonical branch runs normal source CI directly against `package.json`, the committed lockfile, migrations, TypeScript, regression suites, PostgreSQL integration tests, integrity checks, and the production build. A dedicated canonical-source contract fails if `.nexa-verify` reconstruction payloads or reconstruction steps reappear.
+
+The canonical CI also upgrades GitHub-hosted action runtimes to current Node-24-compatible majors, preserves verification evidence and a source artifact, and keeps the exact Node 22.16.0 / npm 10.9.2 application toolchain pinned. No application-schema migration is required; migrations 001–038 remain immutable.
+
+---
+
+# NEXA 1.54.0 — Capability Health & Safe Live Smoke Diagnostics
+
+NEXA 1.54.0 closes the deployment-verification gap left intentionally by voice, semantic retrieval, and durable rich-file extraction. Normal liveness/readiness endpoints remain cheap and non-billable; live provider probes live behind a separate deployment-only operator endpoint that is disabled unless `NEXA_DIAGNOSTICS_ENABLED=true` and a 32+ character `NEXA_DIAGNOSTICS_TOKEN` is configured.
+
+`GET /api/health/capabilities` reports configured models/capability readiness without calling a provider. `POST /api/health/capabilities` runs only the explicitly requested live checks. Chat and embedding probes use the configured production model paths; rich extraction reuses the same file-signature validation and extraction helper as project knowledge; voice reuses the normal transcription validator and requires an explicit bounded audio fixture. Results return status, model, latency, bounded metadata, and coarse error codes only—never generated text, transcripts, uploaded bytes, credentials, or hidden prompts.
+
+`scripts/smoke-capabilities.mjs` provides a deployment CLI. Its default live set is chat + embedding + a tiny built-in rich-image probe; voice is opt-in with `NEXA_SMOKE_VOICE_FILE`. Smoke fixtures are capped at 512 KB and the endpoint uses `Cache-Control: no-store`. CI verifies the diagnostics contracts but does not make paid external provider calls.
+
+---
+
+# NEXA 1.53.0 — Grounded Answers & Durable Source Provenance
+
+NEXA 1.53.0 makes project-grounded answers inspectable. Retrieval now assigns deterministic `[S1]`…`[S12]` labels to the bounded project evidence actually supplied to the model, instructs the model to cite only those labels when it relies on them, and persists the retrieved source snapshots alongside the assistant message in the same fenced commit path. The database—not model output—remains authoritative about which sources were retrieved for the turn.
+
+Migration 038 adds `assistant_message_sources` with message/conversation ownership fences, bounded source labels, source type/ID, title, excerpt, retrieval mode, relevance, and source timestamp snapshots. Snapshots deliberately do not foreign-key back to mutable project files, memories, artifacts, workflows, or conversations used as evidence, so a grounded answer remains explainable after a source is renamed or deleted. Deleting the assistant message or owning conversation still cascades the provenance rows.
+
+Conversation reloads hydrate source cards under assistant messages, and the web client refreshes the persisted turn after streaming finishes so source cards appear without a manual reload. Account export schema 1.22 includes `assistant_message_sources`. Raw hidden prompts, embeddings, and binary project-file blobs remain excluded.
+
+The release gate adds static grounding contracts plus a real PostgreSQL integration test for owner fencing, bounded source labels, and message-delete cascade behavior. `[S#]` labels describe retrieved project evidence only; live web/tool sources continue to use their provider-specific citation mechanisms.
+
+# NEXA 1.52.0 — Durable Rich Project Knowledge
+
+NEXA 1.52.0 closes the persistence gap intentionally left by 1.49: project knowledge can now keep bounded PDFs and images, not only text-like files. The original rich source is stored in a user/project-fenced `bytea` row with independent size and SHA-256 integrity metadata, while `project_files.content` remains the single derived searchable-text contract used by lexical and semantic retrieval.
+
+Rich-file ingestion validates PDF/JPEG/PNG/WebP/GIF signatures, enforces per-file and per-project plan limits, stores the original without injecting it into unrelated prompts, and runs provider-neutral extraction through the existing AI Gateway. Extraction is fail-soft: a failed or unavailable extractor leaves the source safely stored and retryable; successful extraction atomically replaces the placeholder with bounded derived text, refreshes the content hash/version, and invalidates/rebuilds the semantic index.
+
+The Files workspace can upload rich sources, show extraction state, retry extraction, open the original source through an authenticated no-store endpoint, and continue using the same list/read/search tools. Account export schema 1.21 includes rich-source metadata and derived text but deliberately excludes raw `project_file_blobs` from the one-click JSON export because the binaries can be retrieved individually through the authenticated source endpoint.
+
+The release gate adds rich-file contract tests and a real PostgreSQL integration test proving composite ownership fencing, byte-length integrity, and project/file cascade cleanup. CI does not make an external rich-file extraction call; provider wiring is verified through source/type/build contracts and a live extraction smoke test remains a deployment check.
+
+# NEXA 1.51.0 — First-Class Voice Input
+
+NEXA 1.51.0 completes the provider-neutral voice seam that earlier releases intentionally left unfinished. The web client can now capture a bounded microphone recording, send it to an authenticated transcription endpoint, preview the resulting transcript, and submit that transcript through the same durable chat/idempotency path as typed input.
+
+Voice is transcribe-and-discard: raw audio is never written to NEXA's database or account export. The server validates the declared audio format against binary signatures, applies plan-aware byte/duration/rate limits, uses a hard transcription timeout with bounded retries, and returns only transcript text plus safe language/duration metadata. The chat layer persists the transcript as ordinary user-visible text and avoids injecting the same transcript twice into model context.
+
+The transcription provider is configurable with `NEXA_TRANSCRIPTION_MODEL` and uses the existing AI Gateway. The default is `google/gemini-3.5-transcribe`; deployments can switch providers without changing the chat, persistence, or UI contract. If the gateway is not configured or transcription fails, the request fails closed without consuming a normal chat turn.
+
+## 1.51 Verification Additions
+
+The release gate adds voice contract tests covering authenticated bounded transcription, MIME/signature checks, provider-neutral AI SDK wiring, microphone cleanup, transcript de-duplication, and chat request propagation. No live microphone or external transcription call is required by CI.
+
+# NEXA 1.50.0 — Hybrid Semantic Project Intelligence
+
+NEXA 1.50.0 adds a fail-soft semantic retrieval layer for persistent project knowledge files without replacing the deterministic PostgreSQL full-text path introduced in 1.49. Project files remain the user-controlled source of truth; semantic vectors are derived, hash-fenced, bounded, and disposable.
+
+Migration 036 adds per-file semantic index state plus bounded chunk embeddings. New or edited file content invalidates its previous vectors inside the same database transaction. The active file SHA-256 must match the embedding SHA-256 before a semantic match can participate in retrieval, so stale vectors are never trusted.
+
+Semantic indexing uses the existing AI Gateway through AI SDK embeddings. The default model is `openai/text-embedding-3-small` with 512 dimensions, up to eight sampled chunks per file, bounded retries, and a hard timeout. If the gateway is missing or an embedding call fails, NEXA records a safe failure state and continues using lexical project search.
+
+Project intelligence now merges lexical and semantic file matches, labels each file result as lexical, semantic, or hybrid, and keeps exact file reading behind the existing `read_project_file` tool. The Files workspace exposes semantic status and an explicit Reindex action. Account export schema 1.20 includes semantic index state but deliberately excludes raw embedding vectors because they are derived and can be regenerated.
+
+## 1.50 Verification Additions
+
+The release gate adds semantic contract tests plus a real PostgreSQL integration test proving composite ownership fencing, current-content hash freshness, and cascade cleanup for semantic state/chunks. No external embedding call is required by CI.
+
+# NEXA 1.49.0 — Persistent Project Knowledge Files
+
+NEXA projects can now own persistent textual knowledge files that stay available across conversations. Files are isolated by user and project, size-bounded by plan, integrity-hashed with SHA-256, versioned for safe updates, searchable through PostgreSQL full-text indexes, visible in a dedicated Files workspace, and readable by NEXA through capability-aware tools.
+
+Supported 1.49.0 project knowledge types are text, Markdown, CSV, JSON, HTML, CSS, JavaScript/TypeScript, Python, SQL, and XML. Binary/PDF/image persistence is intentionally deferred so this release keeps retrieval deterministic and auditable while the storage layer remains PostgreSQL-backed.
+
+## Project Knowledge Files
+
+Migration 035 adds the additive `project_files` schema without modifying migrations 001–034. Project files use a case-insensitive per-project filename uniqueness guard, a full-text search index, exact UTF-8 byte accounting, content hashes, and optimistic versions. The project intelligence retriever now ranks matching project files alongside conversations, artifacts, memory, and workflow state.
+
+NEXA exposes read-only `list_project_files` and `read_project_file` tools for project-backed requests. File creation, rename, replacement, and deletion remain explicit user workspace actions through bounded APIs, preserving the distinction between user-provided project knowledge and assistant-generated artifacts.
+
+## 1.49 Verification Additions
+
+The release gate adds static project-file contract tests and a real PostgreSQL integration test covering full-text retrieval, case-insensitive filename uniqueness, and project-delete cascade behavior. Account export schema 1.19 now includes project files.
+
+## Execution Attempt Lifecycle Events
+
+Every leased workflow execution now receives a durable execution attempt ID. The attempt records its lifecycle state, acquisition time, heartbeat time, and terminal reason. Lease heartbeats update the attempt, lease loss marks it terminal, and workflow shutdown paths finalize it as completed, failed, cancelled, aborted, or lease_lost.
+
+The Activity Trace exposes only the safe attempt identity and lifecycle status. Operator stale recovery marks expired running attempts as recovered before removing their lease, while maintenance pruning and account export include the new operational records.
+
+The existing PostgreSQL execution lease remains authoritative for single-owner workflow execution; the attempt ledger adds durable identity and observability without replacing the lease guard.
+
+## Execution Liveness & Watchdog State
+
+Running execution attempts now expose bounded, database-derived liveness state: heartbeat age, lease remaining time, and a health classification of healthy, heartbeat_delayed, or lease_expired. The Activity Center surfaces degraded execution state without performing recovery automatically; operator stale recovery remains the recovery authority.
+
+## Execution Health Policy & Detail View
+
+Execution heartbeat grace is now bounded and configurable through NEXA_EXECUTION_HEARTBEAT_GRACE_MS (5–60 seconds, default 15 seconds). The Activity Center surfaces a bounded live execution-health view with heartbeat age and remaining lease time while preserving the existing operator-only recovery model.
+
+## Release verification
+
+NEXA 1.48.1 is a hardening-only patch built from the immutable 1.48.0 FINAL baseline. It keeps the same product surface while tightening release reproducibility and database-upgrade assurance: the committed lockfile is the only dependency input, migration SQL is SHA-256 pinned, historical upgrade fixtures cover migrations 028/031/034, telemetry fences can be validated after legacy repair, verification evidence is preserved as release artifacts, and AI SDK 7 compatibility aliases are replaced with their native names.
+
+The PostgreSQL integration test proves stale chat-turn ownership is fenced, a response insert rolls back if the lease expires before terminalization, recovered turns preserve the original conversation/user message and quota marker, and a successful recovery stores exactly one assistant response.
+
+## Execution Attempt History
+
+Adds bounded, cursor-paginated conversation execution-attempt history and keeps loaded Activity timeline pages during background refresh.
+
+## Execution Attempt Detail
+
+Adds a bounded, conversation-scoped execution-attempt detail endpoint and Activity Center view keyed by immutable attempt ID. Lifecycle events are presented in deterministic sequence order without exposing raw event details.
+
+## Exact Execution Correlation
+
+AI and tool telemetry may now carry the durable execution attempt ID for workflow-backed requests. Indexed nullable foreign keys keep non-workflow telemetry supported, while Activity Timeline/Trace and account export preserve the safe correlation identity.
+
+The operator execution-integrity check also validates AI/tool telemetry ownership against the linked attempt.
+
+
+## Exact Correlation Write Guard
+
+AI and tool telemetry now validates execution-attempt ownership (user, workflow, and conversation) inside the same transaction as the telemetry write. Invalid cross-context attempt IDs are rejected without exposing internal database details.
+
+
+## Attempt-Scoped Execution Trace
+
+An immutable execution attempt can now be inspected through a bounded trace that merges its AI telemetry, tool telemetry, and lifecycle events without exposing raw prompts, tool arguments, hashes, or internal errors.
+
+
+
+## Workflow Telemetry Correlation Enforcement
+
+Workflow-linked AI and tool telemetry must include a valid durable execution attempt. Correlation is enforced inside the telemetry transaction; non-workflow telemetry may omit an attempt ID. Terminal or recovered attempts are fenced from new telemetry writes.
+
+Attempt-scoped trace reads now use a repeatable-read, read-only PostgreSQL snapshot. Pagination cursors carry the snapshot boundary so later pages remain point-in-time consistent.
+
+
+## Execution Fencing
+
+Workflow-linked AI and tool telemetry is now fenced to running execution attempts. PostgreSQL also enforces workflow/attempt identity at the schema boundary for new writes, while NOT VALID constraints preserve compatibility with historical telemetry that predates durable attempt correlation.
+
+
+## Attempt-Addressed Cancellation
+
+Workflow cancellation can now target a specific active execution attempt. The server locks the workflow and attempt together, rejects stale attempt IDs, and treats repeated cancellation of the same attempt as idempotent. The Activity Center sends the immutable attempt ID when available.
+
+
+## Cancellation Event Ordering Correction
+
+Attempt-addressed cancellation now records the terminal lifecycle event while the attempt row is still running, then commits the terminal status in the same transaction. This preserves the lifecycle-event writer's terminal-state guard.
+
+## Historical release — AI execution-attempt terminal fencing
+
+AI run terminal updates are now fenced by the linked execution attempt. Late provider callbacks cannot complete or fail AI telemetry after the attempt becomes terminal.
+
+
+## Historical release — Attempt-fenced assistant message persistence
+
+Workflow assistant responses are now stored with their durable execution attempt ID. Message persistence locks the matching workflow attempt and requires it to remain running, preventing cancelled, recovered, lease-lost, or otherwise terminal attempts from appending late assistant messages.
+
+## Historical release — Chat-turn idempotency claim correctness
+
+Durable chat-turn idempotency now distinguishes the request that successfully inserts a new turn from concurrent duplicate requests. The first request owns the new `running` record and proceeds; only later requests with the same key are reported as in progress or replayed after terminalization.
+
+Pre-stream workflow conflicts now terminalize any claimed chat turn before returning, preventing durable idempotency rows from remaining stuck in `running`. The web client also limits automatic retries to transport uncertainty and explicit `in-progress` duplicate responses instead of retrying deterministic HTTP failures.
+
+The pre-release audit also repaired three compile-time correctness defects: outer chat error finalization now retains the authenticated user ID safely, workflow lease assertions are explicitly imported, and tool telemetry recovery context carries `workflowId`. The TypeScript `@/` source alias is now declared in `tsconfig.json`.
+
+The same compiler-guided pass repaired stale execution-attempt API helper imports, a missing workflow-route database import, request-boundary typing for memory/artifact metadata, activity cursor field naming, execution trace rank typing, event-cursor narrowing, and the `PoolClient` type import.
+
+
+
+## NEXA 1.47.0 — Crash-safe chat-turn recovery
+
+Durable chat turns now carry a renewable execution lease and immutable owner-attempt token. A duplicate request still receives `in-progress` while the current lease is healthy, but a request whose owner disappeared can be reclaimed after the lease expires instead of remaining blocked for the full 24-hour idempotency TTL.
+
+Recovered ownership is fenced through quota admission, user-message initialization, workflow attachment, and the final assistant-message commit. The assistant response and chat-turn completion are committed in the same database transaction, so a stale process cannot append a late response after another request has taken ownership. Quota consumption and the initial conversation/user-message write are also durable per turn, preventing recovery from double-charging daily usage or duplicating the user message.
+
+Workflow-backed chat recovery may explicitly supersede the previous workflow execution lease when that lease belongs to the request whose expired chat-turn lease was reclaimed. The replaced workflow attempt is terminalized as `lease_lost`, preserving the existing attempt-level fencing and lifecycle audit trail.
+
+The web client keeps the same idempotency key across bounded retries long enough to cross the 15-second chat-turn lease window, allowing a transport-interrupted request to replay a completed response or reclaim a truly stale execution without generating a second logical turn.
+
+
+## NEXA 1.48.1 — Reliability and provenance hardening
+
+This patch intentionally adds no product features. The release gate now treats `package-lock.json` as frozen input, verifies the lockfile remains byte-identical through install, checks every migration file against `db/migration-checksums.json`, records/verifies migration digests in `schema_migrations`, validates telemetry correlation fences, exercises populated historical upgrade fixtures for migrations 028, 031 and 034, preserves a release manifest/SBOM/verification log, and uses AI SDK 7-native `isStepCount` / `onStepEnd` APIs.
+
+Operational rule: migrations 001–034 are immutable. `NOT VALID` telemetry fences must only be marked valid after the integrity checks report no historical mismatches.
+
+## NEXA 1.48.0 — Dependency-backed release verification
+
+This release candidate converts the previous verification limitation into an executable CI contract. `npm run verify:deps` checks that every direct dependency is installed at the exact version declared in `package.json`. `.github/workflows/verify.yml` uses Node 22.16.0, npm 10.9.2, and PostgreSQL 17; generates a lockfile for the run; restores it with `npm ci`; applies the full migration chain; and runs `npm run verify:ci`.
+
+`npm run test:postgres-chat-recovery` is a real database integration test for the 1.47 crash-safe chat-turn design. It reclaims an expired owner, confirms the stale owner cannot continue, deliberately lets the recovered lease expire after inserting an assistant message to prove the surrounding transaction rolls that message back, renews ownership, commits the response, and verifies one user message, one assistant message, one quota charge, and a valid replay lookup.
+
+NEXA 1.48.0 FINAL is the immutable source baseline for this patch line. Do not regenerate its dependency tree or edit migrations 001–034; any future application-schema change must be additive and use a new migration number.
