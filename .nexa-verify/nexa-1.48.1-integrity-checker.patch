@@ -1,0 +1,20 @@
+--- a/scripts/check-execution-integrity.mjs
++++ b/scripts/check-execution-integrity.mjs
+@@ -17,7 +17,7 @@
+       select count(*)::int as count
+       from workflow_execution_attempts a
+       left join workflow_execution_leases l on l.attempt_id = a.id
+-      where a.status = 'running' and l.id is null
++      where a.status = 'running' and l.workflow_id is null
+     `),
+     client.query(`
+       select count(*)::int as count
+@@ -125,7 +125,7 @@
+       select a.id, a.workflow_id, a.status, 'running_attempt_without_lease' as issue
+       from workflow_execution_attempts a
+       left join workflow_execution_leases l on l.attempt_id = a.id
+-      where a.status = 'running' and l.id is null
++      where a.status = 'running' and l.workflow_id is null
+       union all
+       select l.attempt_id as id, l.workflow_id, coalesce(a.status, 'missing_attempt') as status, 'lease_without_linked_attempt' as issue
+       from workflow_execution_leases l
