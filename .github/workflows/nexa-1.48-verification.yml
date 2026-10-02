@@ -1,10 +1,10 @@
-name: NEXA 1.50.0 hybrid semantic verification
+name: NEXA 1.51.0 first-class voice verification
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - nexa-1.50.0-hybrid-semantic
+      - nexa-1.51.0-voice-input
 
 permissions:
   contents: read
@@ -46,6 +46,9 @@ jobs:
       NEXA_EMBEDDING_MAX_RETRIES: '1'
       NEXA_EMBEDDING_CHUNK_CHARS: '6000'
       NEXA_EMBEDDING_MAX_CHUNKS: '8'
+      NEXA_TRANSCRIPTION_MODEL: google/gemini-3.5-transcribe
+      NEXA_TRANSCRIPTION_TIMEOUT_MS: '45000'
+      NEXA_TRANSCRIPTION_MAX_RETRIES: '1'
 
     steps:
       - name: Checkout verification branch
@@ -251,6 +254,23 @@ jobs:
           node "$RUNNER_TEMP/nexa/scripts/test-ai-runtime.mjs"
           node "$RUNNER_TEMP/nexa/scripts/test-execution-attempts.mjs"
 
+      - name: Reconstruct and apply NEXA 1.51.0 voice input payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .nexa-verify/1.51.0-voice-input-part-* | tr -d '\r\n\t ' | base64 --decode > "$RUNNER_TEMP/nexa-1.51.0-voice-input.patch.xz"
+          echo "04115731ff5c77c23bb4c35b43520e9dbfb09ded27b9bccfee31b92b56d73129  $RUNNER_TEMP/nexa-1.51.0-voice-input.patch.xz" | sha256sum -c -
+          xz -dc "$RUNNER_TEMP/nexa-1.51.0-voice-input.patch.xz" > "$RUNNER_TEMP/nexa-1.51.0-voice-input.patch"
+          echo "c8275fcb42001dc67301609eaa3c96fce452888227dd922e1830cc834bb05d0b  $RUNNER_TEMP/nexa-1.51.0-voice-input.patch" | sha256sum -c -
+          patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$RUNNER_TEMP/nexa-1.51.0-voice-input.patch"
+          echo "3243645ace10bd283d028ccf71a24014f3fbc7af8ec344191f9f91197d639d22  $RUNNER_TEMP/nexa/package-lock.json" | sha256sum -c -
+          grep -q '"version": "1.51.0"' "$RUNNER_TEMP/nexa/package.json"
+          grep -q "export const NEXA_VERSION = '1.51.0'" "$RUNNER_TEMP/nexa/lib/version.ts"
+          test -f "$RUNNER_TEMP/nexa/app/api/voice/transcribe/route.ts"
+          test -f "$RUNNER_TEMP/nexa/lib/voice.ts"
+          node "$RUNNER_TEMP/nexa/scripts/test-voice-input.mjs"
+          node "$RUNNER_TEMP/nexa/scripts/validate.mjs"
+
       - name: Use Node 22.16.0
         uses: actions/setup-node@v4
         with:
@@ -283,7 +303,7 @@ jobs:
           set -euo pipefail
           npm run migrate 2>&1 | tee release-artifacts/migrate.log
 
-      - name: Full 1.50.0 verification gate
+      - name: Full 1.51.0 verification gate
         working-directory: ${{ runner.temp }}/nexa
         shell: bash
         run: |
@@ -301,27 +321,27 @@ jobs:
           npm sbom --sbom-format=cyclonedx > release-artifacts/sbom.cdx.json
           sha256sum db/migration-checksums.json > release-artifacts/migration-checksums.sha256
 
-      - name: Prepare verified 1.50.0 source artifact
+      - name: Prepare verified 1.51.0 source artifact
         if: success()
         shell: bash
         run: |
           set -euo pipefail
-          tar --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.50.0-verified.tar.xz" -C "$RUNNER_TEMP/nexa" .
+          tar --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.51.0-verified.tar.xz" -C "$RUNNER_TEMP/nexa" .
 
-      - name: Preserve verified 1.50.0 source
+      - name: Preserve verified 1.51.0 source
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-1.50.0-verified
-          path: ${{ runner.temp }}/nexa-1.50.0-verified.tar.xz
+          name: nexa-1.51.0-verified
+          path: ${{ runner.temp }}/nexa-1.51.0-verified.tar.xz
           if-no-files-found: error
           retention-days: 30
 
-      - name: Preserve 1.50.0 verification evidence
+      - name: Preserve 1.51.0 verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-1.50.0-verification-evidence
+          name: nexa-1.51.0-verification-evidence
           path: |
             ${{ runner.temp }}/nexa/package-lock.json
             ${{ runner.temp }}/nexa/db/migration-checksums.json
