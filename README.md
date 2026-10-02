@@ -1,3 +1,15 @@
+# NEXA 1.58.0 — Student OS Provider Runtime Adapter
+
+NEXA 1.58.0 turns the stable 1.57 provider contract into an actual callable runtime adapter for Student OS. `createNexaProviderAdapter` binds an adapter instance to one Student OS user identity, validates and bounds every request, preserves the six contract capabilities, and maps runtime failures into the contract's fail-soft `unavailable`, `timeout`, `rate_limited`, or `error` results without exposing internal provider errors.
+
+The default adapter uses NEXA's configured AI SDK runtime through `ToolLoopAgent.generate`, but intentionally exposes no NEXA write tools, project mutation tools, memory writes, workflows, artifacts, or external research capabilities. That keeps this first integration path side-effect-free: Student OS can ask NEXA to chat, explain, tutor, generate material or quizzes, and coach without allowing a conversational call to mutate application state.
+
+Academic context remains explicitly subordinate to Student OS's deterministic `learningIntelligence`. The adapter validates the `student-os-learning-intelligence` authority marker, bounds evidence and constraints, treats supplied evidence as data rather than an instruction hierarchy, and repeatedly states that NEXA may not promote, demote, redefine, or override mastery, readiness, prerequisite, remediation, transition, or next-best-action decisions.
+
+A no-provider-cost integration harness exercises request normalization, academic-authority fencing, prompt construction, size limits, failure classification, identity binding, timeout wiring, and side-effect isolation. No database migration is required; migrations 001–039 remain immutable.
+
+---
+
 # NEXA 1.57.0 — Stable Student OS Provider Contract
 
 NEXA 1.57.0 introduces the first stable, provider-neutral boundary between NEXA and Student OS. The contract deliberately keeps Student OS's deterministic `learningIntelligence` layer authoritative for mastery, readiness, prerequisite, transition, and next-best-action decisions; NEXA is an explanatory and conversational assistant and may not override those academic decisions.
