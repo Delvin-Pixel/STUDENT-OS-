@@ -3,7 +3,7 @@ name: NEXA canonical source verification
 on:
   workflow_dispatch:
   push:
-    branches: [nexa-main]
+    branches: [nexa-main, 'nexa-*']
   pull_request:
     branches: [nexa-main]
 
