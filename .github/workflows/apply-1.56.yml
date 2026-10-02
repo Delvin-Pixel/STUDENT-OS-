@@ -9,7 +9,6 @@ permissions:
 
 jobs:
   apply:
-    if: ${{ hashFiles('.nexa-build/1.56.0-source.patch.xz.b64') != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -18,7 +17,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Detect staged payload
+        id: payload
+        shell: bash
+        run: |
+          if test -f .nexa-build/1.56.0-source.patch.xz.b64; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Verify staged payload and apply exact source patch
+        if: steps.payload.outputs.present == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -44,6 +54,7 @@ jobs:
           node scripts/test-canonical-source.mjs
 
       - name: Commit ordinary 1.56 source
+        if: steps.payload.outputs.present == 'true'
         shell: bash
         run: |
           set -euo pipefail
