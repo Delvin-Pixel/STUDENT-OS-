@@ -203,6 +203,21 @@ jobs:
           grep -q "export const NEXA_VERSION = '1.49.0'" "$RUNNER_TEMP/nexa/lib/version.ts"
           grep -q '"035_project_knowledge_files.sql"' "$RUNNER_TEMP/nexa/db/migration-checksums.json"
 
+      - name: Add omitted NEXA 1.49.0 project file sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .nexa-verify/1.49.0-project-files-new-part-* | tr -d '\r\n\t ' | base64 --decode > "$RUNNER_TEMP/nexa-1.49.0-project-files-new-files.patch.xz"
+          echo "be9e955ac5c03f8fe0176cdd9c1288a8ff4d9e90505f851e239639e15c64ae04  $RUNNER_TEMP/nexa-1.49.0-project-files-new-files.patch.xz" | sha256sum -c -
+          xz -dc "$RUNNER_TEMP/nexa-1.49.0-project-files-new-files.patch.xz" > "$RUNNER_TEMP/nexa-1.49.0-project-files-new-files.patch"
+          echo "eccb70c31f78fab1f3dda35c7ae25a1aceea56b71491c15b673e21567774fd2c  $RUNNER_TEMP/nexa-1.49.0-project-files-new-files.patch" | sha256sum -c -
+          patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$RUNNER_TEMP/nexa-1.49.0-project-files-new-files.patch"
+          test -f "$RUNNER_TEMP/nexa/db/035_project_knowledge_files.sql"
+          test -f "$RUNNER_TEMP/nexa/lib/project-files.ts"
+          test -f "$RUNNER_TEMP/nexa/components/project-files-panel.tsx"
+          node "$RUNNER_TEMP/nexa/scripts/test-migration-integrity.mjs"
+          node "$RUNNER_TEMP/nexa/scripts/test-project-files.mjs"
+
       - name: Use Node 22.16.0
         uses: actions/setup-node@v4
         with:
