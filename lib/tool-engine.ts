@@ -10,6 +10,7 @@ import { createProjectIntelligenceTools } from '@/lib/project-intelligence-tools
 import { createProjectFileTools } from '@/lib/project-file-tools';
 import { wrapExternalToolResult } from '@/lib/context-trust';
 import { assertExecutionAttemptCorrelation } from '@/lib/execution-attempt-correlation';
+import { collectExternalSourceSnapshots, type ExternalSourceSnapshot } from '@/lib/external-sources';
 
 export type ToolRisk = 'read' | 'write' | 'external';
 export type ToolCapability = 'research' | 'compute' | 'memory' | 'artifact' | 'workflow' | 'project-search' | 'project-file';
@@ -34,7 +35,7 @@ export type ToolDescriptor = {
 };
 
 export const TOOL_REGISTRY: ToolDescriptor[] = [
-  { name: 'tako_search', capability: 'research', risk: 'read', summary: 'Live web research for current, niche, changing, or externally verifiable information.', keywords: ['latest', 'current', 'today', 'news', 'research', 'source', 'search', 'online', 'verify', 'price', 'update'] },
+  { name: 'tako_search', capability: 'research', risk: 'external', summary: 'Live web research for current, niche, changing, or externally verifiable information.', keywords: ['latest', 'current', 'today', 'news', 'research', 'source', 'search', 'online', 'verify', 'price', 'update'], resultTrust: 'untrusted' },
   { name: 'calculator', capability: 'compute', risk: 'read', summary: 'Accurate arithmetic and calculations.', keywords: ['calculate', 'calculation', 'math', 'percentage', 'percent', 'sum', 'average', 'divide', 'multiply', 'equation'] },
   { name: 'search_memory', capability: 'memory', risk: 'read', summary: 'Retrieve saved or project memory relevant to the request.', keywords: ['remember', 'memory', 'previously', 'earlier', 'preference', 'you know about me'], resultTrust: 'untrusted' },
   { name: 'save_memory', capability: 'memory', risk: 'write', summary: 'Persist something the user explicitly asks NEXA to remember.', keywords: ['remember', 'memory'], resultTrust: 'untrusted', requiresExplicitIntent: true, intentPatterns: [/\bremember (?:that|this|to)\b/i, /\b(save|keep|store|retain) (?:this|that) (?:in|to) (?:memory|nexa)\b/i, /\bmemorize this\b/i] },
@@ -133,7 +134,7 @@ function toolBudgetFailure(name: string, budget: ToolBudget, descriptor: ToolDes
 function withRecovery<T extends Record<string, unknown>>(
   name: string,
   original: T,
-  context: { userId: string; conversationId?: string | null; projectId?: string | null; workflowId?: string | null; requestId?: string | null; executionAttemptId?: string | null },
+  context: { userId: string; conversationId?: string | null; projectId?: string | null; workflowId?: string | null; requestId?: string | null; executionAttemptId?: string | null; onExternalSources?: (sources: ExternalSourceSnapshot[]) => void },
   budget: ToolBudget,
 ) {
   const wrapped = original;
@@ -170,6 +171,14 @@ function withRecovery<T extends Record<string, unknown>>(
     const started = Date.now();
     try {
       const result = await (wrapped as any).execute(input);
+      if (name === 'tako_search' && context.onExternalSources) {
+        try {
+          const sources = collectExternalSourceSnapshots('tako', result);
+          if (sources.length) context.onExternalSources(sources);
+        } catch {
+          // Provenance extraction is fail-soft and must never break live research.
+        }
+      }
       const safeResult = descriptor.risk === 'external' || descriptor.resultTrust === 'untrusted'
         ? wrapExternalToolResult(name, result)
         : result;
@@ -209,7 +218,7 @@ async function logToolRun(input: { userId: string; conversationId?: string | nul
   }
 }
 
-export function createToolEngine(user: { id: string; plan: 'free' | 'premium'; memoryEnabled?: boolean }, context: { projectId?: string | null; conversationId?: string | null; workflowId?: string | null; requestId?: string | null; executionAttemptId?: string | null; requestText: string }) {
+export function createToolEngine(user: { id: string; plan: 'free' | 'premium'; memoryEnabled?: boolean }, context: { projectId?: string | null; conversationId?: string | null; workflowId?: string | null; requestId?: string | null; executionAttemptId?: string | null; requestText: string; onExternalSources?: (sources: ExternalSourceSnapshot[]) => void }) {
   const memoryTools = user.memoryEnabled === false ? {} : createMemoryTools(user, context.projectId);
   const artifactTools = createArtifactTools(user, { projectId: context.projectId, conversationId: context.conversationId });
   const workflowTools = createWorkflowTools(user, context.workflowId, context.projectId);
@@ -235,7 +244,7 @@ export function createToolEngine(user: { id: string; plan: 'free' | 'premium'; m
     const descriptor = TOOL_REGISTRY.find((item) => item.name === name);
     if (!descriptor) continue;
     if (descriptor.requiresExplicitIntent && !hasWriteIntent(context.requestText, descriptor)) continue;
-    output[name] = withRecovery(name, raw as any, { userId: user.id, conversationId: context.conversationId, projectId: context.projectId, workflowId: context.workflowId, requestId: context.requestId, executionAttemptId: context.executionAttemptId }, budget);
+    output[name] = withRecovery(name, raw as any, { userId: user.id, conversationId: context.conversationId, projectId: context.projectId, workflowId: context.workflowId, requestId: context.requestId, executionAttemptId: context.executionAttemptId, onExternalSources: context.onExternalSources }, budget);
   }
 
   return { tools: output, selectedNames: Object.keys(output) };

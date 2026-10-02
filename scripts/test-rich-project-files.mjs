@@ -14,7 +14,7 @@ const account = await readFile(new URL('../lib/account.ts', import.meta.url), 'u
 const tools = await readFile(new URL('../lib/project-file-tools.ts', import.meta.url), 'utf8');
 const env = await readFile(new URL('../.env.local.example', import.meta.url), 'utf8');
 
-assert.equal(pkg.version, '1.55.0');
+assert.equal(pkg.version, '1.56.0');
 assert.match(pkg.scripts.test, /test:rich-project-files/);
 assert.match(pkg.scripts['verify:ci'], /test:postgres-rich-project-files/);
 
@@ -49,7 +49,7 @@ assert.match(panel, /extraction_status/);
 
 assert.match(tools, /sourceKind/);
 assert.match(tools, /extractionStatus/);
-assert.match(account, /EXPORT_SCHEMA_VERSION = '1\.22'/);
+assert.match(account, /EXPORT_SCHEMA_VERSION = '1\.23'/);
 assert.match(account, /source_kind, source_media_type, source_size_bytes, source_sha256/);
 assert.match(account, /project_file_blobs/);
 assert.match(env, /NEXA_RICH_EXTRACTION_MODEL/);

@@ -40,3 +40,9 @@ assert.match(engine, /insert into tool_runs \(user_id, conversation_id, project_
 assert.match(engine, /function safeToolError\(\)/);
 assert.doesNotMatch(engine, /error: error instanceof Error \? error\.message/);
 assert.match(engine, /Internal details were withheld/);
+const webBlock = source.match(/\{ name: 'tako_search',[\s\S]*?\},\n  \{ name: 'calculator'/)?.[0] ?? '';
+assert.match(webBlock, /risk: 'external'/, 'web search must consume the external-tool budget');
+assert.match(webBlock, /resultTrust: 'untrusted'/, 'web search results must be injection-wrapped as untrusted');
+assert.match(engine, /collectExternalSourceSnapshots\('tako', result\)/, 'web provenance capture missing');
+assert.match(engine, /wrapExternalToolResult\(name, result\)/, 'external result trust wrapper missing');
+

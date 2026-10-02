@@ -3,6 +3,7 @@ import { NEXA_SYSTEM } from '@/lib/nexa';
 import { createToolEngine, describeToolset } from '@/lib/tool-engine';
 import { getNexaAiRuntimeConfig } from '@/lib/ai-runtime';
 import { wrapRetrievedContext } from '@/lib/context-trust';
+import type { ExternalSourceSnapshot } from '@/lib/external-sources';
 
 export function createNexaAgent(user: { id: string; name: string; plan: 'free' | 'premium'; memoryEnabled?: boolean }, context?: {
   projectId?: string | null;
@@ -17,6 +18,7 @@ export function createNexaAgent(user: { id: string; name: string; plan: 'free' |
   requestText?: string;
   requestId?: string;
   executionAttemptId?: string | null;
+  onExternalSources?: (sources: ExternalSourceSnapshot[]) => void;
 }) {
   const runtime = getNexaAiRuntimeConfig();
   const toolEngine = createToolEngine(user, {
@@ -26,6 +28,7 @@ export function createNexaAgent(user: { id: string; name: string; plan: 'free' |
     requestId: context?.requestId,
     executionAttemptId: context?.executionAttemptId,
     requestText: context?.requestText ?? '',
+    onExternalSources: context?.onExternalSources,
   });
 
   return new ToolLoopAgent({

@@ -39,6 +39,7 @@
     "035_project_knowledge_files.sql": "e57db9aba4ed32b2e3fd5480274c024fd48bafee6a408d6cfc384ece56aa20df",
     "036_project_file_semantic_embeddings.sql": "30e63faf5b32f109f2ca9404569b75e345352f77314131ae00d04f0b51fa5a8c",
     "037_rich_project_knowledge.sql": "fbcfbe4dd06908b708cadf6742a056fba4946ae9e3d3e55c1156d14fc08f8aff",
-    "038_grounded_answer_provenance.sql": "491c95479799d3a3e01c73e57aceba92a0f003d65b2ef95d8b2137a2a7f97bab"
+    "038_grounded_answer_provenance.sql": "491c95479799d3a3e01c73e57aceba92a0f003d65b2ef95d8b2137a2a7f97bab",
+    "039_external_source_provenance.sql": "ad1ca8465f55189ab3a3922794b720593c7782770517f9e97dd2e34c4cf57156"
   }
 }

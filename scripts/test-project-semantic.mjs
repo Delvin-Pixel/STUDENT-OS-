@@ -15,7 +15,7 @@ const panel = await readFile(new URL('../components/project-files-panel.tsx', im
 const account = await readFile(new URL('../lib/account.ts', import.meta.url), 'utf8');
 const env = await readFile(new URL('../.env.local.example', import.meta.url), 'utf8');
 
-assert.equal(pkg.version, '1.55.0');
+assert.equal(pkg.version, '1.56.0');
 assert.match(pkg.scripts['verify:ci'], /test:postgres-project-semantic/);
 assert.match(pkg.scripts.test, /test:project-semantic/);
 
@@ -53,7 +53,7 @@ assert.match(intelligenceTools, /retrieval: item\.retrieval/);
 assert.match(panel, /Reindex/);
 assert.match(panel, /semantic_status/);
 
-assert.match(account, /EXPORT_SCHEMA_VERSION = '1\.22'/);
+assert.match(account, /EXPORT_SCHEMA_VERSION = '1\.23'/);
 assert.match(account, /project_file_embedding_states/);
 assert.match(account, /project_file_embedding_chunks/);
 assert.match(env, /NEXA_EMBEDDING_MODEL/);

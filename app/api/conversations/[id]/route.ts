@@ -21,19 +21,30 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
        from messages where conversation_id = $1 order by created_at asc`,
       [id],
     );
-    const sourceRows = await query<{
+    type MessageSourceRow = {
       messageId: string; order: number; label: string; sourceType: string; sourceId: string | null; title: string; excerpt: string;
-      retrieval: string | null; relevance: number | null; sourceUpdatedAt: string | null;
-    }>(
+      retrieval: string | null; relevance: number | null; sourceUpdatedAt: string | null; sourceUrl: string | null; provider: string | null;
+    };
+    const sourceRows = await query<MessageSourceRow>(
       `select message_id as "messageId", source_order as "order", source_label as label, source_type as "sourceType",
-              source_id as "sourceId", title, excerpt, retrieval, relevance, source_updated_at as "sourceUpdatedAt"
+              source_id as "sourceId", title, excerpt, retrieval, relevance, source_updated_at as "sourceUpdatedAt",
+              null::text as "sourceUrl", null::text as provider
        from assistant_message_sources
        where conversation_id = $1 and user_id = $2
        order by message_id asc, source_order asc`,
       [id, user.id],
     );
-    const sourcesByMessage = new Map<string, typeof sourceRows.rows>();
-    for (const source of sourceRows.rows) {
+    const externalSourceRows = await query<MessageSourceRow>(
+      `select message_id as "messageId", source_order as "order", source_label as label, 'web'::text as "sourceType",
+              null::uuid as "sourceId", title, excerpt, null::text as retrieval, null::double precision as relevance,
+              source_updated_at as "sourceUpdatedAt", source_url as "sourceUrl", provider
+       from assistant_message_external_sources
+       where conversation_id = $1 and user_id = $2
+       order by message_id asc, source_order asc`,
+      [id, user.id],
+    );
+    const sourcesByMessage = new Map<string, MessageSourceRow[]>();
+    for (const source of [...sourceRows.rows, ...externalSourceRows.rows]) {
       const current = sourcesByMessage.get(source.messageId) ?? [];
       current.push(source);
       sourcesByMessage.set(source.messageId, current);

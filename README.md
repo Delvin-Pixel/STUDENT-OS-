@@ -1,3 +1,15 @@
+# NEXA 1.56.0 — Trusted Web Research & Durable External Provenance
+
+NEXA 1.56.0 hardens live web research and makes its supporting sources durable. The live `tako_search` tool is now classified as an external, untrusted capability: it consumes the dedicated external-tool budget, duplicate retries are fenced, and returned payloads are wrapped as untrusted context before the model sees them. This aligns runtime behavior with NEXA's existing prompt-injection policy instead of treating web payloads like ordinary trusted reads.
+
+A new bounded provenance collector inspects the raw provider result before trust wrapping and retains only safe source metadata: HTTP(S) URL, title, short excerpt, provider, and an optional source timestamp. Full web payloads, hidden prompts, credentials, and arbitrary page contents are not persisted. Up to eight deduplicated external source snapshots may be attached to a single assistant message.
+
+Migration 039 adds `assistant_message_external_sources` with message/conversation ownership fences, bounded `W1`–`W8` labels, HTTP(S)-only URL checks, per-message URL uniqueness, and message-delete cascade cleanup. External sources are committed in the same fenced transaction as the assistant message, hydrated after conversation reload, exposed as safe source cards with explicit outbound links, and included in account export schema 1.23.
+
+The release gate adds static trust/provenance contracts plus a real PostgreSQL integration test proving owner fencing, URL scheme enforcement, bounded labels, and cascade cleanup. No live paid web call is required by CI.
+
+---
+
 # NEXA 1.55.0 — Canonical Source Promotion
 
 NEXA 1.55.0 promotes the verified application source into ordinary Git-tracked files on the dedicated `nexa-main` branch. Student OS `main` remains separate and untouched. Future NEXA releases branch from `nexa-main` instead of replaying the historical 1.48→current payload reconstruction chain.

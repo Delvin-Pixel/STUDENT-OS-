@@ -11,7 +11,7 @@ const account = readFileSync(new URL('../lib/account.ts', import.meta.url), 'utf
 const migration = readFileSync(new URL('../db/026_workflow_execution_attempts.sql', import.meta.url), 'utf8');
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(pkg.version, '1.55.0');
+assert.equal(pkg.version, '1.56.0');
 assert.match(pkg.scripts.test, /test:execution-attempts/);
 assert.match(chat, /executionLeaseAttemptId/);
 assert.match(chat, /attemptId: executionLeaseAttemptId/);
@@ -30,7 +30,7 @@ assert.match(recovery, /workflow_execution_attempts/);
 assert.match(recovery, /status = 'recovered'/);
 assert.match(prune, /workflow_execution_attempts/);
 assert.match(prune, /executionAttemptsDeleted/);
-assert.match(account, /EXPORT_SCHEMA_VERSION = '1.22'/);
+assert.match(account, /EXPORT_SCHEMA_VERSION = '1.23'/);
 assert.match(account, /workflow_execution_attempts/);
 assert.match(migration, /create table if not exists workflow_execution_attempts/);
 assert.match(migration, /status text not null check/);

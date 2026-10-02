@@ -10,7 +10,7 @@ const component = await readFile(new URL('../components/account-panel.tsx', impo
 
 assert.match(account, /EXPORT_LIMIT_PER_COLLECTION = 25_000/);
 assert.match(account, /EXPORT_LIMIT_TOTAL_RECORDS = 100_000/);
-assert.match(account, /EXPORT_SCHEMA_VERSION = '1.22'/);
+assert.match(account, /EXPORT_SCHEMA_VERSION = '1.23'/);
 assert.match(account, /AccountCredentialError/);
 assert.match(account, /delete from users where id = \$1/);
 assert.match(account, /account_deleted/);

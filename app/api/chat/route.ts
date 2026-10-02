@@ -18,6 +18,7 @@ import { startWorkflowCancellationWatcher } from '@/lib/workflow-cancellation';
 import { acquireWorkflowExecutionLease, assertWorkflowExecutionLease, releaseWorkflowExecutionLease, startWorkflowExecutionLeaseHeartbeat } from '@/lib/workflow-execution-lease';
 import { assertChatTurnLease, claimChatTurn, completeChatTurn, consumeChatTurnQuota, failChatTurn, getChatTurnIdempotencyKey, getReplayAssistantMessage, hashChatTurnRequest, initializeChatTurnInput, mapChatTurnIdempotencyError, startChatTurnLeaseHeartbeat, updateChatTurn, type ChatTurnLeaseIdentity } from '@/lib/chat-turn-idempotency';
 import { persistAssistantMessageSources } from '@/lib/message-sources';
+import { MAX_EXTERNAL_MESSAGE_SOURCES, mergeExternalSourceSnapshots, persistExternalMessageSources, type ExternalSourceSnapshot } from '@/lib/external-sources';
 
 export const runtime = 'nodejs';
 
@@ -359,6 +360,7 @@ export async function POST(request: Request) {
     const projectIntelligence = effectiveProjectId
       ? await retrieveProjectContext(user.id, effectiveProjectId, effectiveRequest, { limit: 8, includeMemory: user.memory_enabled })
       : null;
+    const externalSourceSnapshots: ExternalSourceSnapshot[] = [];
     const aiRuntime = getNexaAiRuntimeConfig();
     aiRunStartedAt = Date.now();
     aiRunExecutionAttemptId = executionLeaseAttemptId;
@@ -390,6 +392,10 @@ export async function POST(request: Request) {
         requestId,
         executionAttemptId: executionLeaseAttemptId,
         requestText: workflow?.request ?? lastUser.content,
+        onExternalSources: (sources) => {
+          mergeExternalSourceSnapshots(externalSourceSnapshots, sources);
+          if (externalSourceSnapshots.length > MAX_EXTERNAL_MESSAGE_SOURCES) externalSourceSnapshots.length = MAX_EXTERNAL_MESSAGE_SOURCES;
+        },
       },
     );
     const workflowToolNames = new Set<string>();
@@ -590,6 +596,14 @@ export async function POST(request: Request) {
                   userId: user.id,
                   projectId: effectiveProjectId,
                   sources: projectIntelligence.sources,
+                });
+              }
+              if (assistantMessageId && externalSourceSnapshots.length) {
+                await persistExternalMessageSources(client, {
+                  messageId: assistantMessageId,
+                  conversationId: activeConversationId,
+                  userId: user.id,
+                  sources: externalSourceSnapshots,
                 });
               }
               if (chatTurnId && chatTurnLease && assistantMessageId) {

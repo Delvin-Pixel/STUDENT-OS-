@@ -3,7 +3,7 @@ import { query, withTransaction } from '@/lib/db';
 import { verifyPassword } from '@/lib/auth';
 import { recordSecurityEvent } from '@/lib/audit';
 
-export const EXPORT_SCHEMA_VERSION = '1.22';
+export const EXPORT_SCHEMA_VERSION = '1.23';
 export const EXPORT_LIMIT_PER_COLLECTION = 25_000;
 export const EXPORT_LIMIT_TOTAL_RECORDS = 100_000;
 export const EXPORT_LIMIT_TOTAL_BYTES = 25_000_000;
@@ -60,6 +60,9 @@ export async function buildAccountExport(userId: string, exportedAt = new Date()
         where c.user_id = $1 order by m.created_at asc`, [userId]),
       fetchCollection(client, 'assistant_message_sources', `select s.id, s.message_id, s.conversation_id, s.project_id, s.source_order, s.source_label, s.source_type, s.source_id, s.title, s.excerpt, s.retrieval, s.relevance, s.source_updated_at, s.created_at
         from assistant_message_sources s join conversations c on c.id = s.conversation_id
+        where s.user_id = $1 and c.user_id = $1 order by s.created_at asc, s.source_order asc`, [userId]),
+      fetchCollection(client, 'assistant_message_external_sources', `select s.id, s.message_id, s.conversation_id, s.source_order, s.source_label, s.provider, s.source_url, s.title, s.excerpt, s.source_updated_at, s.created_at
+        from assistant_message_external_sources s join conversations c on c.id = s.conversation_id
         where s.user_id = $1 and c.user_id = $1 order by s.created_at asc, s.source_order asc`, [userId]),
       fetchCollection(client, 'memories', 'select id, project_id, scope, kind, label, content, source_conversation_id, importance, version, created_at, updated_at from memories where user_id = $1 order by created_at asc', [userId]),
       fetchCollection(client, 'memory_events', 'select id, memory_id, action, created_at from memory_events where user_id = $1 order by created_at asc', [userId]),

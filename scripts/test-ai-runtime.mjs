@@ -23,7 +23,7 @@ assert.match(chat, /failAiRun/);
 assert.match(migration, /create table if not exists ai_runs/);
 assert.match(migration, /request_id text/);
 assert.match(account, /fetchCollection\(client, 'ai_runs'/);
-assert.match(account, /EXPORT_SCHEMA_VERSION = '1.22'/);
+assert.match(account, /EXPORT_SCHEMA_VERSION = '1.23'/);
 assert.match(prune, /delete from ai_runs/);
 assert.match(prune, /aiRunsDeleted/);
 assert.match(recovery, /from ai_runs/);

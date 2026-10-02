@@ -10,7 +10,7 @@ import { ProjectFilesPanel } from '@/components/project-files-panel';
 import { NEXA_VERSION } from '@/lib/version';
 
 type Role = 'user' | 'assistant' | 'system';
-type MessageSource = { order: number; label: string; sourceType: string; sourceId?: string | null; title: string; excerpt: string; retrieval?: string | null; relevance?: number | null; sourceUpdatedAt?: string | null };
+type MessageSource = { order: number; label: string; sourceType: string; sourceId?: string | null; title: string; excerpt: string; retrieval?: string | null; relevance?: number | null; sourceUpdatedAt?: string | null; sourceUrl?: string | null; provider?: string | null };
 type Message = { id?: string; role: Role; content: string; sources?: MessageSource[] };
 type Conversation = { id: string; project_id?: string | null; title: string; updated_at: string };
 type Project = { id: string; name: string; description: string; conversation_count?: number; file_count?: number; updated_at: string };
@@ -556,8 +556,9 @@ export function NexaChat({ user }: { user: { name: string; email: string; plan: 
                           <div className="message-source-list">
                             {message.sources?.map((source) => (
                               <details className="message-source-card" key={`${message.id ?? index}-${source.label}`}>
-                                <summary><b>[{source.label}]</b><span>{source.title}</span><em>{source.retrieval ?? source.sourceType}</em></summary>
+                                <summary><b>[{source.label}]</b><span>{source.title}</span><em>{source.provider ?? source.retrieval ?? source.sourceType}</em></summary>
                                 <p>{source.excerpt}</p>
+                                {source.sourceUrl && <a href={source.sourceUrl} target="_blank" rel="noreferrer noopener">Open source</a>}
                               </details>
                             ))}
                           </div>
