@@ -107,7 +107,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tar --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.55.0-verified.tar.xz" .
+          tar --exclude='./.git' --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.55.0-verified.tar.xz" .
 
       - name: Preserve verified source
         if: success()
