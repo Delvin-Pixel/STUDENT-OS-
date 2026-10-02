@@ -1,9 +1,148 @@
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1027, in read_text
-    with self.open(mode='r', encoding=encoding, errors=errors) as f:
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1013, in open
-    return io.open(self, mode, buffering, encoding, errors, newline)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '.github/workflows/verify.yml'
+name: Student OS Verification
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+      - audit/b58.1-verified-source
+
+permissions:
+  contents: read
+
+concurrency:
+  group: student-os-verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+
+jobs:
+  verify:
+    name: B58.1 release gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: studentos_ci
+          MYSQL_DATABASE: studentos_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pstudentos_ci --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DATABASE_URL: mysql://root:studentos_ci@127.0.0.1:3306/studentos_ci
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          run_install: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Print toolchain
+        run: |
+          node --version
+          npm --version
+          pnpm --version
+
+      - name: Reject tracked bootstrap archives
+        run: bash scripts/check-source-archives.sh
+
+      - name: Install exact locked dependencies
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Assert dependency install did not modify manifests
+        run: git diff --exit-code -- package.json pnpm-lock.yaml
+
+      - name: Type-check application
+        run: pnpm typecheck:app
+
+      - name: Type-check tests
+        run: pnpm typecheck:tests
+
+      - name: Type-check configuration
+        run: pnpm typecheck:config
+
+      - name: ESLint
+        run: pnpm lint
+
+      - name: Prettier
+        run: pnpm format:check
+
+      - name: Validate Drizzle migration metadata
+        run: pnpm check:migrations
+
+      - name: Scan source for credential literals
+        run: pnpm scan:credentials
+
+      - name: Prove shared critical tests are discoverable and executable
+        run: pnpm exec vitest run shared/entitlements.test.ts shared/workspaceSchema.tombstoneIntegrity.test.ts
+
+      - name: Full Vitest suite
+        run: pnpm test
+
+      - name: Production build
+        run: pnpm build
+
+      - name: Verify production bundle
+        run: pnpm verify:bundle
+
+      - name: Apply every committed migration to clean MySQL
+        run: |
+          set -o pipefail
+          DEBUG=drizzle* NODE_DEBUG=mysql pnpm db:migrate 2>&1 | tee /tmp/student-os-migrate.log
+
+      - name: Verify B58 entitlement migration output
+        run: pnpm verify:migration-schema
+
+      - name: Audit complete dependency graph
+        run: pnpm audit --audit-level high
+
+      - name: Audit production dependency graph
+        run: pnpm audit --prod --audit-level high
+
+      - name: Confirm repository stayed clean
+        run: git diff --exit-code
+
+      - name: Create deterministic commit-derived source archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          git archive --format=zip --output=/tmp/student-os-b58.1-a.zip "$GITHUB_SHA"
+          git archive --format=zip --output=/tmp/student-os-b58.1-b.zip "$GITHUB_SHA"
+          unzip -tq /tmp/student-os-b58.1-a.zip
+          unzip -tq /tmp/student-os-b58.1-b.zip
+          cmp --silent /tmp/student-os-b58.1-a.zip /tmp/student-os-b58.1-b.zip
+          cp /tmp/student-os-b58.1-a.zip ./student-os-b58.1-hardened.zip
+          sha256sum student-os-b58.1-hardened.zip | tee student-os-b58.1-hardened.sha256
+
+      - name: Upload verified source checkpoint
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: student-os-b58.1-${{ github.sha }}
+          path: |
+            student-os-b58.1-hardened.zip
+            student-os-b58.1-hardened.sha256
+          if-no-files-found: error
+          retention-days: 30
+
