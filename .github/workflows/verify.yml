@@ -145,4 +145,3 @@ jobs:
             student-os-b58.1-hardened.sha256
           if-no-files-found: error
           retention-days: 30
-
