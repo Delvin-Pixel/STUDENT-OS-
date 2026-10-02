@@ -1,0 +1,78 @@
+name: Bootstrap B58.1 Source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/bootstrap-b58_1.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout clean import branch
+        uses: actions/checkout@v4
+        with:
+          ref: audit/b58.1-clean-import
+          fetch-depth: 0
+
+      - name: Download and verify pinned B58.1 archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive=/tmp/student-os-b58_1-hardening-local.zip
+          curl -fL --retry 4 --retry-delay 2 \
+            "https://raw.githubusercontent.com/Delvin-Pixel/STUDENT-OS-/0e2a2fad9baa46931e6c67bf6d36de6738dfceb5/student-os-b58_1-hardening-local.zip" \
+            -o "$archive"
+          echo "70e8f6170511f64cc1a686ee1196cc667dd0dffd337feaffad7e525f0fd3ed07  $archive" | sha256sum -c -
+
+      - name: Validate archive paths
+        shell: python
+        run: |
+          import pathlib, zipfile
+          archive = pathlib.Path("/tmp/student-os-b58_1-hardening-local.zip")
+          forbidden_names = {".env", ".env.local", ".env.production", ".env.development"}
+          forbidden_parts = {"node_modules", "dist", "coverage", ".git"}
+          with zipfile.ZipFile(archive) as zf:
+              names = zf.namelist()
+              for raw in names:
+                  normalized = raw.replace("\\", "/")
+                  p = pathlib.PurePosixPath(normalized)
+                  if p.is_absolute() or ".." in p.parts:
+                      raise SystemExit(f"unsafe archive path: {raw}")
+                  if any(part in forbidden_parts for part in p.parts):
+                      raise SystemExit(f"forbidden generated directory in archive: {raw}")
+                  if p.name in forbidden_names or p.name.endswith((".pem", ".key", ".p12", ".pfx")):
+                      raise SystemExit(f"forbidden secret-like file in archive: {raw}")
+                  if p.suffix.lower() in {".zip", ".tar", ".gz", ".tgz", ".7z", ".rar"}:
+                      raise SystemExit(f"nested archive rejected: {raw}")
+              print(f"validated {len(names)} archive entries")
+
+      - name: Extract into clean branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -oq /tmp/student-os-b58_1-hardening-local.zip -d "$GITHUB_WORKSPACE"
+          rm -f "$GITHUB_WORKSPACE/student-os-b58_1-hardening-local.zip"
+          test -f package.json
+          test -f .github/workflows/verify.yml
+          touch .gitignore
+          grep -qxF "student-os-b58_1-hardening-local.zip" .gitignore || echo "student-os-b58_1-hardening-local.zip" >> .gitignore
+
+      - name: Commit and push hardened source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: import hardened B58.1 source"
+          git push origin HEAD:audit/b58.1-clean-import
