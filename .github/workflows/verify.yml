@@ -109,8 +109,8 @@ jobs:
 
       - name: Apply every committed migration to clean MySQL
         run: |
-          set -o pipefail
-          DEBUG=drizzle* NODE_DEBUG=mysql pnpm db:migrate 2>&1 | tee /tmp/student-os-migrate.log
+          pnpm exec prettier --check scripts/diagnose-clean-migrations.mjs
+          node scripts/diagnose-clean-migrations.mjs
 
       - name: Verify B58 entitlement migration output
         run: pnpm verify:migration-schema
