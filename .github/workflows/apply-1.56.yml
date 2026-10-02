@@ -2,42 +2,88 @@ name: NEXA 1.56 source staging
 
 on:
   push:
-    branches: [nexa-1.56.0-external-provenance]
+    branches:
+      - nexa-1.56.0-external-provenance
 
 permissions:
   contents: write
 
 jobs:
-  apply:
+  stage:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 35
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: nexa
+          POSTGRES_PASSWORD: nexa-ci-password
+          POSTGRES_DB: nexa_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexa -d nexa_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://nexa:nexa-ci-password@127.0.0.1:5432/nexa_test
+      AI_GATEWAY_API_KEY: ci-placeholder-not-used-for-live-model-calls
+      RATE_LIMIT_SECRET: ci-only-rate-limit-secret-0123456789abcdef
+      NEXA_DB_POOL_MAX: '5'
+      NEXA_DB_STATEMENT_TIMEOUT_MS: '15000'
+      NEXA_MODEL: openai/gpt-5.6-sol
+      NEXA_AI_TOTAL_TIMEOUT_MS: '120000'
+      NEXA_AI_STEP_TIMEOUT_MS: '45000'
+      NEXA_AI_CHUNK_TIMEOUT_MS: '15000'
+      NEXA_AI_MAX_RETRIES: '1'
+      NEXA_EMBEDDING_MODEL: openai/text-embedding-3-small
+      NEXA_EMBEDDING_DIMENSIONS: '512'
+      NEXA_EMBEDDING_TIMEOUT_MS: '12000'
+      NEXA_EMBEDDING_MAX_RETRIES: '1'
+      NEXA_EMBEDDING_CHUNK_CHARS: '6000'
+      NEXA_EMBEDDING_MAX_CHUNKS: '8'
+      NEXA_TRANSCRIPTION_MODEL: google/gemini-3.5-transcribe
+      NEXA_TRANSCRIPTION_TIMEOUT_MS: '45000'
+      NEXA_TRANSCRIPTION_MAX_RETRIES: '1'
+      NEXA_RICH_EXTRACTION_MODEL: openai/gpt-5.6-sol
+      NEXA_RICH_EXTRACTION_TIMEOUT_MS: '90000'
+      NEXA_RICH_EXTRACTION_MAX_RETRIES: '1'
+
     steps:
       - name: Checkout staged branch
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Detect staged payload
-        id: payload
-        shell: bash
-        run: |
-          if test -f .nexa-build/1.56.0-source.patch.xz.b64; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Use Node 22.16.0
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.16.0
+          package-manager-cache: false
 
-      - name: Verify staged payload and apply exact source patch
-        if: steps.payload.outputs.present == 'true'
+      - name: Pin npm
+        run: npm install --global npm@10.9.2
+
+      - name: Apply exact 1.56 source patch
+        id: apply
         shell: bash
         run: |
           set -euo pipefail
+          if ! test -f .nexa-build/1.56.0-source.patch.xz.b64; then
+            echo "applied=false" >> "$GITHUB_OUTPUT"
+            echo "No staged payload remains; ordinary source is already present."
+            exit 0
+          fi
+
+          echo "applied=true" >> "$GITHUB_OUTPUT"
           test "$(git hash-object .nexa-build/1.56.0-source.patch.xz.b64)" = "027e17ecfeccb21520e01de2a1ecf923a1bcdd7c"
           base64 --decode .nexa-build/1.56.0-source.patch.xz.b64 > "$RUNNER_TEMP/nexa-1.56.0-source.patch.xz"
+          echo "960fe059cd112b6ed551149bf0047218811a89e1b61d265aab169bb99bdec380  $RUNNER_TEMP/nexa-1.56.0-source.patch.xz" | sha256sum -c -
           xz -t "$RUNNER_TEMP/nexa-1.56.0-source.patch.xz"
           xz -dc "$RUNNER_TEMP/nexa-1.56.0-source.patch.xz" > "$RUNNER_TEMP/nexa-1.56.0-source.patch"
-          sha256sum "$RUNNER_TEMP/nexa-1.56.0-source.patch.xz"
-          sha256sum "$RUNNER_TEMP/nexa-1.56.0-source.patch"
 
           git apply --check --exclude=.github/workflows/verify.yml "$RUNNER_TEMP/nexa-1.56.0-source.patch"
           git apply --exclude=.github/workflows/verify.yml "$RUNNER_TEMP/nexa-1.56.0-source.patch"
@@ -51,10 +97,26 @@ jobs:
           node scripts/validate.mjs
           node scripts/test-external-provenance.mjs
           node scripts/test-grounding-provenance.mjs
-          node scripts/test-canonical-source.mjs
 
-      - name: Commit ordinary 1.56 source
-        if: steps.payload.outputs.present == 'true'
+      - name: Restore exact dependency tree
+        if: steps.apply.outputs.applied == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp package-lock.json "$RUNNER_TEMP/package-lock.before"
+          npm ci --no-audit --no-fund
+          cmp --silent package-lock.json "$RUNNER_TEMP/package-lock.before"
+
+      - name: Apply PostgreSQL migrations
+        if: steps.apply.outputs.applied == 'true'
+        run: npm run migrate
+
+      - name: Full 1.56 verification gate
+        if: steps.apply.outputs.applied == 'true'
+        run: npm run verify:ci
+
+      - name: Commit verified ordinary 1.56 source
+        if: steps.apply.outputs.applied == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -62,9 +124,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          if ! git diff --cached --quiet -- .github/workflows/verify.yml; then
-            echo "verify.yml unexpectedly changed during payload application" >&2
+
+          if ! git diff --cached --quiet -- .github/workflows; then
+            echo "Staging unexpectedly changed workflow files; refusing commit." >&2
+            git diff --cached -- .github/workflows >&2
             exit 1
           fi
+
           git commit -m "feat(nexa): durable external source provenance"
           git push origin HEAD:nexa-1.56.0-external-provenance
