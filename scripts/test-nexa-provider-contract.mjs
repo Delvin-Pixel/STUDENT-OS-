@@ -13,7 +13,7 @@ const pkg = JSON.parse(pkgText);
 
 assert.equal(pkg.name, 'nexa-1-58');
 assert.equal(pkg.version, '1.58.0');
-assert.match(version, /NEXA_VERSION = '1\.57\.0'/);
+assert.match(version, /NEXA_VERSION = '1\.58\.0'/);
 assert.match(contract, /NEXA_PROVIDER_CONTRACT_VERSION = '1\.0'/);
 assert.match(contract, /NEXA_STUDENT_OS_ACADEMIC_AUTHORITY = 'student-os-learning-intelligence'/);
 for (const capability of ['chat', 'explain', 'tutor', 'generateMaterial', 'generateQuiz', 'coach']) {
