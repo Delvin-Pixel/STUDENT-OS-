@@ -6,7 +6,7 @@ const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url
 const chat = await readFile(new URL('../components/nexa-chat.tsx', import.meta.url), 'utf8');
 const testScript = await readFile(new URL('../scripts/test-chat-turn-idempotency.mjs', import.meta.url), 'utf8');
 
-assert.equal(pkg.version, '1.57.0');
+assert.equal(pkg.version, '1.58.0');
 assert.match(chat, /crypto\.randomUUID\(\)/);
 assert.match(chat, /'Idempotency-Key': idempotencyKey/);
 assert.match(chat, /for \(let attempt = 0; attempt < 10; attempt \+= 1\)/);
