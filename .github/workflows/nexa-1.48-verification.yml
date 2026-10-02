@@ -176,6 +176,13 @@ jobs:
             exit 1
           fi
 
+      - name: Scope historical upgrade fixture constraints
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "b2abeb99f6e6e237cff186ffbbded0b408f736f3cd91287ab4248ad129759ede  $GITHUB_WORKSPACE/.nexa-verify/nexa-1.48.1-fixture-scope.patch" | sha256sum -c -
+          patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$GITHUB_WORKSPACE/.nexa-verify/nexa-1.48.1-fixture-scope.patch"
+
       - name: Use Node 22.16.0
         uses: actions/setup-node@v4
         with:
