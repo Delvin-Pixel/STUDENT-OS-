@@ -7,7 +7,7 @@ const tools = await readFile(new URL('../lib/tool-engine.ts', import.meta.url), 
 const migration = await readFile(new URL('../db/031_execution_telemetry_fences.sql', import.meta.url), 'utf8');
 const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
-if (pkg.version !== '1.57.0') throw new Error(`Expected 1.57.0, got ${pkg.version}`);
+if (pkg.version !== '1.58.0') throw new Error(`Expected 1.58.0, got ${pkg.version}`);
 if (!pkg.scripts.test.includes('test:execution-fencing')) throw new Error('Aggregate test script is missing execution fencing coverage.');
 if (!/row\.status !== 'running'/.test(correlation)) throw new Error('Terminal execution attempts are not fenced from telemetry correlation.');
 if (!/for share/.test(correlation)) throw new Error('Correlation helper must retain a shared-row lock for exact identity reads.');
