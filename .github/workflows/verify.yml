@@ -1,0 +1,131 @@
+name: NEXA canonical source verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [nexa-main]
+  pull_request:
+    branches: [nexa-main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: nexa
+          POSTGRES_PASSWORD: nexa-ci-password
+          POSTGRES_DB: nexa_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexa -d nexa_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://nexa:nexa-ci-password@127.0.0.1:5432/nexa_test
+      AI_GATEWAY_API_KEY: ci-placeholder-not-used-for-live-model-calls
+      RATE_LIMIT_SECRET: ci-only-rate-limit-secret-0123456789abcdef
+      NEXA_DB_POOL_MAX: '5'
+      NEXA_DB_STATEMENT_TIMEOUT_MS: '15000'
+      NEXA_MODEL: openai/gpt-5.6-sol
+      NEXA_AI_TOTAL_TIMEOUT_MS: '120000'
+      NEXA_AI_STEP_TIMEOUT_MS: '45000'
+      NEXA_AI_CHUNK_TIMEOUT_MS: '15000'
+      NEXA_AI_MAX_RETRIES: '1'
+      NEXA_EMBEDDING_MODEL: openai/text-embedding-3-small
+      NEXA_EMBEDDING_DIMENSIONS: '512'
+      NEXA_EMBEDDING_TIMEOUT_MS: '12000'
+      NEXA_EMBEDDING_MAX_RETRIES: '1'
+      NEXA_EMBEDDING_CHUNK_CHARS: '6000'
+      NEXA_EMBEDDING_MAX_CHUNKS: '8'
+      NEXA_TRANSCRIPTION_MODEL: google/gemini-3.5-transcribe
+      NEXA_TRANSCRIPTION_TIMEOUT_MS: '45000'
+      NEXA_TRANSCRIPTION_MAX_RETRIES: '1'
+      NEXA_RICH_EXTRACTION_MODEL: openai/gpt-5.6-sol
+      NEXA_RICH_EXTRACTION_TIMEOUT_MS: '90000'
+      NEXA_RICH_EXTRACTION_MAX_RETRIES: '1'
+
+    steps:
+      - name: Checkout canonical source
+        uses: actions/checkout@v7
+
+      - name: Use Node 22.16.0
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.16.0
+          package-manager-cache: false
+
+      - name: Pin npm
+        run: npm install --global npm@10.9.2
+
+      - name: Record committed lockfile digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-artifacts
+          sha256sum package-lock.json | tee release-artifacts/package-lock.sha256
+          cp package-lock.json "$RUNNER_TEMP/package-lock.before"
+
+      - name: Restore exact committed dependency tree
+        run: npm ci --no-audit --no-fund
+
+      - name: Assert install did not rewrite lockfile
+        shell: bash
+        run: cmp --silent package-lock.json "$RUNNER_TEMP/package-lock.before"
+
+      - name: Apply PostgreSQL migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run migrate 2>&1 | tee release-artifacts/migrate.log
+
+      - name: Full verification gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run verify:ci 2>&1 | tee release-artifacts/verify.log
+
+      - name: Generate release provenance and SBOM
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          NPM_VERSION=10.9.2 npm run release:manifest | tee release-artifacts/release-manifest.log
+          npm sbom --sbom-format=cyclonedx > release-artifacts/sbom.cdx.json
+          sha256sum db/migration-checksums.json > release-artifacts/migration-checksums.sha256
+
+      - name: Prepare verified source artifact
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.55.0-verified.tar.xz" .
+
+      - name: Preserve verified source
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexa-1.55.0-verified
+          path: ${{ runner.temp }}/nexa-1.55.0-verified.tar.xz
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preserve verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexa-1.55.0-verification-evidence
+          path: |
+            package-lock.json
+            db/migration-checksums.json
+            release-artifacts/
+          if-no-files-found: warn
+          retention-days: 30
