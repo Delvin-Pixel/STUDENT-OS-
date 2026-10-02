@@ -1,3 +1,13 @@
+# NEXA 1.57.0 — Stable Student OS Provider Contract
+
+NEXA 1.57.0 introduces the first stable, provider-neutral boundary between NEXA and Student OS. The contract deliberately keeps Student OS's deterministic `learningIntelligence` layer authoritative for mastery, readiness, prerequisite, transition, and next-best-action decisions; NEXA is an explanatory and conversational assistant and may not override those academic decisions.
+
+`lib/nexa-provider.ts` defines the versioned `NexaProvider` contract with six explicit capabilities: `chat`, `explain`, `tutor`, `generateMaterial`, `generateQuiz`, and `coach`. Requests carry host-owned identity plus optional bounded academic context tagged with the Student OS authority marker. Results use a fail-soft discriminated union so Student OS can remain functional when NEXA is unavailable, timed out, rate limited, or returns an internal error.
+
+The contract includes immutable policy metadata declaring that NEXA cannot override academic decisions and that Student OS core functionality must not require NEXA. A runtime provider guard checks the contract version, exact capability surface, and callable methods before integration. This release adds no database migration and does not connect Student OS runtime code yet; it establishes and verifies the integration seam first.
+
+---
+
 # NEXA 1.56.0 — Trusted Web Research & Durable External Provenance
 
 NEXA 1.56.0 hardens live web research and makes its supporting sources durable. The live `tako_search` tool is now classified as an external, untrusted capability: it consumes the dedicated external-tool budget, duplicate retries are fenced, and returned payloads are wrapped as untrusted context before the model sees them. This aligns runtime behavior with NEXA's existing prompt-injection policy instead of treating web payloads like ordinary trusted reads.

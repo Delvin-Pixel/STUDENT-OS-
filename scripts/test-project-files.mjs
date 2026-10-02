@@ -13,7 +13,7 @@ const toolEngine = await readFile(new URL('../lib/tool-engine.ts', import.meta.u
 const panel = await readFile(new URL('../components/project-files-panel.tsx', import.meta.url), 'utf8');
 const account = await readFile(new URL('../lib/account.ts', import.meta.url), 'utf8');
 
-assert.equal(pkg.version, '1.56.0');
+assert.equal(pkg.version, '1.57.0');
 assert.match(migration, /create table if not exists project_files/);
 assert.match(migration, /project_files_project_filename_unique_idx/);
 assert.match(migration, /project_files_search_idx/);

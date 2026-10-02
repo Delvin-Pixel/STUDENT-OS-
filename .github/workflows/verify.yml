@@ -107,14 +107,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tar --exclude='./.git' --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.56.0-verified.tar.xz" .
+          tar --exclude='./.git' --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.57.0-verified.tar.xz" .
 
       - name: Preserve verified source
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-1.56.0-verified
-          path: ${{ runner.temp }}/nexa-1.56.0-verified.tar.xz
+          name: nexa-1.57.0-verified
+          path: ${{ runner.temp }}/nexa-1.57.0-verified.tar.xz
           if-no-files-found: error
           retention-days: 30
 
@@ -122,7 +122,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-1.56.0-verification-evidence
+          name: nexa-1.57.0-verification-evidence
           path: |
             package-lock.json
             db/migration-checksums.json

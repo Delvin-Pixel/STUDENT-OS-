@@ -9,8 +9,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
 const workflow = await readFile(path.join(root, '.github/workflows/verify.yml'), 'utf8');
 
-assert.equal(pkg.name, 'nexa-1-56');
-assert.equal(pkg.version, '1.56.0');
+assert.equal(pkg.name, 'nexa-1-57');
+assert.equal(pkg.version, '1.57.0');
 assert.match(workflow, /branches: \[nexa-main\]/);
 assert.doesNotMatch(workflow, /branches: \[main\]/);
 assert.match(workflow, /actions\/checkout@v7/);

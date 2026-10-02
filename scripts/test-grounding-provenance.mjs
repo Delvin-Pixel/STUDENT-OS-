@@ -15,7 +15,7 @@ const [pkgText, migration, intelligence, messageSources, chat, conversation, acc
   read('components/nexa-chat.tsx'),
 ]);
 const pkg = JSON.parse(pkgText);
-assert.equal(pkg.version, '1.56.0');
+assert.equal(pkg.version, '1.57.0');
 assert.match(migration, /create table if not exists assistant_message_sources/);
 assert.match(migration, /foreign key \(message_id, conversation_id\)/);
 assert.match(migration, /foreign key \(conversation_id, user_id\)/);
