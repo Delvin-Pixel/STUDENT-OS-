@@ -135,11 +135,11 @@ export function createNexaProviderAdapter(options: NexaProviderAdapterOptions): 
     id: 'nexa',
     contractVersion: '1.0',
     capabilities: NEXA_PROVIDER_CAPABILITIES,
-    chat: (request) => execute('chat', request),
-    explain: (request) => execute('explain', request),
-    tutor: (request) => execute('tutor', request),
-    generateMaterial: (request) => execute('generateMaterial', request),
-    generateQuiz: (request) => execute('generateQuiz', request),
-    coach: (request) => execute('coach', request),
+    chat: (request: NexaProviderRequest) => execute('chat', request),
+    explain: (request: NexaProviderRequest) => execute('explain', request),
+    tutor: (request: NexaProviderRequest) => execute('tutor', request),
+    generateMaterial: (request: NexaProviderRequest) => execute('generateMaterial', request),
+    generateQuiz: (request: NexaProviderRequest) => execute('generateQuiz', request),
+    coach: (request: NexaProviderRequest) => execute('coach', request),
   });
 }
