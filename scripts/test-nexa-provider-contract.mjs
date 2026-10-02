@@ -11,8 +11,8 @@ const [pkgText, version, contract, readme] = await Promise.all([
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-57');
-assert.equal(pkg.version, '1.57.0');
+assert.equal(pkg.name, 'nexa-1-58');
+assert.equal(pkg.version, '1.58.0');
 assert.match(version, /NEXA_VERSION = '1\.57\.0'/);
 assert.match(contract, /NEXA_PROVIDER_CONTRACT_VERSION = '1\.0'/);
 assert.match(contract, /NEXA_STUDENT_OS_ACADEMIC_AUTHORITY = 'student-os-learning-intelligence'/);
@@ -27,7 +27,7 @@ assert.match(contract, /createNexaProviderFailure/);
 assert.match(contract, /isNexaProvider/);
 assert.match(contract, /hasExactCapabilities/);
 assert.match(contract, /academicDecisionAuthority: NEXA_STUDENT_OS_ACADEMIC_AUTHORITY/);
-assert.match(readme, /NEXA 1\.57\.0 — Stable Student OS Provider Contract/);
+assert.match(readme, /NEXA 1\.58\.0 — Stable Student OS Provider Contract/);
 assert.match(readme, /learningIntelligence/);
 assert.match(pkg.scripts['test'], /test:nexa-provider-contract/);
 assert.equal(pkg.scripts['test:nexa-provider-contract'], 'node scripts/test-nexa-provider-contract.mjs');
