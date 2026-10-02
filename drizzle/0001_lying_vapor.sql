@@ -1,6 +1,6 @@
 CREATE TABLE `push_devices` (
 	`id` int AUTO_INCREMENT NOT NULL,
-	`endpoint` varchar(2048) NOT NULL,
+	`endpoint` varchar(2048) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
 	`p256dh` varchar(256) NOT NULL,
 	`auth` varchar(128) NOT NULL,
 	`enabled` boolean NOT NULL DEFAULT true,

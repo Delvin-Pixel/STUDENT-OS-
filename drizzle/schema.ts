@@ -1,5 +1,6 @@
 import {
   boolean,
+  customType,
   index,
   int,
   json,
@@ -11,6 +12,16 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
+
+/**
+ * Browser push endpoints are URL credentials emitted by browser push
+ * services. They are ASCII by definition, so keeping this column ASCII
+ * preserves the full 2,048-character endpoint while keeping its unique index
+ * within MySQL's byte limit.
+ */
+const pushEndpoint = customType<{ data: string }>({
+  dataType: () => "varchar(2048) CHARACTER SET ascii COLLATE ascii_bin",
+});
 
 /**
  * Core user table backing auth flow.
@@ -98,7 +109,7 @@ export const pushDevices = mysqlTable(
   "push_devices",
   {
     id: int("id").autoincrement().primaryKey(),
-    endpoint: varchar("endpoint", { length: 2048 }).notNull().unique(),
+    endpoint: pushEndpoint("endpoint").notNull().unique(),
     /** External authentication account that owns this opaque browser endpoint. */
     openId: varchar("openId", { length: 64 }),
     p256dh: varchar("p256dh", { length: 256 }).notNull(),

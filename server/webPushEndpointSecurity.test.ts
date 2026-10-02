@@ -29,6 +29,7 @@ describe("web push endpoint security", () => {
     "https://fcm.googleapis.com.attacker.example/private",
     "https://push.example.test:8443/private",
     "https://user:password@push.example.test/private",
+    "https://fcm.googleapis.com/fcm/send/é",
   ])("rejects an untrusted server-side request target: %s", endpoint => {
     expect(isSafeWebPushEndpoint(endpoint)).toBe(false);
     expect(() => assertSafeWebPushEndpoint(endpoint)).toThrow(

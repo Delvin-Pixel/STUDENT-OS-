@@ -108,9 +108,7 @@ jobs:
         run: pnpm verify:bundle
 
       - name: Apply every committed migration to clean MySQL
-        run: |
-          pnpm exec prettier --check scripts/diagnose-clean-migrations.mjs
-          node scripts/diagnose-clean-migrations.mjs
+        run: pnpm db:migrate
 
       - name: Verify B58 entitlement migration output
         run: pnpm verify:migration-schema

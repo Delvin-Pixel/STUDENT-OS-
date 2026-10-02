@@ -29,10 +29,12 @@ const ALLOWED_WEB_PUSH_HOSTS = new Set([
   "push.services.mozilla.com",
   "web.push.apple.com",
 ]);
+const ASCII_ENDPOINT = /^[\x20-\x7E]+$/;
 
 /** Browser push endpoints must be a normal public HTTPS origin, never a server-side request target supplied by a learner. */
 export function isSafeWebPushEndpoint(value: string): boolean {
   try {
+    if (!ASCII_ENDPOINT.test(value)) return false;
     const endpoint = new URL(value);
     const hostname = endpoint.hostname.toLowerCase();
     const ipCandidate = hostname.replace(/^\[|\]$/g, "");
