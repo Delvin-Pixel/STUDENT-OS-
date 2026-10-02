@@ -23,6 +23,8 @@ assert.match(adapterSource, /Promise\.race/);
 assert.match(adapterSource, /controller\.abort\('NEXA_PROVIDER_TIMEOUT'\)/);
 assert.match(adapterSource, /createNexaProviderMetadata/);
 assert.match(adapterSource, /createNexaProviderFailure/);
+const typedCapabilityWrappers = adapterSource.match(/request: NexaProviderRequest/g) ?? [];
+assert.ok(typedCapabilityWrappers.length >= 6, 'All provider capability wrappers must retain explicit request typing.'); // typed capability wrappers
 assert.doesNotMatch(adapterSource, /createToolEngine/);
 assert.doesNotMatch(adapterSource, /createNexaAgent/);
 assert.match(contractSource, /mayOverrideAcademicDecisions: false/);
