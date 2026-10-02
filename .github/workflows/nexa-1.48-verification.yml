@@ -242,6 +242,15 @@ jobs:
           node "$RUNNER_TEMP/nexa/scripts/test-migration-integrity.mjs"
           node "$RUNNER_TEMP/nexa/scripts/test-project-semantic.mjs"
 
+      - name: Align NEXA 1.50.0 export schema regression assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "0611a6ad835c98c6e63bcafe05bcbe6c4c5e88fd104c2029f162ab3fe07681a0  $GITHUB_WORKSPACE/.nexa-verify/nexa-1.50.0-export-test-fix.patch" | sha256sum -c -
+          patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$GITHUB_WORKSPACE/.nexa-verify/nexa-1.50.0-export-test-fix.patch"
+          node "$RUNNER_TEMP/nexa/scripts/test-ai-runtime.mjs"
+          node "$RUNNER_TEMP/nexa/scripts/test-execution-attempts.mjs"
+
       - name: Use Node 22.16.0
         uses: actions/setup-node@v4
         with:
