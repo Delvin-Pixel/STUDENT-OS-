@@ -107,9 +107,6 @@ jobs:
       - name: Verify production bundle
         run: pnpm verify:bundle
 
-      - name: Diagnose clean MySQL migration SQL
-        run: node scripts/diagnose-clean-migrations.mjs
-
       - name: Apply every committed migration to clean MySQL
         run: pnpm db:migrate
 
