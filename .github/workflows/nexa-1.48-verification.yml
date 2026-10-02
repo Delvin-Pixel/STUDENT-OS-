@@ -180,7 +180,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "b2abeb99f6e6e237cff186ffbbded0b408f736f3cd91287ab4248ad129759ede  $GITHUB_WORKSPACE/.nexa-verify/nexa-1.48.1-fixture-scope.patch" | sha256sum -c -
+          echo "502799dd8f36e8c7a47c8e089d8317ff983040d5f3751dafc5f908b7be956d5f  $GITHUB_WORKSPACE/.nexa-verify/nexa-1.48.1-fixture-scope.patch" | sha256sum -c -
           patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$GITHUB_WORKSPACE/.nexa-verify/nexa-1.48.1-fixture-scope.patch"
 
       - name: Use Node 22.16.0
@@ -228,6 +228,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p release-artifacts
           NPM_VERSION=10.9.2 npm run release:manifest | tee release-artifacts/release-manifest.log
           npm sbom --sbom-format=cyclonedx > release-artifacts/sbom.cdx.json
           sha256sum db/migration-checksums.json > release-artifacts/migration-checksums.sha256
