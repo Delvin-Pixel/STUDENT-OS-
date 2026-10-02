@@ -1,13 +1,13 @@
-name: NEXA 1.54.0 capability health verification
+name: NEXA 1.55.0 canonical source promotion
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - nexa-1.54.0-capability-diagnostics
+      - nexa-1.55.0-canonical-promotion
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -336,6 +336,26 @@ jobs:
           node "$RUNNER_TEMP/nexa/scripts/test-capability-diagnostics.mjs"
           node "$RUNNER_TEMP/nexa/scripts/validate.mjs"
 
+      - name: Reconstruct and apply NEXA 1.55.0 canonical source payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .nexa-verify/1.55.0-canonical-source-part-* | tr -d '\r\n\t ' | base64 --decode > "$RUNNER_TEMP/nexa-1.55.0-canonical-source.patch.xz"
+          echo "2df33deaecac5c2c39da451685255028fe5885eaad8fae90405c006c6eb0c521  $RUNNER_TEMP/nexa-1.55.0-canonical-source.patch.xz" | sha256sum -c -
+          xz -dc "$RUNNER_TEMP/nexa-1.55.0-canonical-source.patch.xz" > "$RUNNER_TEMP/nexa-1.55.0-canonical-source.patch"
+          echo "baa87c7651c5a0348c661c707efa8c68745db98ec64480f8f6080b3de1c5cfdc  $RUNNER_TEMP/nexa-1.55.0-canonical-source.patch" | sha256sum -c -
+          patch --batch --forward -p1 -d "$RUNNER_TEMP/nexa" < "$RUNNER_TEMP/nexa-1.55.0-canonical-source.patch"
+          echo "4a5f2a3e1bf74a820f4e22191b18929572bb9ad15264b0fa8cbfb3c5c786f5f2  $RUNNER_TEMP/nexa/package-lock.json" | sha256sum -c -
+          grep -q '"name": "nexa-1-55"' "$RUNNER_TEMP/nexa/package.json"
+          grep -q '"version": "1.55.0"' "$RUNNER_TEMP/nexa/package.json"
+          grep -q "export const NEXA_VERSION = '1.55.0'" "$RUNNER_TEMP/nexa/lib/version.ts"
+          test -f "$RUNNER_TEMP/nexa/scripts/test-canonical-source.mjs"
+          test -f "$RUNNER_TEMP/nexa/.github/workflows/verify.yml"
+          test ! -e "$RUNNER_TEMP/nexa/.nexa-verify"
+          node "$RUNNER_TEMP/nexa/scripts/validate.mjs"
+          node "$RUNNER_TEMP/nexa/scripts/test-canonical-source.mjs"
+          node "$RUNNER_TEMP/nexa/scripts/test-release-verification.mjs"
+
       - name: Use Node 22.16.0
         uses: actions/setup-node@v4
         with:
@@ -368,7 +388,7 @@ jobs:
           set -euo pipefail
           npm run migrate 2>&1 | tee release-artifacts/migrate.log
 
-      - name: Full 1.54.0 verification gate
+      - name: Full 1.55.0 verification gate
         working-directory: ${{ runner.temp }}/nexa
         shell: bash
         run: |
@@ -386,30 +406,53 @@ jobs:
           npm sbom --sbom-format=cyclonedx > release-artifacts/sbom.cdx.json
           sha256sum db/migration-checksums.json > release-artifacts/migration-checksums.sha256
 
-      - name: Prepare verified 1.54.0 source artifact
+      - name: Prepare verified 1.55.0 source artifact
         if: success()
         shell: bash
         run: |
           set -euo pipefail
-          tar --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.54.0-verified.tar.xz" -C "$RUNNER_TEMP/nexa" .
+          tar --exclude='./node_modules' --exclude='./.next' --exclude='./release-artifacts' -cJf "$RUNNER_TEMP/nexa-1.55.0-verified.tar.xz" -C "$RUNNER_TEMP/nexa" .
 
-      - name: Preserve verified 1.54.0 source
+      - name: Preserve verified 1.55.0 source
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-1.54.0-verified
-          path: ${{ runner.temp }}/nexa-1.54.0-verified.tar.xz
+          name: nexa-1.55.0-verified
+          path: ${{ runner.temp }}/nexa-1.55.0-verified.tar.xz
           if-no-files-found: error
           retention-days: 30
 
-      - name: Preserve 1.54.0 verification evidence
+      - name: Preserve 1.55.0 verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nexa-1.54.0-verification-evidence
+          name: nexa-1.55.0-verification-evidence
           path: |
             ${{ runner.temp }}/nexa/package-lock.json
             ${{ runner.temp }}/nexa/db/migration-checksums.json
             ${{ runner.temp }}/nexa/release-artifacts/
           if-no-files-found: warn
           retention-days: 30
+
+
+      - name: Promote verified 1.55.0 source to nexa-main
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e "$RUNNER_TEMP/nexa/.nexa-verify"
+          test -f "$RUNNER_TEMP/nexa/.github/workflows/verify.yml"
+          grep -q 'branches: \[nexa-main\]' "$RUNNER_TEMP/nexa/.github/workflows/verify.yml"
+
+          rsync -a --delete --exclude='.git/' "$RUNNER_TEMP/nexa/" "$GITHUB_WORKSPACE/"
+          rm -rf "$GITHUB_WORKSPACE/node_modules" "$GITHUB_WORKSPACE/.next" "$GITHUB_WORKSPACE/release-artifacts"
+
+          git -C "$GITHUB_WORKSPACE" config user.name "github-actions[bot]"
+          git -C "$GITHUB_WORKSPACE" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$GITHUB_WORKSPACE" add -A
+          git -C "$GITHUB_WORKSPACE" diff --cached --quiet && {
+            echo "Canonical promotion produced no Git changes." >&2
+            exit 1
+          }
+          git -C "$GITHUB_WORKSPACE" commit -m "chore(nexa): promote 1.55.0 canonical source"
+          git -C "$GITHUB_WORKSPACE" push origin HEAD:refs/heads/nexa-main
