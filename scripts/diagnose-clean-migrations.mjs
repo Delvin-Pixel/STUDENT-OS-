@@ -35,14 +35,18 @@ try {
         try {
           await db.query(statement);
         } catch (error) {
-          console.error(`Migration ${file}, statement ${index + 1}/${statements.length} failed.`);
+          console.error(
+            `Migration ${file}, statement ${index + 1}/${statements.length} failed.`
+          );
           console.error(statement);
           console.error(error);
           throw error;
         }
       }
     }
-    console.log(`Diagnostic migration pass: ${files.length} migration files applied.`);
+    console.log(
+      `Diagnostic migration pass: ${files.length} migration files applied.`
+    );
   } finally {
     await db.end();
   }
