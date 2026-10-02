@@ -6,7 +6,7 @@ const script = readFileSync(new URL('./recover-stale-workflows.mjs', import.meta
 const lease = readFileSync(new URL('../lib/workflow-execution-lease.ts', import.meta.url), 'utf8');
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(pkg.version, '1.56.0');
+assert.equal(pkg.version, '1.57.0');
 assert.match(script, /workflow_execution_leases/);
 assert.match(script, /lease_state/);
 assert.match(script, /lease_state === 'active'/);

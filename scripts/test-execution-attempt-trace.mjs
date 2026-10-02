@@ -7,7 +7,7 @@ const source = await readFile(new URL('../lib/conversation-execution-attempt-tra
 const panel = await readFile(new URL('../components/activity-panel.tsx', import.meta.url), 'utf8');
 const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(pkg.version, '1.56.0');
+assert.equal(pkg.version, '1.57.0');
 assert.match(pkg.scripts.test, /test:execution-attempt-trace/);
 assert.match(route, /requireUser/);
 assert.match(route, /conversation-execution-attempt-trace/);

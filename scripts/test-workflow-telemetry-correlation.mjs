@@ -7,7 +7,7 @@ const tools = await readFile(new URL('../lib/tool-engine.ts', import.meta.url), 
 const fences = await readFile(new URL('../db/031_execution_telemetry_fences.sql', import.meta.url), 'utf8');
 const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
-if (pkg.version !== '1.56.0') throw new Error(`Expected 1.56.0, got ${pkg.version}`);
+if (pkg.version !== '1.57.0') throw new Error(`Expected 1.57.0, got ${pkg.version}`);
 if (!pkg.scripts.test.includes('test:workflow-telemetry-correlation')) throw new Error('Aggregate test script is missing workflow telemetry correlation coverage.');
 if (!/if \(!input\.executionAttemptId\) \{[\s\S]*input\.workflowId !== null && input\.workflowId !== undefined[\s\S]*throw new ExecutionAttemptCorrelationError\(\)/.test(correlation)) throw new Error('Workflow telemetry without an execution attempt is not rejected.');
 if (!/assertExecutionAttemptCorrelation\(client/.test(ai)) throw new Error('AI telemetry is not guarded by execution-attempt correlation.');

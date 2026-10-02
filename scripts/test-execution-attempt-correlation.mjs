@@ -9,7 +9,7 @@ const agent = await readFile(new URL('../lib/agent.ts', import.meta.url), 'utf8'
 const chat = await readFile(new URL('../app/api/chat/route.ts', import.meta.url), 'utf8');
 const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(pkg.version, '1.56.0');
+assert.equal(pkg.version, '1.57.0');
 assert.match(correlation, /ExecutionAttemptCorrelationError/);
 assert.match(correlation, /workflow_execution_attempts/);
 assert.match(correlation, /join workflows w on w\.id = a\.workflow_id/);

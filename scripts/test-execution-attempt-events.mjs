@@ -11,7 +11,7 @@ const migration = readFileSync(new URL('../db/027_workflow_execution_attempt_eve
 const sequenceMigration = readFileSync(new URL('../db/028_execution_attempt_event_sequences.sql', import.meta.url), 'utf8');
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(pkg.version, '1.56.0');
+assert.equal(pkg.version, '1.57.0');
 assert.match(migration, /create table if not exists workflow_execution_attempt_events/);
 assert.match(migration, /event_type text not null check/);
 assert.match(sequenceMigration, /add column if not exists sequence_no bigint/);
