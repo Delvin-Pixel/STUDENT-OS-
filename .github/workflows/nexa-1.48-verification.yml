@@ -124,6 +124,58 @@ jobs:
           grep -q '"version": "1.48.1"' "$RUNNER_TEMP/nexa/package.json"
           grep -q "export const NEXA_VERSION = '1.48.1'" "$RUNNER_TEMP/nexa/lib/version.ts"
 
+      - name: Normalize 1.48.1 regression version assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"]) / "nexa"
+          paths = [
+              "scripts/test-execution-lease.mjs",
+              "scripts/test-execution-attempt-detail.mjs",
+              "scripts/test-chat-turn-recovery.mjs",
+              "scripts/test-stale-recovery.mjs",
+              "scripts/test-execution-attempts.mjs",
+              "scripts/test-chat-turn-idempotency-order.mjs",
+              "scripts/test-attempt-cancellation.mjs",
+              "scripts/test-chat-turn-idempotency.mjs",
+              "scripts/test-execution-attempt-telemetry.mjs",
+              "scripts/test-execution-attempt-events.mjs",
+              "scripts/test-chat-client-idempotency.mjs",
+              "scripts/test-workflow-telemetry-correlation.mjs",
+              "scripts/test-exact-response-commit.mjs",
+              "scripts/test-ai-run-fencing.mjs",
+              "scripts/test-message-attempt-fencing.mjs",
+              "scripts/test-execution-integrity.mjs",
+              "scripts/test-live-cancellation.mjs",
+              "scripts/test-execution-fencing.mjs",
+              "scripts/test-execution-attempt-history.mjs",
+              "scripts/test-execution-summary.mjs",
+              "scripts/test-execution-attempt-trace.mjs",
+              "scripts/test-execution-attempt-correlation.mjs",
+          ]
+          changed = 0
+          for rel in paths:
+              path = root / rel
+              text = path.read_text()
+              if "1.48.0" not in text:
+                  continue
+              updated = text.replace("1.48.0", "1.48.1")
+              path.write_text(updated)
+              changed += 1
+
+          if changed != len(paths):
+              raise SystemExit(f"Expected to update {len(paths)} legacy version tests; updated {changed}.")
+          PY
+
+          if grep -n "1\.48\.0" "$RUNNER_TEMP/nexa/scripts/test-execution-lease.mjs" "$RUNNER_TEMP/nexa/scripts/test-execution-attempt-detail.mjs" "$RUNNER_TEMP/nexa/scripts/test-chat-turn-recovery.mjs" "$RUNNER_TEMP/nexa/scripts/test-stale-recovery.mjs" "$RUNNER_TEMP/nexa/scripts/test-execution-attempts.mjs" "$RUNNER_TEMP/nexa/scripts/test-chat-turn-idempotency-order.mjs" "$RUNNER_TEMP/nexa/scripts/test-attempt-cancellation.mjs" "$RUNNER_TEMP/nexa/scripts/test-chat-turn-idempotency.mjs" "$RUNNER_TEMP/nexa/scripts/test-execution-attempt-telemetry.mjs" "$RUNNER_TEMP/nexa/scripts/test-execution-attempt-events.mjs" "$RUNNER_TEMP/nexa/scripts/test-chat-client-idempotency.mjs" "$RUNNER_TEMP/nexa/scripts/test-workflow-telemetry-correlation.mjs" "$RUNNER_TEMP/nexa/scripts/test-exact-response-commit.mjs" "$RUNNER_TEMP/nexa/scripts/test-ai-run-fencing.mjs" "$RUNNER_TEMP/nexa/scripts/test-message-attempt-fencing.mjs" "$RUNNER_TEMP/nexa/scripts/test-execution-integrity.mjs" "$RUNNER_TEMP/nexa/scripts/test-live-cancellation.mjs" "$RUNNER_TEMP/nexa/scripts/test-execution-fencing.mjs" "$RUNNER_TEMP/nexa/scripts/test-execution-attempt-history.mjs" "$RUNNER_TEMP/nexa/scripts/test-execution-summary.mjs" "$RUNNER_TEMP/nexa/scripts/test-execution-attempt-trace.mjs" "$RUNNER_TEMP/nexa/scripts/test-execution-attempt-correlation.mjs"; then
+            echo "Stale 1.48.0 regression expectation remains." >&2
+            exit 1
+          fi
+
       - name: Use Node 22.16.0
         uses: actions/setup-node@v4
         with:
