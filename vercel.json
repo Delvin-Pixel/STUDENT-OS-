@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "pnpm build",
+  "installCommand": "corepack pnpm install --frozen-lockfile --strict-peer-dependencies",
+  "outputDirectory": "dist/public",
+  "functions": {
+    "api/index.mjs": {
+      "includeFiles": "dist/{vercel.mjs,public/sw.js}"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/((?!api(?:/|$)|assets/|.*\\.[^/]+$).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

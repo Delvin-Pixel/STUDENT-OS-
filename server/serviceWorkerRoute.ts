@@ -3,6 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 export function activeServiceWorkerPath() {
+  if (process.env.VERCEL === "1") {
+    return path.resolve(process.cwd(), "dist", "public", "sw.js");
+  }
   return process.env.NODE_ENV === "development"
     ? path.resolve(import.meta.dirname, "..", "client", "public", "sw.js")
     : path.resolve(import.meta.dirname, "public", "sw.js");
