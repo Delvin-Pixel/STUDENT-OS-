@@ -1,4 +1,5 @@
 import { createNexaProviderAdapter } from '@/lib/nexa-provider-adapter';
+import { enforceStudentOsBridgeAdmission, type StudentOsBridgeAdmissionResult } from '@/lib/student-os-bridge-admission';
 import { NEXA_PROVIDER_CONTRACT_VERSION, type NexaProvider, type NexaProviderRequest, type NexaProviderResult } from '@/lib/nexa-provider';
 import {
   STUDENT_OS_BRIDGE_MAX_BODY_BYTES,
@@ -20,6 +21,18 @@ function noStoreHeaders(bridgeRequestId?: string) {
     'X-NEXA-Version': NEXA_VERSION,
     'X-NEXA-Provider-Contract': NEXA_PROVIDER_CONTRACT_VERSION,
     ...(bridgeRequestId ? { 'X-NEXA-Bridge-Request-Id': bridgeRequestId } : {}),
+  };
+}
+
+function admissionLimitHeaders(
+  admission: Extract<StudentOsBridgeAdmissionResult, { allowed: false }>,
+) {
+  return {
+    'Retry-After': String(admission.result.retryAfterSeconds),
+    'X-RateLimit-Limit': String(admission.result.limit),
+    'X-RateLimit-Remaining': String(admission.result.remaining),
+    'X-RateLimit-Reset': admission.result.resetAt.toISOString(),
+    'X-NEXA-Bridge-Limit-Scope': admission.scope,
   };
 }
 
@@ -73,6 +86,21 @@ export async function POST(request: Request) {
       return jsonResponse(
         { error: 'Invalid Student OS bridge request.' },
         { status: 400, requestId, headers: noStoreHeaders(envelope?.request.requestId) },
+      );
+    }
+
+    const admission = await enforceStudentOsBridgeAdmission(envelope.request.userId);
+    if (!admission.allowed) {
+      return jsonResponse(
+        { error: 'Student OS bridge request limit reached. Please retry later.' },
+        {
+          status: 429,
+          requestId,
+          headers: {
+            ...noStoreHeaders(envelope.request.requestId),
+            ...admissionLimitHeaders(admission),
+          },
+        },
       );
     }
 
