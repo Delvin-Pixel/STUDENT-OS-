@@ -16,6 +16,7 @@ export const STUDENT_OS_BRIDGE_SECRET_MIN_CHARS = 32;
 export const STUDENT_OS_BRIDGE_DEFAULT_TIMEOUT_MS = 18_000;
 export const STUDENT_OS_BRIDGE_MIN_TIMEOUT_MS = 1_000;
 export const STUDENT_OS_BRIDGE_MAX_TIMEOUT_MS = 60_000;
+export const STUDENT_OS_BRIDGE_REQUEST_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 
 export type StudentOsBridgeEnvelope = Readonly<{
   capability: StudentOsBridgeCapability;
@@ -53,6 +54,13 @@ export function normalizeStudentOsBridgeUserHeader(value: string | null) {
   return boundedTrimmedString(value, 128);
 }
 
+export function normalizeStudentOsBridgeRequestId(value: unknown) {
+  const normalized = boundedTrimmedString(value, 128);
+  return normalized && STUDENT_OS_BRIDGE_REQUEST_ID_PATTERN.test(normalized)
+    ? normalized
+    : null;
+}
+
 export function getStudentOsBridgeTimeoutMs(raw: string | undefined) {
   if (raw === undefined || raw === '') return STUDENT_OS_BRIDGE_DEFAULT_TIMEOUT_MS;
   const value = Number(raw);
@@ -79,7 +87,7 @@ export function parseStudentOsBridgeEnvelope(value: unknown): StudentOsBridgeEnv
   }
   if (!record.request || typeof record.request !== 'object' || Array.isArray(record.request)) return null;
   const request = record.request as Record<string, unknown>;
-  const requestId = boundedTrimmedString(request.requestId, 128);
+  const requestId = normalizeStudentOsBridgeRequestId(request.requestId);
   const userId = boundedTrimmedString(request.userId, 128);
   const prompt = boundedTrimmedString(request.prompt, 12_000);
   if (!requestId || !userId || !prompt) return null;
