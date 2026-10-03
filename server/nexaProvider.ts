@@ -8,12 +8,7 @@ export const NEXA_PROVIDER_MAX_RESPONSE_BYTES = 50_000;
 export const NEXA_PROVIDER_MAX_ANSWER_CHARS = 8_000;
 
 export type NexaProviderCapability =
-  | "chat"
-  | "explain"
-  | "tutor"
-  | "generateMaterial"
-  | "generateQuiz"
-  | "coach";
+  "chat" | "explain" | "tutor" | "generateMaterial" | "generateQuiz" | "coach";
 
 export type NexaAcademicContext = Readonly<{
   authority: "student-os-learning-intelligence";
@@ -54,9 +49,7 @@ type ConfigSource = Readonly<{
 
 function localHostname(hostname: string) {
   return (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "::1"
+    hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1"
   );
 }
 
