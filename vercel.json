@@ -6,7 +6,7 @@
   "outputDirectory": "dist/public",
   "functions": {
     "api/index.mjs": {
-      "includeFiles": ["dist/vercel.mjs", "dist/public/sw.js"]
+      "includeFiles": "dist/{vercel.mjs,public/sw.js}"
     }
   },
   "rewrites": [
