@@ -9,6 +9,7 @@ import {
   type StudentOsBridgeRequestLease,
 } from '@/lib/student-os-bridge-idempotency';
 import { NEXA_PROVIDER_CONTRACT_VERSION, type NexaProvider, type NexaProviderRequest, type NexaProviderResult } from '@/lib/nexa-provider';
+import { recordStudentOsBridgeEvent, type StudentOsBridgeObservation } from '@/lib/student-os-bridge-observability';
 import {
   STUDENT_OS_BRIDGE_MAX_BODY_BYTES,
   authorizeStudentOsBridge,
@@ -67,7 +68,27 @@ async function executeCapability(
 
 export async function POST(request: Request) {
   const requestId = getRequestId(request);
+  const bridgeStartedAt = Date.now();
   let bridgeLease: StudentOsBridgeRequestLease | null = null;
+  let bridgeObservationContext: Pick<
+    StudentOsBridgeObservation,
+    'externalUserId' | 'bridgeRequestId' | 'serverRequestId' | 'capability'
+  > | null = null;
+  const observeBridge = async (
+    eventType: StudentOsBridgeObservation['eventType'],
+    httpStatus?: number | null,
+    detail?: Pick<StudentOsBridgeObservation, 'limitScope' | 'providerOk'>,
+  ) => {
+    if (!bridgeObservationContext) return;
+    await recordStudentOsBridgeEvent({
+      ...bridgeObservationContext,
+      eventType,
+      httpStatus: httpStatus ?? null,
+      durationMs: Date.now() - bridgeStartedAt,
+      limitScope: detail?.limitScope ?? null,
+      providerOk: detail?.providerOk ?? null,
+    });
+  };
   const configuredSecret = process.env.NEXA_STUDENT_OS_BRIDGE_SECRET ?? '';
 
   if (!isConfiguredStudentOsBridgeSecret(configuredSecret)) {
@@ -98,8 +119,16 @@ export async function POST(request: Request) {
       );
     }
 
+    bridgeObservationContext = {
+      externalUserId: envelope.request.userId,
+      bridgeRequestId: envelope.request.requestId,
+      serverRequestId: requestId,
+      capability: envelope.capability,
+    };
+
     const admission = await enforceStudentOsBridgeAdmission(envelope.request.userId);
     if (!admission.allowed) {
+      await observeBridge('rate_limited', 429, { limitScope: admission.scope, providerOk: null });
       return jsonResponse(
         { error: 'Student OS bridge request limit reached. Please retry later.' },
         {
@@ -125,6 +154,7 @@ export async function POST(request: Request) {
     } catch (error) {
       const mismatch = mapStudentOsBridgeIdempotencyError(error);
       if (mismatch) {
+        await observeBridge('mismatch', 409);
         return jsonResponse(
           { error: mismatch },
           {
@@ -141,6 +171,7 @@ export async function POST(request: Request) {
     }
 
     if (claim.kind === 'in_progress') {
+      await observeBridge('in_progress', 409);
       return jsonResponse(
         { error: 'This Student OS bridge request is already being processed.' },
         {
@@ -156,6 +187,11 @@ export async function POST(request: Request) {
     }
 
     if (claim.kind === 'replay') {
+      const replayProviderOk = claim.body && typeof claim.body === 'object' && 'ok' in claim.body
+        && typeof (claim.body as { ok?: unknown }).ok === 'boolean'
+        ? Boolean((claim.body as { ok: boolean }).ok)
+        : null;
+      await observeBridge('replayed', claim.status, { providerOk: replayProviderOk });
       return jsonResponse(claim.body, {
         status: claim.status,
         requestId,
@@ -168,6 +204,7 @@ export async function POST(request: Request) {
     }
 
     bridgeLease = claim.lease;
+    await observeBridge(claim.recovered ? 'recovered' : 'claimed');
 
     const provider = createNexaProviderAdapter({
       userId: envelope.request.userId,
@@ -181,6 +218,7 @@ export async function POST(request: Request) {
 
     const completed = await completeStudentOsBridgeRequest(bridgeLease, 200, result);
     if (!completed) {
+      await observeBridge('ownership_lost', 409, { providerOk: result.ok });
       return jsonResponse(
         { error: 'This Student OS bridge request changed execution owner. Retrying is safe.' },
         {
@@ -194,6 +232,7 @@ export async function POST(request: Request) {
       );
     }
 
+    await observeBridge('completed', 200, { providerOk: result.ok });
     return jsonResponse(result, {
       status: 200,
       requestId,
@@ -217,6 +256,7 @@ export async function POST(request: Request) {
         await failStudentOsBridgeRequest(bridgeLease, 500, failure);
       } catch {}
     }
+    await observeBridge('failed', 500);
     return jsonResponse(
       failure,
       {

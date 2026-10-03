@@ -91,6 +91,19 @@ try {
      where expires_at <= now()
      returning id`,
   );
+  const studentOsBridgeEvents = await client.query(
+    `with doomed as (
+       select id from student_os_bridge_events
+       where created_at < now() - ($1::text || ' days')::interval
+       order by created_at asc
+       limit 5000
+     )
+     delete from student_os_bridge_events e
+     using doomed d
+     where e.id = d.id
+     returning e.id`,
+    [String(days)],
+  );
   const studentOsBridgeRequests = await client.query(
     `delete from student_os_bridge_requests
      where expires_at <= now()
@@ -107,6 +120,7 @@ try {
     executionAttemptEventsDeleted: executionAttemptEvents.rowCount ?? 0,
     executionAttemptsDeleted: executionAttempts.rowCount ?? 0,
     expiredChatTurnsDeleted: chatTurns.rowCount ?? 0,
+    studentOsBridgeEventsDeleted: studentOsBridgeEvents.rowCount ?? 0,
     expiredStudentOsBridgeRequestsDeleted: studentOsBridgeRequests.rowCount ?? 0,
     retentionDays: days,
   }, null, 2));

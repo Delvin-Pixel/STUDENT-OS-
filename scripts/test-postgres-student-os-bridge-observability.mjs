@@ -58,7 +58,6 @@ try {
   assert.ok(events.rows.every((row) => row.user_fingerprint !== rawUserId));
   assert.ok(events.rows.some((row) => row.event_type === 'completed' && Number(row.http_status) === 200 && row.provider_ok === true));
 
-  await pool.query('savepoint invalid_fingerprint');
   await assert.rejects(
     () => pool.query(
       `insert into student_os_bridge_events (
@@ -68,7 +67,6 @@ try {
     ),
     (error) => error?.code === '23514',
   );
-  await pool.query('rollback to savepoint invalid_fingerprint');
 
   await pool.query(
     `insert into student_os_bridge_events (

@@ -41,6 +41,7 @@
     "037_rich_project_knowledge.sql": "fbcfbe4dd06908b708cadf6742a056fba4946ae9e3d3e55c1156d14fc08f8aff",
     "038_grounded_answer_provenance.sql": "491c95479799d3a3e01c73e57aceba92a0f003d65b2ef95d8b2137a2a7f97bab",
     "039_external_source_provenance.sql": "ad1ca8465f55189ab3a3922794b720593c7782770517f9e97dd2e34c4cf57156",
-    "040_student_os_bridge_idempotency.sql": "fff8acfc197925fdd211b3c1776981fb9558d6bbf817ffcd847180c89069f3cf"
+    "040_student_os_bridge_idempotency.sql": "fff8acfc197925fdd211b3c1776981fb9558d6bbf817ffcd847180c89069f3cf",
+    "041_student_os_bridge_observability.sql": "dbb7aa560d9014a01cb416db634aefbd0f761b08f72a6f2c71fc3aa935d224ed"
   }
 }
