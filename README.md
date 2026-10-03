@@ -1,3 +1,15 @@
+# NEXA 1.59.0 — Student OS Bridge & Consumer Integration
+
+NEXA 1.59.0 exposes the verified 1.58 provider adapter through a private, server-to-server Student OS bridge. The bridge accepts only the six versioned provider capabilities, requires a dedicated 32+ character bearer secret, requires the authenticated Student OS user identity in both the request body and a matching server-only header, bounds request bodies before JSON parsing, and returns no-store responses.
+
+The bridge delegates directly to `createNexaProviderAdapter`, so Student OS receives the same fail-soft provider result contract while the adapter remains side-effect-free. No browser receives the bridge secret or endpoint credentials, and the bridge does not expose NEXA memory writes, artifacts, workflows, project mutations, external research tools, or the normal NEXA chat persistence path.
+
+Student OS remains authoritative for mastery, readiness, prerequisites, remediation, transitions, and next-best-action decisions. The companion Student OS integration branch derives any academic evidence from its validated workspace and canonical deterministic learning intelligence before calling this bridge. If the bridge is disabled, unavailable, or rejects a request, Student OS keeps its existing server tutor and local fallback behavior.
+
+The release adds no database migration; migrations 001–039 remain immutable.
+
+---
+
 # NEXA 1.58.0 — Student OS Provider Runtime Adapter
 
 NEXA 1.58.0 turns the stable 1.57 provider contract into an actual callable runtime adapter for Student OS. `createNexaProviderAdapter` binds an adapter instance to one Student OS user identity, validates and bounds every request, preserves the six contract capabilities, and maps runtime failures into the contract's fail-soft `unavailable`, `timeout`, `rate_limited`, or `error` results without exposing internal provider errors.

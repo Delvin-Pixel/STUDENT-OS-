@@ -21,7 +21,7 @@ const envExample = await read('.env.local.example');
 const version = versionSource.match(/NEXA_VERSION = '([^']+)'/)?.[1];
 if (!version || version !== pkg.version) failures.push('package.json and lib/version.ts versions differ.');
 if (!readme.includes(`NEXA ${version}`)) failures.push('README does not contain the current NEXA version.');
-for (const variable of ['DATABASE_URL', 'AI_GATEWAY_API_KEY', 'RATE_LIMIT_SECRET', 'NEXA_DB_POOL_MAX', 'NEXA_DB_STATEMENT_TIMEOUT_MS', 'NEXA_TRANSCRIPTION_MODEL', 'NEXA_TRANSCRIPTION_TIMEOUT_MS', 'NEXA_TRANSCRIPTION_MAX_RETRIES']) {
+for (const variable of ['DATABASE_URL', 'AI_GATEWAY_API_KEY', 'RATE_LIMIT_SECRET', 'NEXA_DB_POOL_MAX', 'NEXA_DB_STATEMENT_TIMEOUT_MS', 'NEXA_TRANSCRIPTION_MODEL', 'NEXA_TRANSCRIPTION_TIMEOUT_MS', 'NEXA_TRANSCRIPTION_MAX_RETRIES', 'NEXA_STUDENT_OS_BRIDGE_SECRET', 'NEXA_STUDENT_OS_BRIDGE_TIMEOUT_MS']) {
   if (!envExample.includes(variable)) failures.push(`.env.local.example is missing ${variable}.`);
 }
 
@@ -59,6 +59,13 @@ if (!accountRoute.includes('AccountExportSizeError')) failures.push('Account exp
 
 const aiRuntime = await read('lib/ai-runtime.ts');
 if (!aiRuntime.includes('NEXA_MODEL') || !aiRuntime.includes('NEXA_AI_TOTAL_TIMEOUT_MS') || !aiRuntime.includes('NEXA_AI_MAX_RETRIES')) failures.push('AI runtime configuration is incomplete.');
+const studentOsBridgeCore = await read('lib/student-os-bridge-core.ts');
+const studentOsBridgeRoute = await read('app/api/integrations/student-os/route.ts');
+if (!studentOsBridgeCore.includes('timingSafeEqual') || !studentOsBridgeCore.includes('STUDENT_OS_BRIDGE_SECRET_MIN_CHARS = 32')) failures.push('Student OS bridge secret validation is incomplete.');
+if (!studentOsBridgeCore.includes('STUDENT_OS_BRIDGE_MAX_BODY_BYTES') || !studentOsBridgeCore.includes('STUDENT_OS_BRIDGE_CAPABILITIES')) failures.push('Student OS bridge bounds/capability contract is incomplete.');
+if (!studentOsBridgeRoute.includes('readJsonBody<unknown>(request, STUDENT_OS_BRIDGE_MAX_BODY_BYTES)')) failures.push('Student OS bridge does not use bounded JSON admission.');
+if (!studentOsBridgeRoute.includes("request.headers.get('x-student-os-user-id')") || !studentOsBridgeRoute.includes('headerUserId !== envelope.request.userId')) failures.push('Student OS bridge identity fencing is incomplete.');
+if (!studentOsBridgeRoute.includes('createNexaProviderAdapter') || !studentOsBridgeRoute.includes("'Cache-Control': 'no-store'")) failures.push('Student OS bridge runtime wiring is incomplete.');
 const voiceRuntime = await read('lib/voice.ts');
 const voiceRoute = await read('app/api/voice/transcribe/route.ts');
 if (!voiceRuntime.includes('gateway.transcriptionModel') || !voiceRuntime.includes('NEXA_TRANSCRIPTION_MODEL') || !voiceRuntime.includes('validateAudioSignature')) failures.push('Voice transcription runtime is incomplete.');
