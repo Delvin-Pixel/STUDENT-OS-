@@ -57,6 +57,8 @@ describe("Vercel HTTP entrypoint", () => {
   it("keeps anonymous authentication anonymous through tRPC", async () => {
     const response = await fetch(`${origin}/api/trpc/auth.me`);
     expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("cdn-cache-control")).toBe("no-store");
     expect(await response.json()).toMatchObject({
       result: { data: { json: null } },
     });

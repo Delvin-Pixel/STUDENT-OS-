@@ -18,6 +18,8 @@ try {
   assert.equal(typeof (await release.json()).serviceWorkerVersion, "string");
   const auth = await fetch(`${origin}/api/trpc/auth.me`);
   assert.equal(auth.status, 200);
+  assert.equal(auth.headers.get("cache-control"), "private, no-store");
+  assert.equal(auth.headers.get("cdn-cache-control"), "no-store");
   assert.equal((await auth.json()).result.data.json, null);
   const worker = await fetch(`${origin}/api/service-worker-v15.js`);
   assert.equal(worker.status, 200);

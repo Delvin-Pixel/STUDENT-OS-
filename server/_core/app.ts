@@ -11,6 +11,15 @@ import { registerOAuthRoutes } from "./oauth";
 /** Shared HTTP routes for the standalone server and the Vercel function. */
 export function createApp() {
   const app = express();
+  // API responses may contain account data; never store them in shared caches.
+  app.use("/api", (_req, res, next) => {
+    res.set({
+      "Cache-Control": "private, no-store",
+      "CDN-Cache-Control": "no-store",
+      "Vercel-CDN-Cache-Control": "no-store",
+    });
+    next();
+  });
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
