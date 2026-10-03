@@ -34,9 +34,10 @@ assert.match(runtimeSource, /insert into student_os_bridge_events/);
 assert.doesNotMatch(runtimeSource, /prompt|responseBody|response_body/);
 assert.match(runtimeSource, /Bridge observability must never break Student OS request handling/);
 
-for (const event of ['rate_limited','mismatch','in_progress','replayed','claimed','recovered','completed','ownership_lost','failed']) {
+for (const event of ['rate_limited','mismatch','in_progress','replayed','completed','ownership_lost','failed']) {
   assert.match(route, new RegExp(`observeBridge\\(['"]${event}['"]`));
 }
+assert.match(route, /claim\.recovered \? 'recovered' : 'claimed'/);
 assert.match(prune, /student_os_bridge_events/);
 assert.match(prune, /studentOsBridgeEventsDeleted/);
 

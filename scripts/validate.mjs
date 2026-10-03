@@ -72,6 +72,9 @@ const studentOsBridgeAdmissionCore = await read('lib/student-os-bridge-admission
 const studentOsBridgeAdmission = await read('lib/student-os-bridge-admission.ts');
 const studentOsBridgeIdempotency = await read('lib/student-os-bridge-idempotency.ts');
 const studentOsBridgeIdempotencyMigration = await read('db/040_student_os_bridge_idempotency.sql');
+const studentOsBridgeObservabilityCore = await read('lib/student-os-bridge-observability-core.ts');
+const studentOsBridgeObservability = await read('lib/student-os-bridge-observability.ts');
+const studentOsBridgeObservabilityMigration = await read('db/041_student_os_bridge_observability.sql');
 const studentOsBridgeReadiness = await read('lib/student-os-bridge-readiness.ts');
 const studentOsBridgeHealth = await read('app/api/integrations/student-os/health/route.ts');
 const studentOsBridgeSmoke = await read('scripts/smoke-student-os-bridge.mjs');
@@ -90,6 +93,13 @@ const bridgeClaimPos = studentOsBridgeRoute.indexOf('claimStudentOsBridgeRequest
 if (!(bridgeAdmissionPos >= 0 && bridgeClaimPos > bridgeAdmissionPos && bridgeProviderPos > bridgeClaimPos)) failures.push('Student OS bridge durable claim must run after admission control and before provider creation.');
 if (!studentOsBridgeRoute.includes('X-NEXA-Bridge-Idempotent-Replayed') || !studentOsBridgeRoute.includes('X-NEXA-Bridge-Idempotency-Status')) failures.push('Student OS bridge replay response metadata is incomplete.');
 if (!String(pkg.scripts?.['verify:ci'] ?? '').includes('test:postgres-student-os-bridge-idempotency')) failures.push('Canonical verification is missing the PostgreSQL Student OS bridge idempotency test.');
+if (!studentOsBridgeObservabilityMigration.includes('create table if not exists student_os_bridge_events') || studentOsBridgeObservabilityMigration.includes('external_user_id') || /prompt|response_body|metadata jsonb/i.test(studentOsBridgeObservabilityMigration)) failures.push('Student OS bridge privacy-bounded observability migration is incomplete.');
+if (!studentOsBridgeObservabilityCore.includes('fingerprintStudentOsBridgeUser') || !studentOsBridgeObservability.includes('insert into student_os_bridge_events')) failures.push('Student OS bridge observability helpers are incomplete.');
+for (const eventType of ['rate_limited','mismatch','in_progress','replayed','completed','ownership_lost','failed']) {
+  if (!studentOsBridgeRoute.includes(`observeBridge('${eventType}'`)) failures.push(`Student OS bridge observability is missing ${eventType} lifecycle instrumentation.`);
+}
+if (!studentOsBridgeRoute.includes("claim.recovered ? 'recovered' : 'claimed'")) failures.push('Student OS bridge observability is missing claim/recovery lifecycle instrumentation.');
+if (!String(pkg.scripts?.['verify:ci'] ?? '').includes('test:postgres-student-os-bridge-observability')) failures.push('Canonical verification is missing the PostgreSQL Student OS bridge observability test.');
 if (!studentOsBridgeCore.includes('STUDENT_OS_BRIDGE_REQUEST_ID_PATTERN') || !studentOsBridgeCore.includes('normalizeStudentOsBridgeRequestId')) failures.push('Student OS bridge request correlation validation is incomplete.');
 if (!studentOsBridgeRoute.includes('X-NEXA-Version') || !studentOsBridgeRoute.includes('X-NEXA-Bridge-Request-Id')) failures.push('Student OS bridge correlation/version response headers are incomplete.');
 if (!studentOsBridgeReadiness.includes('getStudentOsBridgeReadiness') || !studentOsBridgeReadiness.includes('ai_gateway_missing')) failures.push('Student OS bridge readiness model is incomplete.');
@@ -112,6 +122,7 @@ const accountExport = await read('lib/account.ts');
 if (!accountExport.includes("fetchCollection(client, 'workflow_execution_attempts'")) failures.push('Account export is missing workflow execution attempts.');
 const pruneOps = await read('scripts/prune-ops.mjs');
 if (!pruneOps.includes('workflow_execution_attempts')) failures.push('Operational pruning is missing workflow execution attempts.');
+if (!pruneOps.includes('student_os_bridge_events') || !pruneOps.includes('studentOsBridgeEventsDeleted')) failures.push('Operational pruning is missing Student OS bridge observability events.');
 if (!attemptEventMigration.includes('create table if not exists workflow_execution_attempt_events')) failures.push('Execution attempt lifecycle event migration is missing.');
 if (!attemptEventSequenceMigration.includes('sequence_no bigint')) failures.push('Execution attempt event sequencing migration is missing.');
 if (!executionAttempts.includes('coalesce(max(sequence_no), 0) + 1')) failures.push('Execution attempt event sequence assignment is missing.');
