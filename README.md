@@ -1,3 +1,15 @@
+# NEXA 1.60.0 — Bridge Reliability & Operational Readiness
+
+NEXA 1.60.0 hardens the Student OS integration introduced in 1.59 without expanding the provider contract or changing academic authority. The release adds an authenticated, zero-model-cost readiness endpoint at `GET /api/integrations/student-os/health` so deployment operators can verify bridge authentication, AI runtime configuration, provider contract version, capability surface, and Student OS authority metadata before sending a learner request.
+
+Bridge request IDs are now constrained to a header-safe correlation format and echoed back through `X-NEXA-Bridge-Request-Id` after successful admission. Bridge responses also expose the active `X-NEXA-Version` and provider contract version while remaining `Cache-Control: no-store`. The readiness response never returns the configured bridge secret and never invokes a model.
+
+A dedicated `ops:smoke-student-os-bridge` command verifies the deployed readiness endpoint with the server-to-server bridge secret and checks the exact six-capability surface, contract version, NEXA version header, authority marker, and ready state. Existing live provider smoke checks remain separate, so this operational check costs no AI call.
+
+The general capability diagnostics configuration now includes the Student OS bridge readiness state. No database migration is required; migrations 001–039 remain immutable, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.59.0 — Student OS Bridge & Consumer Integration
 
 NEXA 1.59.0 exposes the verified 1.58 provider adapter through a private, server-to-server Student OS bridge. The bridge accepts only the six versioned provider capabilities, requires a dedicated 32+ character bearer secret, requires the authenticated Student OS user identity in both the request body and a matching server-only header, bounds request bodies before JSON parsing, and returns no-store responses.
