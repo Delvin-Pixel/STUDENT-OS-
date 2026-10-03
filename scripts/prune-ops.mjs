@@ -91,6 +91,11 @@ try {
      where expires_at <= now()
      returning id`,
   );
+  const studentOsBridgeRequests = await client.query(
+    `delete from student_os_bridge_requests
+     where expires_at <= now()
+     returning request_id`,
+  );
   await client.query('commit');
   console.log(JSON.stringify({
     securityAuditDeleted: audit.rowCount ?? 0,
@@ -101,6 +106,8 @@ try {
     aiRunsDeleted: aiRuns.rowCount ?? 0,
     executionAttemptEventsDeleted: executionAttemptEvents.rowCount ?? 0,
     executionAttemptsDeleted: executionAttempts.rowCount ?? 0,
+    expiredChatTurnsDeleted: chatTurns.rowCount ?? 0,
+    expiredStudentOsBridgeRequestsDeleted: studentOsBridgeRequests.rowCount ?? 0,
     retentionDays: days,
   }, null, 2));
 } catch (error) {
