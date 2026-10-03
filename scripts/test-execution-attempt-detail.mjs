@@ -6,7 +6,7 @@ const route = readFileSync(new URL('../app/api/conversations/[id]/execution-atte
 const source = readFileSync(new URL('../lib/conversation-execution-attempts.ts', import.meta.url), 'utf8');
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(packageJson.version, '1.61.0');
+assert.equal(packageJson.version, '1.62.0');
 assert.match(packageJson.scripts.test, /test:execution-attempt-detail/);
 assert.match(route, /requireUser/);
 assert.match(route, /conversation-execution-attempt-detail/);
