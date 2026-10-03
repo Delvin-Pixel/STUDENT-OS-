@@ -1,14 +1,6 @@
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import "dotenv/config";
-import express from "express";
+import { createApp } from "./app";
 import { createServer } from "http";
 import net from "net";
-import { dispatchScheduledPush } from "../pushSchedule";
-import { registerReleaseInfoRoute } from "../releaseInfo";
-import { appRouter } from "../routers";
-import { registerServiceWorkerRoute } from "../serviceWorkerRoute";
-import { createContext } from "./context";
-import { registerOAuthRoutes } from "./oauth";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -31,23 +23,8 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
-  const app = express();
+  const app = createApp();
   const server = createServer(app);
-  // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  registerOAuthRoutes(app);
-  registerServiceWorkerRoute(app);
-  registerReleaseInfoRoute(app);
-  app.post("/api/scheduled/push-dispatch", dispatchScheduledPush);
-  // tRPC API
-  app.use(
-    "/api/trpc",
-    createExpressMiddleware({
-      router: appRouter,
-      createContext,
-    })
-  );
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

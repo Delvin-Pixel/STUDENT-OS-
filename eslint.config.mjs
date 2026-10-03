@@ -18,7 +18,12 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["client/src/**/*.{ts,tsx}", "server/**/*.ts", "shared/**/*.ts"],
+    files: [
+      "api/**/*.ts",
+      "client/src/**/*.{ts,tsx}",
+      "server/**/*.ts",
+      "shared/**/*.ts",
+    ],
     languageOptions: {
       globals: {
         ...globals.browser,
