@@ -1,3 +1,15 @@
+# NEXA 1.62.0 — Durable Student OS Bridge Idempotency & Replay Safety
+
+NEXA 1.62.0 adds a dedicated durable replay ledger for the private Student OS bridge so repeated delivery of the same accepted bridge request does not trigger a second model call. The ledger is keyed by the external Student OS user identity plus the bounded bridge request ID and stores a canonical request hash, capability, execution lease, terminal response, recovery count, and a 24-hour expiry.
+
+The bridge flow is now: authentication → Student OS user-identity fencing → admission control → durable request claim → provider/model execution → owner-fenced terminal commit. A completed duplicate replays the exact saved JSON response with no provider creation. A live duplicate receives a retryable 409 in-progress response. Reusing the same request ID with a different payload is rejected. If an owner crashes and its 90-second execution lease expires, a later identical request may recover ownership while stale owners are fenced from committing.
+
+Migration 040 creates `student_os_bridge_requests` as a separate external-integration ledger rather than forcing Student OS identities into NEXA account idempotency tables. Existing migrations 001–039 remain immutable. Expired bridge replay records are included in the explicit operator prune path, and a PostgreSQL integration test verifies uniqueness, exact replay storage, lease recovery, stale-owner fencing, and the additive migration.
+
+Admission control still runs before the durable claim, so retries remain subject to the cost-protection ceilings introduced in 1.61. Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.61.0 — Student OS Bridge Admission Control & Cost Protection
 
 NEXA 1.61.0 hardens the private Student OS bridge against accidental or abusive model traffic without changing the provider contract or Student OS academic authority. Authenticated bridge requests now pass three durable PostgreSQL-backed admission ceilings before a provider is created: a global per-minute ceiling, a per-user per-minute ceiling, and a per-user per-hour ceiling.
