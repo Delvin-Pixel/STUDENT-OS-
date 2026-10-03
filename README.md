@@ -1,3 +1,15 @@
+# NEXA 1.63.0 — Privacy-Bounded Student OS Bridge Observability
+
+NEXA 1.63.0 adds dedicated operational telemetry for the private Student OS bridge without mixing external Student OS identities into NEXA account telemetry. Migration 041 creates `student_os_bridge_events`, a bounded event ledger for authenticated bridge traffic covering claim/recovery, admission throttling, idempotency mismatch/in-progress/replay, completion, failure, and ownership-loss outcomes.
+
+The observability ledger deliberately stores no prompt text, response body, arbitrary metadata JSON, or raw Student OS user ID. External user identities are HMAC-pseudonymized with the existing server-only `RATE_LIMIT_SECRET`; stored fields are limited to the pseudonymous user fingerprint, bridge/server request IDs, capability, lifecycle event, HTTP status, bounded duration, optional rate-limit scope, optional provider success state, and timestamp.
+
+Bridge event recording is fail-soft and cannot break request handling. Lifecycle events are emitted only after successful bridge authentication and Student OS identity fencing. Operators can correlate retries and recoveries by request ID, inspect coarse latency/outcome patterns, and retain events independently from the 24-hour replay ledger. Expired observability records are included in the explicit `ops:prune` retention path.
+
+A dedicated PostgreSQL integration test verifies migration 041, confirms the schema contains no raw external identity/prompt/response/metadata columns, enforces the fingerprint constraint, proves lifecycle persistence, and exercises retention deletion. Existing migrations 001–040 remain immutable. Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.62.0 — Durable Student OS Bridge Idempotency & Replay Safety
 
 NEXA 1.62.0 adds a dedicated durable replay ledger for the private Student OS bridge so repeated delivery of the same accepted bridge request does not trigger a second model call. The ledger is keyed by the external Student OS user identity plus the bounded bridge request ID and stores a canonical request hash, capability, execution lease, terminal response, recovery count, and a 24-hour expiry.
