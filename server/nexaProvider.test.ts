@@ -55,37 +55,44 @@ describe("Student OS NEXA provider consumer", () => {
     expect(selectNexaProviderCapability("Create a short quiz on algebra")).toBe(
       "generateQuiz"
     );
-    expect(selectNexaProviderCapability("Teach me factorisation step by step")).toBe(
-      "tutor"
+    expect(
+      selectNexaProviderCapability("Teach me factorisation step by step")
+    ).toBe("tutor");
+    expect(selectNexaProviderCapability("Explain photosynthesis")).toBe(
+      "explain"
     );
-    expect(selectNexaProviderCapability("Explain photosynthesis")).toBe("explain");
-    expect(selectNexaProviderCapability("What should I study next?")).toBe("coach");
+    expect(selectNexaProviderCapability("What should I study next?")).toBe(
+      "coach"
+    );
     expect(selectNexaProviderCapability("Hello there")).toBe("chat");
   });
 
   it("sends the secret and authenticated user identity only server-to-server", async () => {
     let capturedUrl = "";
     let capturedInit: RequestInit | undefined;
-    const fetchImpl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-      capturedUrl = String(url);
-      capturedInit = init;
-      const body = JSON.parse(String(init?.body));
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          requestId: body.request.requestId,
-          capability: body.capability,
-          content: "Factorisation rewrites an expression as a product of factors.",
-          metadata: {
-            contractVersion: "1.0",
-            nexaVersion: "1.59.0",
+    const fetchImpl = vi.fn(
+      async (url: string | URL | Request, init?: RequestInit) => {
+        capturedUrl = String(url);
+        capturedInit = init;
+        const body = JSON.parse(String(init?.body));
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            requestId: body.request.requestId,
             capability: body.capability,
-            academicDecisionAuthority: "student-os-learning-intelligence",
-          },
-        }),
-        { status: 200, headers: { "content-type": "application/json" } }
-      );
-    }) as unknown as typeof fetch;
+            content:
+              "Factorisation rewrites an expression as a product of factors.",
+            metadata: {
+              contractVersion: "1.0",
+              nexaVersion: "1.59.0",
+              capability: body.capability,
+              academicDecisionAuthority: "student-os-learning-intelligence",
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      }
+    ) as unknown as typeof fetch;
 
     const result = await callNexaProvider({
       userId: "student-1",
