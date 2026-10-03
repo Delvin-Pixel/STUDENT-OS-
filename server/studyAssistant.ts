@@ -3,10 +3,7 @@ import { generateImage } from "./_core/imageGeneration";
 import { invokeLLM, isTextGenerationModel, listLLMModels } from "./_core/llm";
 import { DEFAULT_MEDIA_SYSTEM_PROMPT, parseMediaPrompt } from "./mediaPrompt";
 import { logOperationalFailure } from "./safeOperationalLog";
-import {
-  callNexaProvider,
-  type NexaAcademicContext,
-} from "./nexaProvider";
+import { callNexaProvider, type NexaAcademicContext } from "./nexaProvider";
 
 export const studyAssistantRequestSchema = z.object({
   question: z.string().trim().min(2).max(1200),
