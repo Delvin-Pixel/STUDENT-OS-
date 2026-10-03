@@ -48,6 +48,7 @@ if (!recoveryScript.includes("process.argv.includes('--execute')")) failures.pus
 const pruneScript = await read('scripts/prune-ops.mjs');
 if (!pruneScript.includes('workflow_events')) failures.push('Workflow event retention is not included in explicit maintenance pruning.');
 if (!pruneScript.includes('ai_runs') || !pruneScript.includes('aiRunsDeleted')) failures.push('AI run retention/reporting is not included in explicit maintenance pruning.');
+if (!pruneScript.includes('student_os_bridge_requests') || !pruneScript.includes('expiredStudentOsBridgeRequestsDeleted')) failures.push('Student OS bridge replay retention is not included in explicit maintenance pruning.');
 if (!recoveryScript.includes('from ai_runs') || !recoveryScript.includes('StaleRunRecovery')) failures.push('Stale AI run recovery is missing from operator maintenance.');
 const workflowRoute = await read('app/api/workflows/[id]/route.ts');
 if (!workflowRoute.includes('listWorkflowEvents')) failures.push('Workflow detail route does not expose workflow events.');
@@ -69,6 +70,8 @@ if (!studentOsBridgeRoute.includes("request.headers.get('x-student-os-user-id')"
 if (!studentOsBridgeRoute.includes('createNexaProviderAdapter') || !studentOsBridgeRoute.includes("'Cache-Control': 'no-store'")) failures.push('Student OS bridge runtime wiring is incomplete.');
 const studentOsBridgeAdmissionCore = await read('lib/student-os-bridge-admission-core.ts');
 const studentOsBridgeAdmission = await read('lib/student-os-bridge-admission.ts');
+const studentOsBridgeIdempotency = await read('lib/student-os-bridge-idempotency.ts');
+const studentOsBridgeIdempotencyMigration = await read('db/040_student_os_bridge_idempotency.sql');
 const studentOsBridgeReadiness = await read('lib/student-os-bridge-readiness.ts');
 const studentOsBridgeHealth = await read('app/api/integrations/student-os/health/route.ts');
 const studentOsBridgeSmoke = await read('scripts/smoke-student-os-bridge.mjs');
@@ -80,6 +83,13 @@ const bridgeAdmissionPos = studentOsBridgeRoute.indexOf('enforceStudentOsBridgeA
 const bridgeProviderPos = studentOsBridgeRoute.indexOf('createNexaProviderAdapter({');
 if (!(bridgeIdentityFencePos >= 0 && bridgeAdmissionPos > bridgeIdentityFencePos && bridgeProviderPos > bridgeAdmissionPos)) failures.push('Student OS bridge admission must run after identity fencing and before provider creation.');
 if (!studentOsBridgeReadiness.includes('admission_control_invalid') || !studentOsBridgeReadiness.includes('rate_limit_secret_missing')) failures.push('Student OS bridge readiness does not enforce admission-control configuration.');
+if (!studentOsBridgeIdempotencyMigration.includes('create table if not exists student_os_bridge_requests') || !studentOsBridgeIdempotencyMigration.includes('primary key (external_user_id, request_id)')) failures.push('Student OS bridge durable idempotency migration is incomplete.');
+if (!studentOsBridgeIdempotency.includes('claimStudentOsBridgeRequest') || !studentOsBridgeIdempotency.includes('completeStudentOsBridgeRequest') || !studentOsBridgeIdempotency.includes('failStudentOsBridgeRequest')) failures.push('Student OS bridge idempotency lifecycle helpers are incomplete.');
+if (!studentOsBridgeIdempotency.includes('KEY_REUSE_MISMATCH') || !studentOsBridgeIdempotency.includes('recovery_count = recovery_count + 1')) failures.push('Student OS bridge replay mismatch/recovery fencing is incomplete.');
+const bridgeClaimPos = studentOsBridgeRoute.indexOf('claimStudentOsBridgeRequest(');
+if (!(bridgeAdmissionPos >= 0 && bridgeClaimPos > bridgeAdmissionPos && bridgeProviderPos > bridgeClaimPos)) failures.push('Student OS bridge durable claim must run after admission control and before provider creation.');
+if (!studentOsBridgeRoute.includes('X-NEXA-Bridge-Idempotent-Replayed') || !studentOsBridgeRoute.includes('X-NEXA-Bridge-Idempotency-Status')) failures.push('Student OS bridge replay response metadata is incomplete.');
+if (!String(pkg.scripts?.['verify:ci'] ?? '').includes('test:postgres-student-os-bridge-idempotency')) failures.push('Canonical verification is missing the PostgreSQL Student OS bridge idempotency test.');
 if (!studentOsBridgeCore.includes('STUDENT_OS_BRIDGE_REQUEST_ID_PATTERN') || !studentOsBridgeCore.includes('normalizeStudentOsBridgeRequestId')) failures.push('Student OS bridge request correlation validation is incomplete.');
 if (!studentOsBridgeRoute.includes('X-NEXA-Version') || !studentOsBridgeRoute.includes('X-NEXA-Bridge-Request-Id')) failures.push('Student OS bridge correlation/version response headers are incomplete.');
 if (!studentOsBridgeReadiness.includes('getStudentOsBridgeReadiness') || !studentOsBridgeReadiness.includes('ai_gateway_missing')) failures.push('Student OS bridge readiness model is incomplete.');
