@@ -4,6 +4,7 @@ import { getNexaAiRuntimeConfig } from '@/lib/ai-runtime';
 import { getProjectSemanticConfig } from '@/lib/project-semantic';
 import { extractRichProjectKnowledge, getRichProjectFileConfig, normalizeRichProjectFileInput } from '@/lib/project-rich-files';
 import { getVoiceTranscriptionConfig, transcribeVoiceAudio, type VoiceAudioInput, VoiceAudioError } from '@/lib/voice';
+import { getStudentOsBridgeReadiness } from '@/lib/student-os-bridge-readiness';
 import { NEXA_VERSION } from '@/lib/version';
 
 const DEFAULT_DIAGNOSTICS_TIMEOUT_MS = 20_000;
@@ -89,6 +90,7 @@ export function getCapabilityConfiguration() {
   const embedding = safeConfig(getProjectSemanticConfig);
   const voice = safeConfig(getVoiceTranscriptionConfig);
   const rich = safeConfig(getRichProjectFileConfig);
+  const studentOsBridge = getStudentOsBridgeReadiness();
   return {
     service: 'nexa' as const,
     version: NEXA_VERSION,
@@ -99,6 +101,13 @@ export function getCapabilityConfiguration() {
       embedding: { configured: gatewayConfigured && embedding.ok, model: embedding.ok ? embedding.value.model : null, dimensions: embedding.ok ? embedding.value.dimensions : null },
       voice: { configured: gatewayConfigured && voice.ok, model: voice.ok ? voice.value.model : null },
       richExtraction: { configured: gatewayConfigured && rich.ok, model: rich.ok ? rich.value.model : null },
+    },
+    integrations: {
+      studentOsBridge: {
+        status: studentOsBridge.status,
+        providerContractVersion: studentOsBridge.providerContractVersion,
+        academicDecisionAuthority: studentOsBridge.academicDecisionAuthority,
+      },
     },
   };
 }
