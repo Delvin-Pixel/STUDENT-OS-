@@ -13,7 +13,7 @@ const trace = readFileSync(new URL('../lib/conversation-activity-trace.ts', impo
 const account = readFileSync(new URL('../lib/account.ts', import.meta.url), 'utf8');
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(pkg.version, '1.60.0');
+assert.equal(pkg.version, '1.61.0');
 assert.match(migration, /alter table ai_runs/);
 assert.match(migration, /alter table tool_runs/);
 assert.match(migration, /add column if not exists execution_attempt_id uuid references workflow_execution_attempts/);
