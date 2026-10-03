@@ -1,6 +1,6 @@
 {
-  "name": "nexa-1-61",
-  "version": "1.61.0",
+  "name": "nexa-1-62",
+  "version": "1.62.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,7 +15,7 @@
     "ops:recover-stale": "node scripts/recover-stale-workflows.mjs",
     "test:workflow": "node scripts/test-workflow-planner.mjs",
     "test:idempotency": "node scripts/test-idempotency.mjs",
-    "test": "npm run test:core && npm run test:workflow && npm run test:idempotency && npm run test:consistency && npm run test:workflow-state && npm run test:workflow-events && npm run test:account && npm run test:ai-runtime && npm run test:ai-run-fencing && npm run test:tool-governance && npm run test:context-trust && npm run test:project-isolation && npm run test:memory-provenance && npm run test:conversation-integrity && npm run test:conversation-activity && npm run test:activity-ui && npm run test:execution-summary && npm run test:activity-trace && npm run test:cancellation-safety && npm run test:live-cancellation && npm run test:execution-lease && npm run test:stale-recovery && npm run test:execution-attempts && npm run test:execution-attempt-events && npm run test:execution-attempt-history && npm run test:execution-attempt-detail && npm run test:execution-integrity && npm run test:execution-attempt-telemetry && npm run test:execution-attempt-correlation && npm run test:execution-attempt-trace && npm run test:workflow-telemetry-correlation && npm run test:execution-fencing && npm run test:attempt-cancellation && npm run test:message-attempt-fencing && npm run test:exact-response-commit && npm run test:chat-turn-idempotency && npm run test:chat-client-idempotency && npm run test:chat-turn-idempotency-order && npm run test:chat-turn-recovery && npm run test:project-files && npm run test:project-semantic && npm run test:voice-input && npm run test:rich-project-files && npm run test:grounding-provenance && npm run test:external-provenance && npm run test:nexa-provider-contract && npm run test:nexa-provider-adapter && npm run test:student-os-bridge && npm run test:student-os-bridge-readiness && npm run test:student-os-bridge-admission && npm run test:capability-diagnostics && npm run test:canonical-source && npm run test:release-verification",
+    "test": "npm run test:core && npm run test:workflow && npm run test:idempotency && npm run test:consistency && npm run test:workflow-state && npm run test:workflow-events && npm run test:account && npm run test:ai-runtime && npm run test:ai-run-fencing && npm run test:tool-governance && npm run test:context-trust && npm run test:project-isolation && npm run test:memory-provenance && npm run test:conversation-integrity && npm run test:conversation-activity && npm run test:activity-ui && npm run test:execution-summary && npm run test:activity-trace && npm run test:cancellation-safety && npm run test:live-cancellation && npm run test:execution-lease && npm run test:stale-recovery && npm run test:execution-attempts && npm run test:execution-attempt-events && npm run test:execution-attempt-history && npm run test:execution-attempt-detail && npm run test:execution-integrity && npm run test:execution-attempt-telemetry && npm run test:execution-attempt-correlation && npm run test:execution-attempt-trace && npm run test:workflow-telemetry-correlation && npm run test:execution-fencing && npm run test:attempt-cancellation && npm run test:message-attempt-fencing && npm run test:exact-response-commit && npm run test:chat-turn-idempotency && npm run test:chat-client-idempotency && npm run test:chat-turn-idempotency-order && npm run test:chat-turn-recovery && npm run test:project-files && npm run test:project-semantic && npm run test:voice-input && npm run test:rich-project-files && npm run test:grounding-provenance && npm run test:external-provenance && npm run test:nexa-provider-contract && npm run test:nexa-provider-adapter && npm run test:student-os-bridge && npm run test:student-os-bridge-readiness && npm run test:student-os-bridge-admission && npm run test:student-os-bridge-idempotency && npm run test:capability-diagnostics && npm run test:canonical-source && npm run test:release-verification",
     "test:consistency": "node scripts/test-consistency.mjs",
     "test:workflow-state": "node scripts/test-workflow-state.mjs",
     "test:workflow-events": "node scripts/test-workflow-events.mjs",
@@ -56,7 +56,7 @@
     "verify:deps": "node scripts/verify-dependencies.mjs",
     "test:postgres-chat-recovery": "node scripts/test-postgres-chat-turn-recovery.mjs",
     "test:release-verification": "node scripts/test-release-verification.mjs",
-    "verify:ci": "npm run verify:deps && npm run test:migration-integrity && npm run validate && npm run test:capability-diagnostics && npm test && npm run typecheck && npm run migrate:status && npm run ops:validate-telemetry-fences && npm run test:postgres-historical-upgrades && npm run test:postgres-student-os-bridge-admission && npm run test:postgres-project-files && npm run test:postgres-project-semantic && npm run test:postgres-rich-project-files && npm run test:postgres-grounding-provenance && npm run test:postgres-external-provenance && npm run test:postgres-chat-recovery && npm run ops:check-execution && npm run build",
+    "verify:ci": "npm run verify:deps && npm run test:migration-integrity && npm run validate && npm run test:capability-diagnostics && npm test && npm run typecheck && npm run migrate:status && npm run ops:validate-telemetry-fences && npm run test:postgres-historical-upgrades && npm run test:postgres-student-os-bridge-admission && npm run test:postgres-student-os-bridge-idempotency && npm run test:postgres-project-files && npm run test:postgres-project-semantic && npm run test:postgres-rich-project-files && npm run test:postgres-grounding-provenance && npm run test:postgres-external-provenance && npm run test:postgres-chat-recovery && npm run ops:check-execution && npm run build",
     "test:migration-integrity": "node scripts/test-migration-integrity.mjs",
     "ops:validate-telemetry-fences": "node scripts/validate-telemetry-fences.mjs",
     "test:postgres-historical-upgrades": "node scripts/test-postgres-historical-upgrades.mjs",
@@ -81,7 +81,9 @@
     "test:student-os-bridge-readiness": "node scripts/test-student-os-bridge-readiness.mjs",
     "ops:smoke-student-os-bridge": "node scripts/smoke-student-os-bridge.mjs",
     "test:student-os-bridge-admission": "node scripts/test-student-os-bridge-admission.mjs",
-    "test:postgres-student-os-bridge-admission": "node scripts/test-postgres-student-os-bridge-admission.mjs"
+    "test:postgres-student-os-bridge-admission": "node scripts/test-postgres-student-os-bridge-admission.mjs",
+    "test:student-os-bridge-idempotency": "node scripts/test-student-os-bridge-idempotency.mjs",
+    "test:postgres-student-os-bridge-idempotency": "node scripts/test-postgres-student-os-bridge-idempotency.mjs"
   },
   "dependencies": {
     "ai": "7.0.102",
