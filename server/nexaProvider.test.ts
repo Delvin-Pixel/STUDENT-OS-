@@ -141,11 +141,12 @@ describe("Student OS NEXA provider consumer", () => {
   });
 
   it("rejects malformed or oversized bridge responses", async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response(JSON.stringify({ ok: true, content: "x".repeat(8_001) }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      })
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ ok: true, content: "x".repeat(8_001) }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
     ) as unknown as typeof fetch;
 
     await expect(
