@@ -1,3 +1,15 @@
+# NEXA 1.61.0 — Student OS Bridge Admission Control & Cost Protection
+
+NEXA 1.61.0 hardens the private Student OS bridge against accidental or abusive model traffic without changing the provider contract or Student OS academic authority. Authenticated bridge requests now pass three durable PostgreSQL-backed admission ceilings before a provider is created: a global per-minute ceiling, a per-user per-minute ceiling, and a per-user per-hour ceiling.
+
+The default limits are 300 requests/minute globally, 30 requests/minute per Student OS user, and 300 requests/hour per Student OS user. Each limit is configurable through bounded server-only environment variables. Invalid admission configuration degrades bridge readiness instead of silently disabling protection. Production readiness also requires the existing 32+ character RATE_LIMIT_SECRET used to HMAC bridge bucket identities.
+
+Rate-limited requests return HTTP 429 with Retry-After, standard rate-limit metadata, the active NEXA/provider headers, the accepted bridge request ID, and a coarse bridge limit scope. Admission happens only after bridge authentication and user-identity fencing, but before createNexaProviderAdapter or any model execution.
+
+The existing rate_limit_buckets table from migration 010 is reused, so no new migration is required and migrations 001–039 remain immutable. A PostgreSQL integration test proves independent durable global/user minute/hour buckets, ceiling rejection, and expired-bucket reuse. Student OS deterministic learningIntelligence remains the sole academic decision authority.
+
+---
+
 # NEXA 1.60.0 — Bridge Reliability & Operational Readiness
 
 NEXA 1.60.0 hardens the Student OS integration introduced in 1.59 without expanding the provider contract or changing academic authority. The release adds an authenticated, zero-model-cost readiness endpoint at `GET /api/integrations/student-os/health` so deployment operators can verify bridge authentication, AI runtime configuration, provider contract version, capability surface, and Student OS authority metadata before sending a learner request.
