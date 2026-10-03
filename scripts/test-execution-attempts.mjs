@@ -11,7 +11,7 @@ const account = readFileSync(new URL('../lib/account.ts', import.meta.url), 'utf
 const migration = readFileSync(new URL('../db/026_workflow_execution_attempts.sql', import.meta.url), 'utf8');
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(pkg.version, '1.59.0');
+assert.equal(pkg.version, '1.60.0');
 assert.match(pkg.scripts.test, /test:execution-attempts/);
 assert.match(chat, /executionLeaseAttemptId/);
 assert.match(chat, /attemptId: executionLeaseAttemptId/);
