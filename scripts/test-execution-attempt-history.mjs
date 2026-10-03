@@ -7,7 +7,7 @@ const source = readFileSync(new URL('../lib/conversation-execution-attempts.ts',
 const panel = readFileSync(new URL('../components/activity-panel.tsx', import.meta.url), 'utf8');
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(pkg.version, '1.60.0');
+assert.equal(pkg.version, '1.61.0');
 assert.match(pkg.scripts.test, /test:execution-attempt-history/);
 assert.match(route, /requireUser/);
 assert.match(route, /enforceUserReadRateLimit/);
