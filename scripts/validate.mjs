@@ -15,13 +15,14 @@ for (const [sectionName, deps] of Object.entries({ dependencies: pkg.dependencie
   }
 }
 const versionSource = await read('lib/version.ts');
+if (!String(pkg.scripts?.['verify:ci'] ?? '').includes('test:postgres-student-os-bridge-admission')) failures.push('Canonical verification is missing the PostgreSQL Student OS bridge admission test.');
 const readme = await read('README.md');
 const envExample = await read('.env.local.example');
 
 const version = versionSource.match(/NEXA_VERSION = '([^']+)'/)?.[1];
 if (!version || version !== pkg.version) failures.push('package.json and lib/version.ts versions differ.');
 if (!readme.includes(`NEXA ${version}`)) failures.push('README does not contain the current NEXA version.');
-for (const variable of ['DATABASE_URL', 'AI_GATEWAY_API_KEY', 'RATE_LIMIT_SECRET', 'NEXA_DB_POOL_MAX', 'NEXA_DB_STATEMENT_TIMEOUT_MS', 'NEXA_TRANSCRIPTION_MODEL', 'NEXA_TRANSCRIPTION_TIMEOUT_MS', 'NEXA_TRANSCRIPTION_MAX_RETRIES', 'NEXA_STUDENT_OS_BRIDGE_SECRET', 'NEXA_STUDENT_OS_BRIDGE_TIMEOUT_MS']) {
+for (const variable of ['DATABASE_URL', 'AI_GATEWAY_API_KEY', 'RATE_LIMIT_SECRET', 'NEXA_DB_POOL_MAX', 'NEXA_DB_STATEMENT_TIMEOUT_MS', 'NEXA_TRANSCRIPTION_MODEL', 'NEXA_TRANSCRIPTION_TIMEOUT_MS', 'NEXA_TRANSCRIPTION_MAX_RETRIES', 'NEXA_STUDENT_OS_BRIDGE_SECRET', 'NEXA_STUDENT_OS_BRIDGE_TIMEOUT_MS', 'NEXA_STUDENT_OS_BRIDGE_GLOBAL_LIMIT_PER_MINUTE', 'NEXA_STUDENT_OS_BRIDGE_USER_LIMIT_PER_MINUTE', 'NEXA_STUDENT_OS_BRIDGE_USER_LIMIT_PER_HOUR']) {
   if (!envExample.includes(variable)) failures.push(`.env.local.example is missing ${variable}.`);
 }
 
@@ -66,9 +67,19 @@ if (!studentOsBridgeCore.includes('STUDENT_OS_BRIDGE_MAX_BODY_BYTES') || !studen
 if (!studentOsBridgeRoute.includes('readJsonBody<unknown>(request, STUDENT_OS_BRIDGE_MAX_BODY_BYTES)')) failures.push('Student OS bridge does not use bounded JSON admission.');
 if (!studentOsBridgeRoute.includes("request.headers.get('x-student-os-user-id')") || !studentOsBridgeRoute.includes('headerUserId !== envelope.request.userId')) failures.push('Student OS bridge identity fencing is incomplete.');
 if (!studentOsBridgeRoute.includes('createNexaProviderAdapter') || !studentOsBridgeRoute.includes("'Cache-Control': 'no-store'")) failures.push('Student OS bridge runtime wiring is incomplete.');
+const studentOsBridgeAdmissionCore = await read('lib/student-os-bridge-admission-core.ts');
+const studentOsBridgeAdmission = await read('lib/student-os-bridge-admission.ts');
 const studentOsBridgeReadiness = await read('lib/student-os-bridge-readiness.ts');
 const studentOsBridgeHealth = await read('app/api/integrations/student-os/health/route.ts');
 const studentOsBridgeSmoke = await read('scripts/smoke-student-os-bridge.mjs');
+if (!studentOsBridgeAdmissionCore.includes('NEXA_STUDENT_OS_BRIDGE_GLOBAL_LIMIT_PER_MINUTE') || !studentOsBridgeAdmissionCore.includes('NEXA_STUDENT_OS_BRIDGE_USER_LIMIT_PER_MINUTE') || !studentOsBridgeAdmissionCore.includes('NEXA_STUDENT_OS_BRIDGE_USER_LIMIT_PER_HOUR')) failures.push('Student OS bridge admission configuration bounds are incomplete.');
+if (!studentOsBridgeAdmission.includes('student-os-bridge-global-minute') || !studentOsBridgeAdmission.includes('student-os-bridge-user-minute') || !studentOsBridgeAdmission.includes('student-os-bridge-user-hour')) failures.push('Student OS bridge durable admission buckets are incomplete.');
+if (!studentOsBridgeRoute.includes('enforceStudentOsBridgeAdmission') || !studentOsBridgeRoute.includes('X-NEXA-Bridge-Limit-Scope') || !studentOsBridgeRoute.includes("'Retry-After'")) failures.push('Student OS bridge rate-limit response contract is incomplete.');
+const bridgeIdentityFencePos = studentOsBridgeRoute.indexOf('headerUserId !== envelope.request.userId');
+const bridgeAdmissionPos = studentOsBridgeRoute.indexOf('enforceStudentOsBridgeAdmission(');
+const bridgeProviderPos = studentOsBridgeRoute.indexOf('createNexaProviderAdapter({');
+if (!(bridgeIdentityFencePos >= 0 && bridgeAdmissionPos > bridgeIdentityFencePos && bridgeProviderPos > bridgeAdmissionPos)) failures.push('Student OS bridge admission must run after identity fencing and before provider creation.');
+if (!studentOsBridgeReadiness.includes('admission_control_invalid') || !studentOsBridgeReadiness.includes('rate_limit_secret_missing')) failures.push('Student OS bridge readiness does not enforce admission-control configuration.');
 if (!studentOsBridgeCore.includes('STUDENT_OS_BRIDGE_REQUEST_ID_PATTERN') || !studentOsBridgeCore.includes('normalizeStudentOsBridgeRequestId')) failures.push('Student OS bridge request correlation validation is incomplete.');
 if (!studentOsBridgeRoute.includes('X-NEXA-Version') || !studentOsBridgeRoute.includes('X-NEXA-Bridge-Request-Id')) failures.push('Student OS bridge correlation/version response headers are incomplete.');
 if (!studentOsBridgeReadiness.includes('getStudentOsBridgeReadiness') || !studentOsBridgeReadiness.includes('ai_gateway_missing')) failures.push('Student OS bridge readiness model is incomplete.');
