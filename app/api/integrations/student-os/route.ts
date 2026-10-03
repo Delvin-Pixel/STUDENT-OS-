@@ -1,5 +1,5 @@
 import { createNexaProviderAdapter } from '@/lib/nexa-provider-adapter';
-import type { NexaProvider, NexaProviderRequest, NexaProviderResult } from '@/lib/nexa-provider';
+import { NEXA_PROVIDER_CONTRACT_VERSION, type NexaProvider, type NexaProviderRequest, type NexaProviderResult } from '@/lib/nexa-provider';
 import {
   STUDENT_OS_BRIDGE_MAX_BODY_BYTES,
   authorizeStudentOsBridge,
@@ -10,13 +10,16 @@ import {
   type StudentOsBridgeCapability,
 } from '@/lib/student-os-bridge-core';
 import { getRequestId, jsonResponse, mapBodyError, readJsonBody } from '@/lib/http';
+import { NEXA_VERSION } from '@/lib/version';
 
 export const runtime = 'nodejs';
 
-function noStoreHeaders() {
+function noStoreHeaders(bridgeRequestId?: string) {
   return {
     'Cache-Control': 'no-store',
-    'X-NEXA-Provider-Contract': '1.0',
+    'X-NEXA-Version': NEXA_VERSION,
+    'X-NEXA-Provider-Contract': NEXA_PROVIDER_CONTRACT_VERSION,
+    ...(bridgeRequestId ? { 'X-NEXA-Bridge-Request-Id': bridgeRequestId } : {}),
   };
 }
 
@@ -69,7 +72,7 @@ export async function POST(request: Request) {
     if (!envelope || !headerUserId || headerUserId !== envelope.request.userId) {
       return jsonResponse(
         { error: 'Invalid Student OS bridge request.' },
-        { status: 400, requestId, headers: noStoreHeaders() },
+        { status: 400, requestId, headers: noStoreHeaders(envelope?.request.requestId) },
       );
     }
 
@@ -86,7 +89,7 @@ export async function POST(request: Request) {
     return jsonResponse(result, {
       status: 200,
       requestId,
-      headers: noStoreHeaders(),
+      headers: noStoreHeaders(envelope.request.requestId),
     });
   } catch (error) {
     const bodyError = mapBodyError(error);
