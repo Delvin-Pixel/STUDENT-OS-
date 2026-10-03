@@ -1,5 +1,13 @@
 import { createNexaProviderAdapter } from '@/lib/nexa-provider-adapter';
 import { enforceStudentOsBridgeAdmission, type StudentOsBridgeAdmissionResult } from '@/lib/student-os-bridge-admission';
+import {
+  claimStudentOsBridgeRequest,
+  completeStudentOsBridgeRequest,
+  failStudentOsBridgeRequest,
+  hashStudentOsBridgeRequest,
+  mapStudentOsBridgeIdempotencyError,
+  type StudentOsBridgeRequestLease,
+} from '@/lib/student-os-bridge-idempotency';
 import { NEXA_PROVIDER_CONTRACT_VERSION, type NexaProvider, type NexaProviderRequest, type NexaProviderResult } from '@/lib/nexa-provider';
 import {
   STUDENT_OS_BRIDGE_MAX_BODY_BYTES,
@@ -59,6 +67,7 @@ async function executeCapability(
 
 export async function POST(request: Request) {
   const requestId = getRequestId(request);
+  let bridgeLease: StudentOsBridgeRequestLease | null = null;
   const configuredSecret = process.env.NEXA_STUDENT_OS_BRIDGE_SECRET ?? '';
 
   if (!isConfiguredStudentOsBridgeSecret(configuredSecret)) {
@@ -104,6 +113,62 @@ export async function POST(request: Request) {
       );
     }
 
+    let claim;
+    try {
+      claim = await claimStudentOsBridgeRequest({
+        externalUserId: envelope.request.userId,
+        requestId: envelope.request.requestId,
+        requestHash: hashStudentOsBridgeRequest(envelope),
+        capability: envelope.capability,
+        ownerRequestId: requestId,
+      });
+    } catch (error) {
+      const mismatch = mapStudentOsBridgeIdempotencyError(error);
+      if (mismatch) {
+        return jsonResponse(
+          { error: mismatch },
+          {
+            status: 409,
+            requestId,
+            headers: {
+              ...noStoreHeaders(envelope.request.requestId),
+              'X-NEXA-Bridge-Idempotency-Status': 'mismatch',
+            },
+          },
+        );
+      }
+      throw error;
+    }
+
+    if (claim.kind === 'in_progress') {
+      return jsonResponse(
+        { error: 'This Student OS bridge request is already being processed.' },
+        {
+          status: 409,
+          requestId,
+          headers: {
+            ...noStoreHeaders(envelope.request.requestId),
+            'Retry-After': String(claim.retryAfterSeconds),
+            'X-NEXA-Bridge-Idempotency-Status': 'in-progress',
+          },
+        },
+      );
+    }
+
+    if (claim.kind === 'replay') {
+      return jsonResponse(claim.body, {
+        status: claim.status,
+        requestId,
+        headers: {
+          ...noStoreHeaders(envelope.request.requestId),
+          'X-NEXA-Bridge-Idempotency-Status': claim.terminalStatus,
+          'X-NEXA-Bridge-Idempotent-Replayed': 'true',
+        },
+      });
+    }
+
+    bridgeLease = claim.lease;
+
     const provider = createNexaProviderAdapter({
       userId: envelope.request.userId,
       timeoutMs: getStudentOsBridgeTimeoutMs(process.env.NEXA_STUDENT_OS_BRIDGE_TIMEOUT_MS),
@@ -114,10 +179,28 @@ export async function POST(request: Request) {
       envelope.request as NexaProviderRequest,
     );
 
+    const completed = await completeStudentOsBridgeRequest(bridgeLease, 200, result);
+    if (!completed) {
+      return jsonResponse(
+        { error: 'This Student OS bridge request changed execution owner. Retrying is safe.' },
+        {
+          status: 409,
+          requestId,
+          headers: {
+            ...noStoreHeaders(envelope.request.requestId),
+            'X-NEXA-Bridge-Idempotency-Status': 'ownership-lost',
+          },
+        },
+      );
+    }
+
     return jsonResponse(result, {
       status: 200,
       requestId,
-      headers: noStoreHeaders(envelope.request.requestId),
+      headers: {
+        ...noStoreHeaders(envelope.request.requestId),
+        'X-NEXA-Bridge-Idempotency-Status': claim.recovered ? 'recovered' : 'completed',
+      },
     });
   } catch (error) {
     const bodyError = mapBodyError(error);
@@ -128,9 +211,22 @@ export async function POST(request: Request) {
       );
     }
 
+    const failure = { error: 'Student OS bridge request could not be completed.' };
+    if (bridgeLease) {
+      try {
+        await failStudentOsBridgeRequest(bridgeLease, 500, failure);
+      } catch {}
+    }
     return jsonResponse(
-      { error: 'Student OS bridge request could not be completed.' },
-      { status: 500, requestId, headers: noStoreHeaders() },
+      failure,
+      {
+        status: 500,
+        requestId,
+        headers: {
+          ...noStoreHeaders(bridgeLease?.requestId),
+          ...(bridgeLease ? { 'X-NEXA-Bridge-Idempotency-Status': 'failed' } : {}),
+        },
+      },
     );
   }
 }
