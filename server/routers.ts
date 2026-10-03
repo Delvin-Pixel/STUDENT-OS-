@@ -7,6 +7,7 @@ import { ENV } from "./_core/env";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { buildLearningStateSnapshot } from "./aiLearningState";
+import { buildStudentOsNexaAcademicContext } from "./nexaAcademicContext";
 import { enforceAiRateLimit } from "./aiRateLimit";
 import {
   assessmentReadInput,
@@ -126,6 +127,26 @@ async function getAiLearningStateContext(
   }
 }
 
+async function getAssistantNexaAcademicContext(
+  openId: string,
+  question: string
+) {
+  const record = await getWorkspace(openId);
+  if (!record.workspace) return undefined;
+  try {
+    const parsed = validateStudyState(JSON.parse(record.workspace));
+    if (!parsed.success) return undefined;
+    return buildStudentOsNexaAcademicContext(
+      parsed.data,
+      question,
+      `workspace:${record.revision}`,
+      new Date().toISOString().slice(0, 10)
+    );
+  } catch {
+    return undefined;
+  }
+}
+
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
@@ -196,7 +217,13 @@ export const appRouter = router({
       .input(studyAssistantRequestSchema)
       .mutation(async ({ ctx, input }) => {
         await enforceAiRateLimit(ctx.user.openId, "assistant");
-        return answerStudyAssistantQuestion(input, ctx.signal);
+        return answerStudyAssistantQuestion(input, ctx.signal, {
+          userId: ctx.user.openId,
+          academicContext: await getAssistantNexaAcademicContext(
+            ctx.user.openId,
+            input.question
+          ),
+        });
       }),
   }),
 

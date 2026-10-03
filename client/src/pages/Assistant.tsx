@@ -18,7 +18,7 @@ interface Msg {
   id: string;
   role: "user" | "assistant";
   text: string;
-  source?: "openai" | "studentos";
+  source?: "nexa" | "openai" | "studentos";
   media?: { url: string; caption: string };
   rating?: "up" | "down";
   reason?: AiAnswerFeedbackReason;
@@ -189,9 +189,11 @@ export default function Assistant() {
                 {m.role === "assistant" && m.source && (
                   <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     Answer source:{" "}
-                    {m.source === "openai"
-                      ? "Student OS tutor"
-                      : "Student OS local guide"}
+                    {m.source === "nexa"
+                      ? "NEXA tutor"
+                      : m.source === "openai"
+                        ? "Student OS tutor"
+                        : "Student OS local guide"}
                   </p>
                 )}
                 {m.role === "assistant" && m.id !== "welcome" && !m.pending && (

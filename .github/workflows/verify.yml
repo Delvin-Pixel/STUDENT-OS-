@@ -7,6 +7,7 @@ on:
     branches:
       - main
       - audit/b58.1-verified-source
+      - integration/nexa-1.59.0-student-os-consumer
 
 permissions:
   contents: read

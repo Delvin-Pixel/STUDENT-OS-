@@ -23,4 +23,7 @@ export const ENV = {
   ownerNotificationWebhookKey: process.env.OWNER_NOTIFICATION_WEBHOOK_KEY ?? "",
   dataApiBaseUrl: process.env.DATA_API_BASE_URL ?? "",
   dataApiKey: process.env.DATA_API_KEY ?? "",
+  nexaProviderUrl: process.env.NEXA_PROVIDER_URL ?? "",
+  nexaProviderSecret: process.env.NEXA_PROVIDER_SECRET ?? "",
+  nexaProviderTimeoutMs: process.env.NEXA_PROVIDER_TIMEOUT_MS ?? "",
 };
