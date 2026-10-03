@@ -66,6 +66,14 @@ if (!studentOsBridgeCore.includes('STUDENT_OS_BRIDGE_MAX_BODY_BYTES') || !studen
 if (!studentOsBridgeRoute.includes('readJsonBody<unknown>(request, STUDENT_OS_BRIDGE_MAX_BODY_BYTES)')) failures.push('Student OS bridge does not use bounded JSON admission.');
 if (!studentOsBridgeRoute.includes("request.headers.get('x-student-os-user-id')") || !studentOsBridgeRoute.includes('headerUserId !== envelope.request.userId')) failures.push('Student OS bridge identity fencing is incomplete.');
 if (!studentOsBridgeRoute.includes('createNexaProviderAdapter') || !studentOsBridgeRoute.includes("'Cache-Control': 'no-store'")) failures.push('Student OS bridge runtime wiring is incomplete.');
+const studentOsBridgeReadiness = await read('lib/student-os-bridge-readiness.ts');
+const studentOsBridgeHealth = await read('app/api/integrations/student-os/health/route.ts');
+const studentOsBridgeSmoke = await read('scripts/smoke-student-os-bridge.mjs');
+if (!studentOsBridgeCore.includes('STUDENT_OS_BRIDGE_REQUEST_ID_PATTERN') || !studentOsBridgeCore.includes('normalizeStudentOsBridgeRequestId')) failures.push('Student OS bridge request correlation validation is incomplete.');
+if (!studentOsBridgeRoute.includes('X-NEXA-Version') || !studentOsBridgeRoute.includes('X-NEXA-Bridge-Request-Id')) failures.push('Student OS bridge correlation/version response headers are incomplete.');
+if (!studentOsBridgeReadiness.includes('getStudentOsBridgeReadiness') || !studentOsBridgeReadiness.includes('ai_gateway_missing')) failures.push('Student OS bridge readiness model is incomplete.');
+if (!studentOsBridgeHealth.includes('authorizeStudentOsBridge') || !studentOsBridgeHealth.includes("readiness.status === 'ready' ? 200 : 503")) failures.push('Student OS bridge readiness endpoint is incomplete.');
+if (!studentOsBridgeSmoke.includes('/api/integrations/student-os/health') || studentOsBridgeSmoke.includes("'/api/integrations/student-os'")) failures.push('Student OS bridge zero-cost smoke verification is incomplete.');
 const voiceRuntime = await read('lib/voice.ts');
 const voiceRoute = await read('app/api/voice/transcribe/route.ts');
 if (!voiceRuntime.includes('gateway.transcriptionModel') || !voiceRuntime.includes('NEXA_TRANSCRIPTION_MODEL') || !voiceRuntime.includes('validateAudioSignature')) failures.push('Voice transcription runtime is incomplete.');
