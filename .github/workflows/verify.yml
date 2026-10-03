@@ -87,8 +87,11 @@ jobs:
       - name: ESLint
         run: pnpm lint
 
-      - name: Prettier
-        run: pnpm format:check
+      - name: Prettier diagnostic
+        run: |
+          pnpm exec prettier server/nexaProvider.ts server/nexaProvider.test.ts --write
+          git diff -- server/nexaProvider.ts server/nexaProvider.test.ts
+          exit 1
 
       - name: Validate Drizzle migration metadata
         run: pnpm check:migrations
