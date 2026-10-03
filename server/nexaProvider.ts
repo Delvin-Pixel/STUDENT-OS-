@@ -53,10 +53,16 @@ type ConfigSource = Readonly<{
 }>;
 
 function localHostname(hostname: string) {
-  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1"
+  );
 }
 
-export function normalizeNexaProviderConfig(source: ConfigSource): NexaProviderConfig | null {
+export function normalizeNexaProviderConfig(
+  source: ConfigSource
+): NexaProviderConfig | null {
   const rawUrl = source.url.trim();
   const secret = source.secret.trim();
   if (!rawUrl || secret.length < 32) return null;
@@ -70,7 +76,12 @@ export function normalizeNexaProviderConfig(source: ConfigSource): NexaProviderC
 
   if (url.username || url.password || url.search || url.hash) return null;
   if (source.isProduction && url.protocol !== "https:") return null;
-  if (!source.isProduction && url.protocol === "http:" && !localHostname(url.hostname)) return null;
+  if (
+    !source.isProduction &&
+    url.protocol === "http:" &&
+    !localHostname(url.hostname)
+  )
+    return null;
   if (url.protocol !== "https:" && url.protocol !== "http:") return null;
 
   const rawTimeout = source.timeoutMs ?? NEXA_PROVIDER_DEFAULT_TIMEOUT_MS;
@@ -99,21 +110,43 @@ export function getNexaProviderConfig(): NexaProviderConfig | null {
   });
 }
 
-export function selectNexaProviderCapability(question: string): NexaProviderCapability {
+export function selectNexaProviderCapability(
+  question: string
+): NexaProviderCapability {
   const text = question.toLowerCase();
-  if (/\b(?:quiz|test me|practice questions?|make questions?|generate questions?)\b/.test(text)) {
+  if (
+    /\b(?:quiz|test me|practice questions?|make questions?|generate questions?)\b/.test(
+      text
+    )
+  ) {
     return "generateQuiz";
   }
-  if (/\b(?:study material|revision notes?|summary|cheat sheet|learning material)\b/.test(text)) {
+  if (
+    /\b(?:study material|revision notes?|summary|cheat sheet|learning material)\b/.test(
+      text
+    )
+  ) {
     return "generateMaterial";
   }
-  if (/\b(?:teach me|tutor me|walk me through|step[- ]by[- ]step|help me learn|solve with me)\b/.test(text)) {
+  if (
+    /\b(?:teach me|tutor me|walk me through|step[- ]by[- ]step|help me learn|solve with me)\b/.test(
+      text
+    )
+  ) {
     return "tutor";
   }
-  if (/\b(?:explain|define|what is|what are|why does|why is|how does|how do)\b/.test(text)) {
+  if (
+    /\b(?:explain|define|what is|what are|why does|why is|how does|how do)\b/.test(
+      text
+    )
+  ) {
     return "explain";
   }
-  if (/\b(?:plan|schedule|focus|procrastinat|motivat|what should i study|what next|weakest|progress)\b/.test(text)) {
+  if (
+    /\b(?:plan|schedule|focus|procrastinat|motivat|what should i study|what next|weakest|progress)\b/.test(
+      text
+    )
+  ) {
     return "coach";
   }
   return "chat";
@@ -145,8 +178,16 @@ function isSuccessPayload(
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
   if (record.ok !== true) return false;
-  if (record.requestId !== expectedRequestId || record.capability !== expectedCapability) return false;
-  if (typeof record.content !== "string" || !record.content.trim() || record.content.length > NEXA_PROVIDER_MAX_ANSWER_CHARS) {
+  if (
+    record.requestId !== expectedRequestId ||
+    record.capability !== expectedCapability
+  )
+    return false;
+  if (
+    typeof record.content !== "string" ||
+    !record.content.trim() ||
+    record.content.length > NEXA_PROVIDER_MAX_ANSWER_CHARS
+  ) {
     return false;
   }
   if (!record.metadata || typeof record.metadata !== "object") return false;
@@ -172,8 +213,11 @@ function isFailurePayload(
   );
 }
 
-export async function callNexaProvider(input: CallInput): Promise<NexaProviderCallResult> {
-  const config = input.config === undefined ? getNexaProviderConfig() : input.config;
+export async function callNexaProvider(
+  input: CallInput
+): Promise<NexaProviderCallResult> {
+  const config =
+    input.config === undefined ? getNexaProviderConfig() : input.config;
   if (!config) return { ok: false, reason: "disabled" };
 
   const userId = input.userId.trim();
