@@ -9,7 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import app from "../api/index";
+import app from "./vercelHandler";
 
 let server: Server;
 let origin: string;

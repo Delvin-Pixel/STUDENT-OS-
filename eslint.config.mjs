@@ -19,7 +19,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     files: [
-      "api/**/*.ts",
+      "api/**/*.mjs",
       "client/src/**/*.{ts,tsx}",
       "server/**/*.ts",
       "shared/**/*.ts",

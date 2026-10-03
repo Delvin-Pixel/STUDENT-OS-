@@ -5,8 +5,8 @@
   "installCommand": "corepack pnpm install --frozen-lockfile --strict-peer-dependencies",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/index.ts": {
-      "includeFiles": "dist/public/sw.js"
+    "api/index.mjs": {
+      "includeFiles": ["dist/vercel.mjs", "dist/public/sw.js"]
     }
   },
   "rewrites": [
