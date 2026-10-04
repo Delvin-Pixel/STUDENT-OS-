@@ -13,8 +13,8 @@ const [pkgText, coreSource, routeSource, envExample, readme] = await Promise.all
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-63');
-assert.equal(pkg.version, '1.63.0');
+assert.equal(pkg.name, 'nexa-1-64');
+assert.equal(pkg.version, '1.64.0');
 assert.equal(pkg.scripts['test:student-os-bridge'], 'node scripts/test-student-os-bridge.mjs');
 assert.match(pkg.scripts.test, /test:student-os-bridge/);
 assert.match(readme, /NEXA 1\.59\.0 — Student OS Bridge & Consumer Integration/);
@@ -27,6 +27,8 @@ assert.match(routeSource, /x-student-os-user-id/);
 assert.match(routeSource, /headerUserId !== envelope\.request\.userId/);
 assert.match(routeSource, /createNexaProviderAdapter/);
 assert.match(routeSource, /Cache-Control': 'no-store'/);
+assert.match(routeSource, /X-NEXA-Academic-Context-SHA256/);
+assert.match(routeSource, /academicContextHeaders\(result\)/);
 assert.doesNotMatch(routeSource, /createNexaAgent/);
 assert.doesNotMatch(routeSource, /createToolEngine/);
 

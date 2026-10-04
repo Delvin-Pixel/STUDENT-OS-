@@ -1,3 +1,15 @@
+# NEXA 1.64.0 — Academic Context Snapshot Binding & Provenance
+
+NEXA 1.64.0 binds every successful Student OS provider response to the normalized deterministic academic context that produced it. When Student OS supplies `academicContext`, NEXA now computes a domain-separated SHA-256 fingerprint over the normalized authority marker, snapshot ID, evidence list, and host constraints. The result metadata carries binding version `sha256-v1`, the bounded snapshot ID, the 64-character fingerprint, and evidence/constraint counts. Requests without academic context keep `metadata.academicContext = null`.
+
+The binding is computed after NEXA's existing context normalization, so insignificant surrounding whitespace does not change the fingerprint while any material snapshot, evidence, or constraint change does. The fingerprint never grants NEXA academic authority: Student OS deterministic `learningIntelligence` remains the sole authority for mastery, readiness, prerequisites, remediation, transitions, and next-best-action decisions. NEXA only proves which host-owned context its conversational output was generated against.
+
+The private Student OS bridge echoes the binding fingerprint through `X-NEXA-Academic-Context-SHA256` on successful responses and on durable idempotent replays. Because the existing bridge request hash already includes the complete request envelope, reusing a request ID with different academic context remains a mismatch and is rejected before provider execution. The authenticated readiness endpoint advertises `academicContextBindingVersion` so Student OS can detect support before enforcing the binding.
+
+This release adds no database migration: migrations 001–041 remain immutable. The release gate adds a dedicated academic-context binding contract test covering normalization stability, fingerprint sensitivity, bridge propagation, replay propagation, readiness advertisement, and the no-migration boundary.
+
+---
+
 # NEXA 1.63.0 — Privacy-Bounded Student OS Bridge Observability
 
 NEXA 1.63.0 adds dedicated operational telemetry for the private Student OS bridge without mixing external Student OS identities into NEXA account telemetry. Migration 041 creates `student_os_bridge_events`, a bounded event ledger for authenticated bridge traffic covering claim/recovery, admission throttling, idempotency mismatch/in-progress/replay, completion, failure, and ownership-loss outcomes.

@@ -12,6 +12,7 @@ import {
 } from '@/lib/nexa-provider';
 import {
   NEXA_PROVIDER_ADAPTER_LIMITS,
+  bindNexaAcademicContext,
   buildNexaProviderPrompt,
   classifyNexaProviderError,
   normalizeNexaProviderRequest,
@@ -121,7 +122,7 @@ export function createNexaProviderAdapter(options: NexaProviderAdapterOptions): 
         requestId: normalized.requestId,
         capability,
         content: content.slice(0, NEXA_PROVIDER_ADAPTER_LIMITS.outputChars),
-        metadata: createNexaProviderMetadata(capability),
+        metadata: createNexaProviderMetadata(capability, bindNexaAcademicContext(normalized.academicContext)),
       });
     } catch (error) {
       const failure = classifyNexaProviderError(error);

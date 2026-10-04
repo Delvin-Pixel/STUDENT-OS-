@@ -15,8 +15,8 @@ const [pkgText, coreSource, readinessSource, routeSource, bridgeRouteSource, smo
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-63');
-assert.equal(pkg.version, '1.63.0');
+assert.equal(pkg.name, 'nexa-1-64');
+assert.equal(pkg.version, '1.64.0');
 assert.equal(pkg.scripts['test:student-os-bridge-readiness'], 'node scripts/test-student-os-bridge-readiness.mjs');
 assert.equal(pkg.scripts['ops:smoke-student-os-bridge'], 'node scripts/smoke-student-os-bridge.mjs');
 assert.match(pkg.scripts.test, /test:student-os-bridge-readiness/);
@@ -52,6 +52,7 @@ assert.match(readinessSource, /bridge_secret_missing/);
 assert.match(readinessSource, /ai_gateway_missing/);
 assert.match(readinessSource, /runtime_configuration_invalid/);
 assert.match(readinessSource, /academicDecisionAuthority: NEXA_STUDENT_OS_ACADEMIC_AUTHORITY/);
+assert.match(readinessSource, /academicContextBindingVersion: NEXA_ACADEMIC_CONTEXT_BINDING_VERSION/);
 assert.doesNotMatch(readinessSource, /NEXA_STUDENT_OS_BRIDGE_SECRET[^\n]*:/);
 
 let migration040Exists = true;

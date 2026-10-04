@@ -2,6 +2,7 @@ import { NEXA_VERSION } from '@/lib/version';
 
 export const NEXA_PROVIDER_CONTRACT_VERSION = '1.0' as const;
 export const NEXA_STUDENT_OS_ACADEMIC_AUTHORITY = 'student-os-learning-intelligence' as const;
+export const NEXA_ACADEMIC_CONTEXT_BINDING_VERSION = 'sha256-v1' as const;
 
 export const NEXA_PROVIDER_CAPABILITIES = [
   'chat',
@@ -37,11 +38,20 @@ export type NexaProviderRequest = Readonly<{
   academicContext?: NexaAcademicContext | null;
 }>;
 
+export type NexaAcademicContextBinding = Readonly<{
+  bindingVersion: typeof NEXA_ACADEMIC_CONTEXT_BINDING_VERSION;
+  snapshotId: string | null;
+  fingerprint: string;
+  evidenceCount: number;
+  constraintCount: number;
+}>;
+
 export type NexaProviderMetadata = Readonly<{
   contractVersion: typeof NEXA_PROVIDER_CONTRACT_VERSION;
   nexaVersion: string;
   capability: NexaProviderCapability;
   academicDecisionAuthority: typeof NEXA_STUDENT_OS_ACADEMIC_AUTHORITY;
+  academicContext: NexaAcademicContextBinding | null;
 }>;
 
 export type NexaProviderSuccess = Readonly<{
@@ -93,12 +103,16 @@ export function createNexaProviderFailure(
   });
 }
 
-export function createNexaProviderMetadata(capability: NexaProviderCapability): NexaProviderMetadata {
+export function createNexaProviderMetadata(
+  capability: NexaProviderCapability,
+  academicContext: NexaAcademicContextBinding | null = null,
+): NexaProviderMetadata {
   return Object.freeze({
     contractVersion: NEXA_PROVIDER_CONTRACT_VERSION,
     nexaVersion: NEXA_VERSION,
     capability,
     academicDecisionAuthority: NEXA_STUDENT_OS_ACADEMIC_AUTHORITY,
+    academicContext,
   });
 }
 

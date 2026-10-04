@@ -33,6 +33,18 @@ function noStoreHeaders(bridgeRequestId?: string) {
   };
 }
 
+
+function academicContextHeaders(result: unknown) {
+  if (!result || typeof result !== 'object' || Array.isArray(result)) return {};
+  const metadata = (result as { metadata?: unknown }).metadata;
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return {};
+  const academicContext = (metadata as { academicContext?: unknown }).academicContext;
+  if (!academicContext || typeof academicContext !== 'object' || Array.isArray(academicContext)) return {};
+  const fingerprint = (academicContext as { fingerprint?: unknown }).fingerprint;
+  if (typeof fingerprint !== 'string' || !/^[0-9a-f]{64}$/.test(fingerprint)) return {};
+  return { 'X-NEXA-Academic-Context-SHA256': fingerprint };
+}
+
 function admissionLimitHeaders(
   admission: Extract<StudentOsBridgeAdmissionResult, { allowed: false }>,
 ) {
@@ -239,6 +251,7 @@ export async function POST(request: Request) {
       headers: {
         ...noStoreHeaders(envelope.request.requestId),
         'X-NEXA-Bridge-Idempotency-Status': claim.recovered ? 'recovered' : 'completed',
+        ...academicContextHeaders(result),
       },
     });
   } catch (error) {

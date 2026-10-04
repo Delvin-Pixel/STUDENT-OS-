@@ -13,8 +13,8 @@ const [pkgText, coreSource, adapterSource, contractSource, readme] = await Promi
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-63');
-assert.equal(pkg.version, '1.63.0');
+assert.equal(pkg.name, 'nexa-1-64');
+assert.equal(pkg.version, '1.64.0');
 assert.match(adapterSource, /ToolLoopAgent/);
 assert.match(adapterSource, /agent\.generate\(/);
 assert.match(adapterSource, /stopWhen: isStepCount\(1\)/);
@@ -22,6 +22,7 @@ assert.match(adapterSource, /normalized\.userId !== boundUserId/);
 assert.match(adapterSource, /Promise\.race/);
 assert.match(adapterSource, /controller\.abort\('NEXA_PROVIDER_TIMEOUT'\)/);
 assert.match(adapterSource, /createNexaProviderMetadata/);
+assert.match(adapterSource, /bindNexaAcademicContext\(normalized\.academicContext\)/);
 assert.match(adapterSource, /createNexaProviderFailure/);
 const typedCapabilityWrappers = adapterSource.match(/request: NexaProviderRequest/g) ?? [];
 assert.ok(typedCapabilityWrappers.length >= 6, 'All provider capability wrappers must retain explicit request typing.'); // typed capability wrappers

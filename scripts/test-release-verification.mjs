@@ -7,8 +7,8 @@ const workflow = await readFile(new URL('../.github/workflows/verify.yml', impor
 const integration = await readFile(new URL('./test-postgres-chat-turn-recovery.mjs', import.meta.url), 'utf8');
 const deps = await readFile(new URL('./verify-dependencies.mjs', import.meta.url), 'utf8');
 
-assert.equal(pkg.version, '1.63.0');
-assert.equal(pkg.name, 'nexa-1-63');
+assert.equal(pkg.version, '1.64.0');
+assert.equal(pkg.name, 'nexa-1-64');
 assert.equal(pkg.packageManager, 'npm@10.9.2');
 assert.match(pkg.scripts['verify:ci'], /verify:deps/);
 assert.match(pkg.scripts['verify:ci'], /typecheck/);

@@ -1,6 +1,7 @@
 import { getNexaAiRuntimeConfig } from '@/lib/ai-runtime';
 import { getStudentOsBridgeAdmissionConfig } from '@/lib/student-os-bridge-admission';
 import {
+  NEXA_ACADEMIC_CONTEXT_BINDING_VERSION,
   NEXA_PROVIDER_CAPABILITIES,
   NEXA_PROVIDER_CONTRACT_VERSION,
   NEXA_STUDENT_OS_ACADEMIC_AUTHORITY,
@@ -22,6 +23,7 @@ export type StudentOsBridgeReadiness = Readonly<{
   checkedAt: string;
   providerContractVersion: string;
   academicDecisionAuthority: string;
+  academicContextBindingVersion: string;
   capabilities: readonly string[];
   limits: Readonly<{
     maxBodyBytes: number;
@@ -80,6 +82,7 @@ export function getStudentOsBridgeReadiness(): StudentOsBridgeReadiness {
     checkedAt: new Date().toISOString(),
     providerContractVersion: NEXA_PROVIDER_CONTRACT_VERSION,
     academicDecisionAuthority: NEXA_STUDENT_OS_ACADEMIC_AUTHORITY,
+    academicContextBindingVersion: NEXA_ACADEMIC_CONTEXT_BINDING_VERSION,
     capabilities: NEXA_PROVIDER_CAPABILITIES,
     limits: Object.freeze({
       maxBodyBytes: STUDENT_OS_BRIDGE_MAX_BODY_BYTES,

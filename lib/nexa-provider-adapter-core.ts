@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto';
 import type {
+  NexaAcademicContextBinding,
   NexaAcademicContext,
   NexaProviderCapability,
   NexaProviderFailureCode,
@@ -127,6 +129,31 @@ const CAPABILITY_DIRECTIVES: Record<NexaProviderCapability, string> = {
   generateQuiz: 'Create a practice quiz aligned to the supplied academic context. Generating or answering the quiz does not itself change mastery or readiness.',
   coach: 'Coach the learner within the supplied Student OS priorities and constraints. Do not replace the host next-best-action, transition, or remediation decision.',
 };
+
+
+export function bindNexaAcademicContext(
+  context: NormalizedNexaAcademicContext | null,
+): NexaAcademicContextBinding | null {
+  if (!context) return null;
+  const canonical = JSON.stringify({
+    authority: context.authority,
+    snapshotId: context.snapshotId,
+    evidence: [...context.evidence],
+    constraints: [...context.constraints],
+  });
+  const fingerprint = createHash('sha256')
+    .update('nexa-academic-context-binding-v1\0', 'utf8')
+    .update(canonical, 'utf8')
+    .digest('hex');
+
+  return Object.freeze({
+    bindingVersion: 'sha256-v1',
+    snapshotId: context.snapshotId,
+    fingerprint,
+    evidenceCount: context.evidence.length,
+    constraintCount: context.constraints.length,
+  });
+}
 
 export function buildNexaProviderPrompt(
   capability: NexaProviderCapability,
