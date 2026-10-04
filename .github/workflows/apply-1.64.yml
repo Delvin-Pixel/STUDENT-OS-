@@ -1,0 +1,67 @@
+name: NEXA 1.64 source staging
+
+on:
+  push:
+    branches: [nexa-1.64.0-academic-context-binding]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout staged branch
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect staged payload
+        id: payload
+        shell: bash
+        run: |
+          if test -f .nexa-build/1.64.0-source-part-00; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify staged payload and apply exact source patch
+        if: steps.payload.outputs.present == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .nexa-build/1.64.0-source-part-* | tr -d '\r\n\t ' | base64 --decode > "$RUNNER_TEMP/nexa-1.64.0-source.patch.xz"
+          echo "469fa9578a77fe58a28a51fa888b35e884e50ee2c762c702e989a58578169e3d  $RUNNER_TEMP/nexa-1.64.0-source.patch.xz" | sha256sum -c -
+          xz -t "$RUNNER_TEMP/nexa-1.64.0-source.patch.xz"
+          xz -dc "$RUNNER_TEMP/nexa-1.64.0-source.patch.xz" > "$RUNNER_TEMP/nexa-1.64.0-source.patch"
+          echo "572864dd402dce4c0eb1b829a73cb8dc9a6142d3fe8ef8e8ab926212582fff5e  $RUNNER_TEMP/nexa-1.64.0-source.patch" | sha256sum -c -
+
+          git apply --check --exclude=.github/workflows/verify.yml "$RUNNER_TEMP/nexa-1.64.0-source.patch"
+          git apply --exclude=.github/workflows/verify.yml "$RUNNER_TEMP/nexa-1.64.0-source.patch"
+
+          echo "d796350b4c02c7fcb6e93647300d1cb7243e4776960c4696755131eab0e095e3  package-lock.json" | sha256sum -c -
+          test "$(node -p "require('./package.json').version")" = "1.64.0"
+          grep -q "export const NEXA_VERSION = '1.64.0'" lib/version.ts
+          test -f scripts/test-academic-context-binding.mjs
+          node scripts/validate.mjs
+          node scripts/test-release-verification.mjs
+          node scripts/test-canonical-source.mjs
+          node scripts/test-nexa-provider-contract.mjs
+
+      - name: Commit ordinary 1.64 source
+        if: steps.payload.outputs.present == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .nexa-build
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet -- .github/workflows/verify.yml; then
+            echo "verify.yml unexpectedly changed during payload application" >&2
+            exit 1
+          fi
+          git commit -m "feat(nexa): academic context snapshot binding"
+          git push origin HEAD:nexa-1.64.0-academic-context-binding
