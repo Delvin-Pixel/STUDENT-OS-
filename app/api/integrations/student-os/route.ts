@@ -34,7 +34,7 @@ function noStoreHeaders(bridgeRequestId?: string) {
 }
 
 
-function academicContextHeaders(result: unknown) {
+function academicContextHeaders(result: unknown): Record<string, string> {
   if (!result || typeof result !== 'object' || Array.isArray(result)) return {};
   const metadata = (result as { metadata?: unknown }).metadata;
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return {};
