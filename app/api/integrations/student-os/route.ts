@@ -211,6 +211,7 @@ export async function POST(request: Request) {
           ...noStoreHeaders(envelope.request.requestId),
           'X-NEXA-Bridge-Idempotency-Status': claim.terminalStatus,
           'X-NEXA-Bridge-Idempotent-Replayed': 'true',
+          ...academicContextHeaders(claim.body),
         },
       });
     }
