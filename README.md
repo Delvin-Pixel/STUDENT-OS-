@@ -1,3 +1,15 @@
+# NEXA 1.71.0 — Student OS Bridge Transport Contract Versioning
+
+NEXA 1.71.0 introduces an explicit version for the private HTTP transport contract between Student OS and NEXA. The bridge transport is now versioned independently from the NEXA provider semantics and the deterministic fallback directive, so those layers can evolve without being incorrectly treated as one protocol.
+
+The bridge contract starts at `1.0` and is advertised on every Student OS bridge response through `X-NEXA-Bridge-Contract`. Authenticated bridge health also exposes `bridgeContractVersion` in its machine-readable body, and the deployment smoke verifier requires the body and header to agree.
+
+The existing NEXA provider contract remains `1.0`, and the deterministic fallback contract remains `1.0`. No request schema, capability set, provider behavior, fallback authority, idempotency rule, admission rule, or academic decision rule changes in this release. Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+This release adds no database migration; migrations 001–042 remain immutable. Canonical verification separately guards the bridge transport version, provider contract version, and fallback contract version to prevent accidental cross-layer coupling.
+
+---
+
 # NEXA 1.70.0 — Student OS Preflight Failover Readiness
 
 NEXA 1.70.0 makes the authenticated Student OS bridge health check explicitly describe how the integration can serve a request before Student OS sends one. Full model-backed readiness remains `ready` with serving mode `nexa`. When the AI Gateway is operationally unavailable but the bridge can still safely hand control back to Student OS, readiness remains honestly `degraded` while exposing serving mode `student-os-deterministic` and the same bounded fallback directive introduced in 1.69.
