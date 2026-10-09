@@ -9,6 +9,7 @@ export const STUDENT_OS_BRIDGE_EVENT_TYPES = [
   'replayed',
   'completed',
   'failed',
+  'operational_rejected',
   'ownership_lost',
 ] as const;
 
