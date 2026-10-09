@@ -15,8 +15,8 @@ const [pkgText, coreSource, readinessSource, routeSource, bridgeRouteSource, smo
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-65');
-assert.equal(pkg.version, '1.65.0');
+assert.equal(pkg.name, 'nexa-1-66');
+assert.equal(pkg.version, '1.66.0');
 assert.equal(pkg.scripts['test:student-os-bridge-readiness'], 'node scripts/test-student-os-bridge-readiness.mjs');
 assert.equal(pkg.scripts['ops:smoke-student-os-bridge'], 'node scripts/smoke-student-os-bridge.mjs');
 assert.match(pkg.scripts.test, /test:student-os-bridge-readiness/);
