@@ -90,7 +90,7 @@ export async function POST(request: Request) {
   const observeBridge = async (
     eventType: StudentOsBridgeObservation['eventType'],
     httpStatus?: number | null,
-    detail?: Pick<StudentOsBridgeObservation, 'limitScope' | 'providerOk'>,
+    detail?: Pick<StudentOsBridgeObservation, 'limitScope' | 'providerOk' | 'operationalReason'>,
   ) => {
     if (!bridgeObservationContext) return;
     await recordStudentOsBridgeEvent({
@@ -100,6 +100,7 @@ export async function POST(request: Request) {
       durationMs: Date.now() - bridgeStartedAt,
       limitScope: detail?.limitScope ?? null,
       providerOk: detail?.providerOk ?? null,
+      operationalReason: detail?.operationalReason ?? null,
     });
   };
   const configuredSecret = process.env.NEXA_STUDENT_OS_BRIDGE_SECRET ?? '';
@@ -147,7 +148,10 @@ export async function POST(request: Request) {
         'unavailable',
         operationalAdmission.retryable,
       );
-      await observeBridge('failed', 503, { providerOk: false });
+      await observeBridge('operational_rejected', 503, {
+        providerOk: false,
+        operationalReason: operationalAdmission.reason,
+      });
       return jsonResponse(failure, {
         status: 503,
         requestId,
