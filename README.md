@@ -1,3 +1,15 @@
+# NEXA 1.67.0 — Student OS Operational Admission Guard
+
+NEXA 1.67.0 makes the private Student OS bridge operationally fail-soft before any model-backed request can consume bridge admission state. After bridge authentication and Student OS user-identity fencing, the route now checks the cached zero-model-cost AI Gateway operational readiness introduced in 1.65. If the Gateway is not operational, the bridge returns a structured NEXA provider `unavailable` result with HTTP 503 before durable rate-limit admission, idempotency claim, or provider/model creation.
+
+Permanent configuration conditions such as a missing key, failed authentication, exhausted credits, or an unavailable configured model are non-retryable. Transient control-plane conditions such as Gateway timeout, provider endpoint unavailability, or temporary status-query failure are retryable and expose a bounded 30-second `Retry-After`. Responses include coarse operational status/reason headers without exposing credentials, balances, provider secrets, or internal errors.
+
+This preserves Student OS behavior under external AI failure: Student OS remains fully authoritative for mastery, readiness, prerequisites, remediation, transitions, and next-best-action decisions and can immediately use its existing fallback path when NEXA cannot serve a model call. Operational rejection happens only after authenticated identity validation, so unauthenticated traffic cannot use the endpoint as a Gateway-status oracle.
+
+The release adds no database migration: migrations 001–041 remain immutable. The release gate proves exact request ordering, structured fail-soft behavior, retry classification, and the no-model-call/no-new-migration boundary.
+
+---
+
 # NEXA 1.66.0 — Branch-Local Vercel Deployment Isolation
 
 NEXA 1.66.0 removes the shared-project deployment conflict that previously required operators to temporarily change the existing `student-os` Vercel project's Output Directory before every NEXA deployment. The root `vercel.json` now explicitly declares `outputDirectory: ".next"` alongside the existing Next.js framework, `npm ci` install command, and `npm run build` build command.
