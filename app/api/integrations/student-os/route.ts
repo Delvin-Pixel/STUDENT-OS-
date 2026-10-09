@@ -12,6 +12,11 @@ import { NEXA_PROVIDER_CONTRACT_VERSION, createNexaProviderFailure, type NexaPro
 import { recordStudentOsBridgeEvent, type StudentOsBridgeObservation } from '@/lib/student-os-bridge-observability';
 import { enforceStudentOsBridgeOperationalAdmission } from '@/lib/student-os-bridge-operational-admission';
 import {
+  STUDENT_OS_BRIDGE_FALLBACK_CONTRACT_VERSION,
+  STUDENT_OS_BRIDGE_FALLBACK_MODE,
+  createStudentOsBridgeFallbackDirective,
+} from '@/lib/student-os-bridge-fallback-core';
+import {
   STUDENT_OS_BRIDGE_MAX_BODY_BYTES,
   authorizeStudentOsBridge,
   getStudentOsBridgeTimeoutMs,
@@ -148,17 +153,24 @@ export async function POST(request: Request) {
         'unavailable',
         operationalAdmission.retryable,
       );
+      const fallback = createStudentOsBridgeFallbackDirective({
+        reason: operationalAdmission.reason,
+        retryable: operationalAdmission.retryable,
+        retryAfterSeconds: operationalAdmission.retryAfterSeconds,
+      });
       await observeBridge('operational_rejected', 503, {
         providerOk: false,
         operationalReason: operationalAdmission.reason,
       });
-      return jsonResponse(failure, {
+      return jsonResponse({ ...failure, fallback }, {
         status: 503,
         requestId,
         headers: {
           ...noStoreHeaders(envelope.request.requestId),
           'X-NEXA-Bridge-Operational-Status': operationalAdmission.status,
           'X-NEXA-Bridge-Operational-Reason': operationalAdmission.reason,
+          'X-NEXA-Bridge-Fallback': STUDENT_OS_BRIDGE_FALLBACK_MODE,
+          'X-NEXA-Bridge-Fallback-Contract': STUDENT_OS_BRIDGE_FALLBACK_CONTRACT_VERSION,
           ...(operationalAdmission.retryAfterSeconds === null
             ? {}
             : { 'Retry-After': String(operationalAdmission.retryAfterSeconds) }),
