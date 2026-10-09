@@ -1,3 +1,17 @@
+# NEXA 1.72.0 — Student OS Bridge Contract Compatibility Negotiation
+
+NEXA 1.72.0 adds explicit compatibility negotiation for the private Student OS bridge transport without breaking existing clients. Updated Student OS consumers can send `X-NEXA-Bridge-Accept-Contract` with one or more comma-separated bridge transport versions they support. NEXA selects the first compatible version and returns the negotiated version in `X-NEXA-Bridge-Contract`.
+
+The current bridge transport contract remains `1.0`, and `1.0` is the only supported version in this release. Legacy clients that do not send the negotiation header continue using an implicit `1.0` default. This preserves the existing integration while giving future Student OS versions a safe way to detect transport incompatibility before provider behavior changes.
+
+Malformed negotiation headers are rejected with HTTP 400. Explicit requests that contain no supported bridge version are rejected with HTTP 409 and a bounded `supportedContracts` response. Both rejection paths occur after bridge authentication but before request-body parsing, operational admission, rate-limit admission, idempotency claims, provider creation, or model execution.
+
+Authenticated bridge readiness now exposes `supportedBridgeContractVersions`, and bridge responses advertise `X-NEXA-Bridge-Supported-Contracts`. The smoke verifier requires readiness body/header agreement so transport-version discovery cannot silently drift.
+
+The NEXA provider contract remains `1.0`, the deterministic fallback contract remains `1.0`, and the bridge transport contract remains `1.0`. Student OS deterministic `learningIntelligence` remains the sole academic decision authority. No database migration is introduced; migrations 001–042 remain immutable.
+
+---
+
 # NEXA 1.71.0 — Student OS Bridge Transport Contract Versioning
 
 NEXA 1.71.0 introduces an explicit version for the private HTTP transport contract between Student OS and NEXA. The bridge transport is now versioned independently from the NEXA provider semantics and the deterministic fallback directive, so those layers can evolve without being incorrectly treated as one protocol.
