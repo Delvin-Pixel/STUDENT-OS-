@@ -6,7 +6,7 @@ const route = await readFile(new URL('../app/api/workflows/[id]/route.ts', impor
 const panel = await readFile(new URL('../components/workflow-panel.tsx', import.meta.url), 'utf8');
 const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
-if (pkg.version !== '1.71.0') throw new Error(`Expected 1.71.0, got ${pkg.version}`);
+if (pkg.version !== '1.72.0') throw new Error(`Expected 1.72.0, got ${pkg.version}`);
 if (!pkg.scripts.test.includes('test:attempt-cancellation')) throw new Error('Aggregate test script is missing attempt cancellation coverage.');
 if (!/cancelWorkflowAttempt/.test(workflows)) throw new Error('Attempt-addressed cancellation helper is missing.');
 if (!/where id = \$1 and workflow_id = \$2 and user_id = \$3[\s\S]*for update/.test(workflows)) throw new Error('Attempt cancellation must lock the target attempt.');

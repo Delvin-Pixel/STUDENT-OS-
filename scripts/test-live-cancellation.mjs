@@ -14,7 +14,7 @@ assert.match(watcher, /select status from workflows where id = \$1 and user_id =
 assert.match(watcher, /status === 'cancelled'/);
 assert.match(watcher, /controller\.abort\('NEXA_WORKFLOW_CANCELLED'\)/);
 assert.match(watcher, /Math\.max\(250, Math\.min\(5_000/);
-assert.equal(pkg.version, '1.71.0');
+assert.equal(pkg.version, '1.72.0');
 assert.match(pkg.scripts.test, /test:live-cancellation/);
 
 console.log('NEXA live cancellation tests passed.');

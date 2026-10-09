@@ -12,8 +12,8 @@ const [pkgText, migration, ledger, route, readme] = await Promise.all([
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-71');
-assert.equal(pkg.version, '1.71.0');
+assert.equal(pkg.name, 'nexa-1-72');
+assert.equal(pkg.version, '1.72.0');
 assert.equal(pkg.scripts['test:student-os-bridge-idempotency'], 'node scripts/test-student-os-bridge-idempotency.mjs');
 assert.match(pkg.scripts.test, /test:student-os-bridge-idempotency/);
 assert.match(readme, /NEXA 1\.62\.0 — Durable Student OS Bridge Idempotency & Replay Safety/);

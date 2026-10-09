@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 const chat = await readFile(new URL('../app/api/chat/route.ts', import.meta.url), 'utf8');
 const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(pkg.version, '1.71.0');
+assert.equal(pkg.version, '1.72.0');
 assert.match(chat, /where execution_attempt_id = \$1::uuid and role = 'assistant'/);
 assert.match(chat, /order by created_at asc, id asc/);
 assert.match(chat, /if \(existingAssistant\.rows\[0\]\)/);
