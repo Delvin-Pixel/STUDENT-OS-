@@ -23,10 +23,12 @@ const commonValid =
   body?.service === 'nexa'
   && body?.integration === 'student-os'
   && body?.providerContractVersion === '1.0'
+  && body?.bridgeContractVersion === '1.0'
   && body?.academicDecisionAuthority === 'student-os-learning-intelligence'
   && Array.isArray(body?.capabilities)
   && expectedCapabilities.every((capability, index) => body.capabilities[index] === capability)
   && response.headers.get('x-nexa-provider-contract') === '1.0'
+  && response.headers.get('x-nexa-bridge-contract') === '1.0'
   && response.headers.get('x-nexa-version') === body.version
   && response.headers.get('x-nexa-bridge-status') === body.status
   && response.headers.get('x-nexa-bridge-serving-mode') === body.servingMode;
