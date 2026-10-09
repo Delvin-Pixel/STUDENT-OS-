@@ -1,3 +1,15 @@
+# NEXA 1.70.0 — Preview Deployment Budget Guard
+
+NEXA 1.70.0 hardens the shared Vercel project against development-preview deployment exhaustion. The release keeps the branch-local Next.js deployment isolation introduced in 1.66 and adds explicit Git deployment rules so automatic Vercel deployments are created only for `nexa-main` within the NEXA branch family.
+
+Branches matching `stage/*`, `diag/*`, and `nexa-*` are disabled for automatic Git deployments, while the exact `nexa-main` rule remains enabled. Vercel resolves overlapping branch rules by allowing a deployment when at least one matching rule is true, so `nexa-main` continues to deploy while release-verification branches such as `nexa-1.70.0-...` are suppressed.
+
+This prevents staging commits, diagnostic probes, and canonical verification branches from consuming the Free-plan daily deployment allowance. GitHub Actions remains the verification system for those branches, while Vercel is reserved for the canonical runtime branch. No Student OS project-wide build setting is changed, and no database migration is introduced.
+
+The release gate locks the Next.js framework/build/output overrides together with the deployment-enabled branch map and verifies that no migration 043 is introduced. Student OS `main`, its Vite `dist/public` deployment behavior, and all existing NEXA runtime secrets remain outside this branch-local configuration change.
+
+---
+
 # NEXA 1.69.0 — Deterministic Student OS Fallback Signaling
 
 NEXA 1.69.0 makes operational failure handling machine-readable for Student OS without changing the stable NEXA provider contract. When the authenticated Student OS bridge rejects a request because NEXA is not operationally available, the existing provider failure remains backward-compatible (`ok: false`, `code: unavailable`, `retryable`), and the response now adds a bounded `fallback` directive.
