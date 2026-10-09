@@ -11,6 +11,12 @@ jobs:
   finalize:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://nexa:nexa-ci-password@127.0.0.1:5432/nexa_test
+      AI_GATEWAY_API_KEY: ci-placeholder-not-used-for-live-model-calls
+      RATE_LIMIT_SECRET: ci-only-rate-limit-secret-0123456789abcdef
+      NEXA_MODEL: openai/gpt-5.6-sol
+      NEXA_STUDENT_OS_BRIDGE_SECRET: ci-only-student-os-bridge-secret-0123456789abcdef
     steps:
       - uses: actions/checkout@v7
         with:
