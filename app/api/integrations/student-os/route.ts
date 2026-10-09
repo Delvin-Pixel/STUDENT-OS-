@@ -34,7 +34,7 @@ import { NEXA_VERSION } from '@/lib/version';
 
 export const runtime = 'nodejs';
 
-function noStoreHeaders(bridgeRequestId?: string, bridgeContractVersion = STUDENT_OS_BRIDGE_CONTRACT_VERSION) {
+function noStoreHeaders(bridgeRequestId?: string, bridgeContractVersion: string = STUDENT_OS_BRIDGE_CONTRACT_VERSION) {
   return {
     'Cache-Control': 'no-store',
     'X-NEXA-Version': NEXA_VERSION,
