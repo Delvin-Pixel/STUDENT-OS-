@@ -12,6 +12,7 @@ export const STUDENT_OS_BRIDGE_CAPABILITIES = [
 export type StudentOsBridgeCapability = (typeof STUDENT_OS_BRIDGE_CAPABILITIES)[number];
 
 export const STUDENT_OS_BRIDGE_CONTRACT_VERSION = '1.0' as const;
+export const STUDENT_OS_BRIDGE_ACCEPT_CONTRACT_HEADER = 'X-NEXA-Bridge-Accept-Contract' as const;
 export const STUDENT_OS_BRIDGE_SUPPORTED_CONTRACT_VERSIONS = Object.freeze([
   STUDENT_OS_BRIDGE_CONTRACT_VERSION,
 ] as const);
