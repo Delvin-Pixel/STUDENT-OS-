@@ -18,11 +18,13 @@ import {
 } from '@/lib/student-os-bridge-fallback-core';
 import {
   STUDENT_OS_BRIDGE_CONTRACT_VERSION,
+  STUDENT_OS_BRIDGE_SUPPORTED_CONTRACT_VERSIONS,
   STUDENT_OS_BRIDGE_MAX_BODY_BYTES,
   authorizeStudentOsBridge,
   getStudentOsBridgeTimeoutMs,
   isConfiguredStudentOsBridgeSecret,
   normalizeStudentOsBridgeUserHeader,
+  negotiateStudentOsBridgeContract,
   parseStudentOsBridgeEnvelope,
   type StudentOsBridgeCapability,
 } from '@/lib/student-os-bridge-core';
@@ -31,12 +33,13 @@ import { NEXA_VERSION } from '@/lib/version';
 
 export const runtime = 'nodejs';
 
-function noStoreHeaders(bridgeRequestId?: string) {
+function noStoreHeaders(bridgeRequestId?: string, bridgeContractVersion = STUDENT_OS_BRIDGE_CONTRACT_VERSION) {
   return {
     'Cache-Control': 'no-store',
     'X-NEXA-Version': NEXA_VERSION,
     'X-NEXA-Provider-Contract': NEXA_PROVIDER_CONTRACT_VERSION,
-    'X-NEXA-Bridge-Contract': STUDENT_OS_BRIDGE_CONTRACT_VERSION,
+    'X-NEXA-Bridge-Contract': bridgeContractVersion,
+    'X-NEXA-Bridge-Supported-Contracts': STUDENT_OS_BRIDGE_SUPPORTED_CONTRACT_VERSIONS.join(', '),
     ...(bridgeRequestId ? { 'X-NEXA-Bridge-Request-Id': bridgeRequestId } : {}),
   };
 }
@@ -126,6 +129,27 @@ export async function POST(request: Request) {
     );
   }
 
+  const contractNegotiation = negotiateStudentOsBridgeContract(
+    request.headers.get('x-nexa-bridge-accept-contract'),
+  );
+  if (!contractNegotiation.compatible) {
+    return jsonResponse(
+      {
+        error: contractNegotiation.reason === 'invalid_contract_header'
+          ? 'Invalid Student OS bridge contract negotiation header.'
+          : 'Student OS bridge contract is incompatible.',
+        code: contractNegotiation.reason,
+        supportedContracts: contractNegotiation.supportedVersions,
+      },
+      {
+        status: contractNegotiation.reason === 'invalid_contract_header' ? 400 : 409,
+        requestId,
+        headers: noStoreHeaders(),
+      },
+    );
+  }
+  const bridgeContractVersion = contractNegotiation.version;
+
   try {
     const body = await readJsonBody<unknown>(request, STUDENT_OS_BRIDGE_MAX_BODY_BYTES);
     const envelope = parseStudentOsBridgeEnvelope(body);
@@ -136,7 +160,7 @@ export async function POST(request: Request) {
     if (!envelope || !headerUserId || headerUserId !== envelope.request.userId) {
       return jsonResponse(
         { error: 'Invalid Student OS bridge request.' },
-        { status: 400, requestId, headers: noStoreHeaders(envelope?.request.requestId) },
+        { status: 400, requestId, headers: noStoreHeaders(envelope?.request.requestId, bridgeContractVersion) },
       );
     }
 
@@ -168,7 +192,7 @@ export async function POST(request: Request) {
         status: 503,
         requestId,
         headers: {
-          ...noStoreHeaders(envelope.request.requestId),
+          ...noStoreHeaders(envelope.request.requestId, bridgeContractVersion),
           'X-NEXA-Bridge-Operational-Status': operationalAdmission.status,
           'X-NEXA-Bridge-Operational-Reason': operationalAdmission.reason,
           'X-NEXA-Bridge-Fallback': STUDENT_OS_BRIDGE_FALLBACK_MODE,
@@ -189,7 +213,7 @@ export async function POST(request: Request) {
           status: 429,
           requestId,
           headers: {
-            ...noStoreHeaders(envelope.request.requestId),
+            ...noStoreHeaders(envelope.request.requestId, bridgeContractVersion),
             ...admissionLimitHeaders(admission),
           },
         },
@@ -215,7 +239,7 @@ export async function POST(request: Request) {
             status: 409,
             requestId,
             headers: {
-              ...noStoreHeaders(envelope.request.requestId),
+              ...noStoreHeaders(envelope.request.requestId, bridgeContractVersion),
               'X-NEXA-Bridge-Idempotency-Status': 'mismatch',
             },
           },
@@ -232,7 +256,7 @@ export async function POST(request: Request) {
           status: 409,
           requestId,
           headers: {
-            ...noStoreHeaders(envelope.request.requestId),
+            ...noStoreHeaders(envelope.request.requestId, bridgeContractVersion),
             'Retry-After': String(claim.retryAfterSeconds),
             'X-NEXA-Bridge-Idempotency-Status': 'in-progress',
           },
@@ -250,7 +274,7 @@ export async function POST(request: Request) {
         status: claim.status,
         requestId,
         headers: {
-          ...noStoreHeaders(envelope.request.requestId),
+          ...noStoreHeaders(envelope.request.requestId, bridgeContractVersion),
           'X-NEXA-Bridge-Idempotency-Status': claim.terminalStatus,
           'X-NEXA-Bridge-Idempotent-Replayed': 'true',
           ...academicContextHeaders(claim.body),
@@ -280,7 +304,7 @@ export async function POST(request: Request) {
           status: 409,
           requestId,
           headers: {
-            ...noStoreHeaders(envelope.request.requestId),
+            ...noStoreHeaders(envelope.request.requestId, bridgeContractVersion),
             'X-NEXA-Bridge-Idempotency-Status': 'ownership-lost',
           },
         },
@@ -292,7 +316,7 @@ export async function POST(request: Request) {
       status: 200,
       requestId,
       headers: {
-        ...noStoreHeaders(envelope.request.requestId),
+        ...noStoreHeaders(envelope.request.requestId, bridgeContractVersion),
         'X-NEXA-Bridge-Idempotency-Status': claim.recovered ? 'recovered' : 'completed',
         ...academicContextHeaders(result),
       },
@@ -302,7 +326,7 @@ export async function POST(request: Request) {
     if (bodyError) {
       return jsonResponse(
         { error: bodyError },
-        { status: 400, requestId, headers: noStoreHeaders() },
+        { status: 400, requestId, headers: noStoreHeaders(undefined, bridgeContractVersion) },
       );
     }
 
@@ -319,7 +343,7 @@ export async function POST(request: Request) {
         status: 500,
         requestId,
         headers: {
-          ...noStoreHeaders(bridgeLease?.requestId),
+          ...noStoreHeaders(bridgeLease?.requestId, bridgeContractVersion),
           ...(bridgeLease ? { 'X-NEXA-Bridge-Idempotency-Status': 'failed' } : {}),
         },
       },
