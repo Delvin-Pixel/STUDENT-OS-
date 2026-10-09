@@ -8,8 +8,9 @@ import {
   mapStudentOsBridgeIdempotencyError,
   type StudentOsBridgeRequestLease,
 } from '@/lib/student-os-bridge-idempotency';
-import { NEXA_PROVIDER_CONTRACT_VERSION, type NexaProvider, type NexaProviderRequest, type NexaProviderResult } from '@/lib/nexa-provider';
+import { NEXA_PROVIDER_CONTRACT_VERSION, createNexaProviderFailure, type NexaProvider, type NexaProviderRequest, type NexaProviderResult } from '@/lib/nexa-provider';
 import { recordStudentOsBridgeEvent, type StudentOsBridgeObservation } from '@/lib/student-os-bridge-observability';
+import { enforceStudentOsBridgeOperationalAdmission } from '@/lib/student-os-bridge-operational-admission';
 import {
   STUDENT_OS_BRIDGE_MAX_BODY_BYTES,
   authorizeStudentOsBridge,
@@ -137,6 +138,29 @@ export async function POST(request: Request) {
       serverRequestId: requestId,
       capability: envelope.capability,
     };
+
+    const operationalAdmission = await enforceStudentOsBridgeOperationalAdmission();
+    if (!operationalAdmission.allowed) {
+      const failure = createNexaProviderFailure(
+        envelope.capability,
+        envelope.request.requestId,
+        'unavailable',
+        operationalAdmission.retryable,
+      );
+      await observeBridge('failed', 503, { providerOk: false });
+      return jsonResponse(failure, {
+        status: 503,
+        requestId,
+        headers: {
+          ...noStoreHeaders(envelope.request.requestId),
+          'X-NEXA-Bridge-Operational-Status': operationalAdmission.status,
+          'X-NEXA-Bridge-Operational-Reason': operationalAdmission.reason,
+          ...(operationalAdmission.retryAfterSeconds === null
+            ? {}
+            : { 'Retry-After': String(operationalAdmission.retryAfterSeconds) }),
+        },
+      });
+    }
 
     const admission = await enforceStudentOsBridgeAdmission(envelope.request.userId);
     if (!admission.allowed) {
