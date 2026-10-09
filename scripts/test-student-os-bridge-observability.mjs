@@ -15,8 +15,8 @@ const [pkgText, migration, coreSource, runtimeSource, route, prune, readme] = aw
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-66');
-assert.equal(pkg.version, '1.66.0');
+assert.equal(pkg.name, 'nexa-1-67');
+assert.equal(pkg.version, '1.67.0');
 assert.equal(pkg.scripts['test:student-os-bridge-observability'], 'node scripts/test-student-os-bridge-observability.mjs');
 assert.match(pkg.scripts.test, /test:student-os-bridge-observability/);
 assert.match(readme, /NEXA 1\.63\.0 — Privacy-Bounded Student OS Bridge Observability/);
