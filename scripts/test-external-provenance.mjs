@@ -15,8 +15,8 @@ const [pkgText, migration, externalSources, engine, agent, chat, conversation, a
   read('components/nexa-chat.tsx'),
 ]);
 const pkg = JSON.parse(pkgText);
-assert.equal(pkg.version, '1.64.0');
-assert.equal(pkg.name, 'nexa-1-64');
+assert.equal(pkg.version, '1.65.0');
+assert.equal(pkg.name, 'nexa-1-65');
 assert.match(migration, /create table if not exists assistant_message_external_sources/);
 assert.match(migration, /source_label ~ '\^W\[1-8\]\$'/);
 assert.match(migration, /source_url ~ '\^https\?:\/\/'/);

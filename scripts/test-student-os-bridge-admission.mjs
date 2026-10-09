@@ -15,8 +15,8 @@ const [pkgText, coreSource, admissionSource, routeSource, readinessSource, envEx
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-64');
-assert.equal(pkg.version, '1.64.0');
+assert.equal(pkg.name, 'nexa-1-65');
+assert.equal(pkg.version, '1.65.0');
 assert.equal(pkg.scripts['test:student-os-bridge-admission'], 'node scripts/test-student-os-bridge-admission.mjs');
 assert.match(pkg.scripts.test, /test:student-os-bridge-admission/);
 assert.match(readme, /NEXA 1\.61\.0 — Student OS Bridge Admission Control & Cost Protection/);

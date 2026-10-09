@@ -13,7 +13,7 @@ const [pkgText, diagnostics, route, health, env, smokeScript, rich] = await Prom
   read('lib/project-rich-files.ts'),
 ]);
 const pkg = JSON.parse(pkgText);
-assert.equal(pkg.version, '1.64.0');
+assert.equal(pkg.version, '1.65.0');
 assert.match(diagnostics, /NEXA_DIAGNOSTICS_ENABLED/);
 assert.match(diagnostics, /NEXA_DIAGNOSTICS_TOKEN/);
 assert.match(diagnostics, /timingSafeEqual/);
