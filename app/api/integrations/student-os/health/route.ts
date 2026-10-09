@@ -1,4 +1,4 @@
-import { STUDENT_OS_BRIDGE_CONTRACT_VERSION, authorizeStudentOsBridge, isConfiguredStudentOsBridgeSecret } from '@/lib/student-os-bridge-core';
+import { STUDENT_OS_BRIDGE_CONTRACT_VERSION, STUDENT_OS_BRIDGE_SUPPORTED_CONTRACT_VERSIONS, authorizeStudentOsBridge, isConfiguredStudentOsBridgeSecret } from '@/lib/student-os-bridge-core';
 import { getStudentOsBridgeOperationalReadiness } from '@/lib/student-os-bridge-readiness';
 import { NEXA_PROVIDER_CONTRACT_VERSION } from '@/lib/nexa-provider';
 import { NEXA_VERSION } from '@/lib/version';
@@ -16,6 +16,7 @@ function headers(input?: Readonly<{
     'X-NEXA-Version': NEXA_VERSION,
     'X-NEXA-Provider-Contract': NEXA_PROVIDER_CONTRACT_VERSION,
     'X-NEXA-Bridge-Contract': STUDENT_OS_BRIDGE_CONTRACT_VERSION,
+    'X-NEXA-Bridge-Supported-Contracts': STUDENT_OS_BRIDGE_SUPPORTED_CONTRACT_VERSIONS.join(', '),
     ...(input?.status ? { 'X-NEXA-Bridge-Status': input.status } : {}),
     ...(input?.servingMode ? { 'X-NEXA-Bridge-Serving-Mode': input.servingMode } : {}),
     ...(input?.fallbackContract
