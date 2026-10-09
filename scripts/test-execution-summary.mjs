@@ -9,7 +9,7 @@ const migration = readFileSync(new URL('../db/023_conversation_execution_summary
 const livenessMigration = readFileSync(new URL('../db/029_execution_liveness_indexes.sql', import.meta.url), 'utf8');
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(pkg.version, '1.68.0');
+assert.equal(pkg.version, '1.69.0');
 assert.match(source, /from ai_runs/);
 assert.match(source, /status = 'running'/);
 assert.match(source, /from workflows/);

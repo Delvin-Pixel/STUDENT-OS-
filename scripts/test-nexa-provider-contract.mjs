@@ -11,9 +11,9 @@ const [pkgText, version, contract, readme] = await Promise.all([
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-68');
-assert.equal(pkg.version, '1.68.0');
-assert.match(version, /NEXA_VERSION = '1\.68\.0'/);
+assert.equal(pkg.name, 'nexa-1-69');
+assert.equal(pkg.version, '1.69.0');
+assert.match(version, /NEXA_VERSION = '1\.69\.0'/);
 assert.match(contract, /NEXA_PROVIDER_CONTRACT_VERSION = '1\.0'/);
 assert.match(contract, /NEXA_STUDENT_OS_ACADEMIC_AUTHORITY = 'student-os-learning-intelligence'/);
 for (const capability of ['chat', 'explain', 'tutor', 'generateMaterial', 'generateQuiz', 'coach']) {
