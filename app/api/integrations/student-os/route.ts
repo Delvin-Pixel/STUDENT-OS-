@@ -17,6 +17,7 @@ import {
   createStudentOsBridgeFallbackDirective,
 } from '@/lib/student-os-bridge-fallback-core';
 import {
+  STUDENT_OS_BRIDGE_ACCEPT_CONTRACT_HEADER,
   STUDENT_OS_BRIDGE_CONTRACT_VERSION,
   STUDENT_OS_BRIDGE_SUPPORTED_CONTRACT_VERSIONS,
   STUDENT_OS_BRIDGE_MAX_BODY_BYTES,
@@ -130,7 +131,7 @@ export async function POST(request: Request) {
   }
 
   const contractNegotiation = negotiateStudentOsBridgeContract(
-    request.headers.get('x-nexa-bridge-accept-contract'),
+    request.headers.get(STUDENT_OS_BRIDGE_ACCEPT_CONTRACT_HEADER),
   );
   if (!contractNegotiation.compatible) {
     return jsonResponse(
