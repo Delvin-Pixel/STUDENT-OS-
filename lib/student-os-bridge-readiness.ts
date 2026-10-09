@@ -1,3 +1,4 @@
+import { getNexaAiGatewayReadiness, type NexaAiGatewayReadiness } from '@/lib/ai-gateway-readiness';
 import { getNexaAiRuntimeConfig } from '@/lib/ai-runtime';
 import { getStudentOsBridgeAdmissionConfig } from '@/lib/student-os-bridge-admission';
 import {
@@ -40,6 +41,17 @@ export type StudentOsBridgeReadiness = Readonly<{
     rateLimitSecret: 'configured' | 'missing';
   }>;
   reasons: readonly string[];
+}>;
+
+export type StudentOsBridgeOperationalReadiness = StudentOsBridgeReadiness & Readonly<{
+  aiGatewayOperational: Readonly<{
+    status: NexaAiGatewayReadiness['status'];
+    reason: NexaAiGatewayReadiness['reason'];
+    credits: NexaAiGatewayReadiness['credits'];
+    model: string | null;
+    modelAvailable: boolean;
+    providerCount: number;
+  }>;
 }>;
 
 export function getStudentOsBridgeReadiness(): StudentOsBridgeReadiness {
@@ -97,6 +109,32 @@ export function getStudentOsBridgeReadiness(): StudentOsBridgeReadiness {
       runtime: runtimeValid ? 'valid' : 'invalid',
       admissionControl: admissionControlValid ? 'valid' : 'invalid',
       rateLimitSecret: rateLimitSecretConfigured ? 'configured' : 'missing',
+    }),
+    reasons: Object.freeze(reasons),
+  });
+}
+
+export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentOsBridgeOperationalReadiness> {
+  const base = getStudentOsBridgeReadiness();
+  const gateway = await getNexaAiGatewayReadiness();
+  const reasons = [...base.reasons];
+
+  if (gateway.status !== 'operational') {
+    const reason = gateway.reason ?? 'ai_gateway_status_unavailable';
+    if (!reasons.includes(reason)) reasons.push(reason);
+  }
+
+  return Object.freeze({
+    ...base,
+    status: reasons.length === 0 ? 'ready' : 'degraded',
+    checkedAt: new Date().toISOString(),
+    aiGatewayOperational: Object.freeze({
+      status: gateway.status,
+      reason: gateway.reason,
+      credits: gateway.credits,
+      model: gateway.model,
+      modelAvailable: gateway.modelAvailable,
+      providerCount: gateway.providerCount,
     }),
     reasons: Object.freeze(reasons),
   });
