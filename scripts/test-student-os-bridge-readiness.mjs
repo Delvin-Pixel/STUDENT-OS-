@@ -28,7 +28,7 @@ assert.match(bridgeRouteSource, /X-NEXA-Bridge-Request-Id/);
 assert.match(bridgeRouteSource, /X-NEXA-Version/);
 assert.match(routeSource, /authorizeStudentOsBridge/);
 assert.match(routeSource, /getStudentOsBridgeOperationalReadiness/);
-assert.match(routeSource, /await getStudentOsBridgeOperationalReadiness\\(\\)/);
+assert.match(routeSource, /await getStudentOsBridgeOperationalReadiness/);
 assert.match(readinessSource, /aiGatewayOperational/);
 assert.match(routeSource, /status: readiness\.status === 'ready' \? 200 : 503/);
 assert.match(routeSource, /'Cache-Control': 'no-store'/);
