@@ -39,21 +39,12 @@ jobs:
             fs.writeFileSync(file, text);
           }
 
-          {
-            const file = 'scripts/test-academic-context-binding.mjs';
-            let text = fs.readFileSync(file, 'utf8');
-            text = text
-              .replace("assert.equal(pkg.name, 'nexa-1-64');", "assert.equal(pkg.name, 'nexa-1-65');")
-              .replace("assert.equal(pkg.version, '1.64.0');", "assert.equal(pkg.version, '1.65.0');");
-            fs.writeFileSync(file, text);
-          }
-
-          {
-            const file = '.github/workflows/verify.yml';
-            let text = fs.readFileSync(file, 'utf8');
-            text = text.replaceAll('nexa-1.64.0', 'nexa-1.65.0');
-            fs.writeFileSync(file, text);
-          }
+          const academic = 'scripts/test-academic-context-binding.mjs';
+          let text = fs.readFileSync(academic, 'utf8');
+          text = text
+            .replace("assert.equal(pkg.name, 'nexa-1-64');", "assert.equal(pkg.name, 'nexa-1-65');")
+            .replace("assert.equal(pkg.version, '1.64.0');", "assert.equal(pkg.version, '1.65.0');");
+          fs.writeFileSync(academic, text);
           NODE
       - name: Refresh committed lockfile metadata
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
@@ -63,13 +54,12 @@ jobs:
         run: npm run test:ai-gateway-readiness
       - name: TypeScript
         run: npm run typecheck
-      - name: Remove staging workflow and commit finalized source
+      - name: Commit finalized non-workflow source
         shell: bash
         run: |
-          rm .github/workflows/stage-nexa-1.65.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add scripts package-lock.json
           git diff --cached --quiet && exit 0
           git commit -m "chore(nexa): finalize 1.65 release guards"
           git push origin HEAD:stage/nexa-1.65.0-gateway-readiness
