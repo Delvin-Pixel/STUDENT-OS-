@@ -6,12 +6,20 @@ import { getRequestId, jsonResponse } from '@/lib/http';
 
 export const runtime = 'nodejs';
 
-function headers(status?: 'ready' | 'degraded') {
+function headers(input?: Readonly<{
+  status?: 'ready' | 'degraded';
+  servingMode?: string;
+  fallbackContract?: string | null;
+}>) {
   return {
     'Cache-Control': 'no-store',
     'X-NEXA-Version': NEXA_VERSION,
     'X-NEXA-Provider-Contract': NEXA_PROVIDER_CONTRACT_VERSION,
-    ...(status ? { 'X-NEXA-Bridge-Status': status } : {}),
+    ...(input?.status ? { 'X-NEXA-Bridge-Status': input.status } : {}),
+    ...(input?.servingMode ? { 'X-NEXA-Bridge-Serving-Mode': input.servingMode } : {}),
+    ...(input?.fallbackContract
+      ? { 'X-NEXA-Bridge-Fallback-Contract': input.fallbackContract }
+      : {}),
   };
 }
 
@@ -37,6 +45,10 @@ export async function GET(request: Request) {
   return jsonResponse(readiness, {
     status: readiness.status === 'ready' ? 200 : 503,
     requestId,
-    headers: headers(readiness.status),
+    headers: headers({
+      status: readiness.status,
+      servingMode: readiness.servingMode,
+      fallbackContract: readiness.fallback?.contractVersion ?? null,
+    }),
   });
 }
