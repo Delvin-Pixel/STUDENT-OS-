@@ -1,5 +1,5 @@
 import { authorizeStudentOsBridge, isConfiguredStudentOsBridgeSecret } from '@/lib/student-os-bridge-core';
-import { getStudentOsBridgeReadiness } from '@/lib/student-os-bridge-readiness';
+import { getStudentOsBridgeOperationalReadiness } from '@/lib/student-os-bridge-readiness';
 import { NEXA_PROVIDER_CONTRACT_VERSION } from '@/lib/nexa-provider';
 import { NEXA_VERSION } from '@/lib/version';
 import { getRequestId, jsonResponse } from '@/lib/http';
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const readiness = getStudentOsBridgeReadiness();
+  const readiness = await getStudentOsBridgeOperationalReadiness();
   return jsonResponse(readiness, {
     status: readiness.status === 'ready' ? 200 : 503,
     requestId,
