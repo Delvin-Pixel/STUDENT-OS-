@@ -1,3 +1,15 @@
+# NEXA 1.68.0 — Privacy-Bounded Operational Rejection Observability
+
+NEXA 1.68.0 makes the operational admission guard introduced in 1.67 durable and diagnosable without weakening privacy. Authenticated Student OS bridge requests that are rejected before model admission now record a dedicated `operational_rejected` bridge event instead of being collapsed into the generic failure bucket.
+
+Additive migration 042 extends the existing privacy-bounded `student_os_bridge_events` ledger with one nullable, constrained `operational_reason` field. It accepts only the same coarse Gateway states already exposed by safe readiness surfaces: missing key, timeout, authentication failure, exhausted credits, unavailable configured model, unavailable provider endpoints, or temporary status-query failure. Database constraints require an operational reason for `operational_rejected` events and prohibit that field on every other event type.
+
+The ledger still stores no raw Student OS user ID, prompt, response body, API key, credit balance, provider credential, or arbitrary metadata. User identity remains HMAC-pseudonymized with the server-only rate-limit secret, observability remains fail-soft, and existing retention pruning continues to cover the extended events. A partial index supports bounded operator diagnosis by coarse operational reason and timestamp.
+
+The release gate verifies migration 042 integrity, runtime wiring, privacy exclusions, event/reason consistency constraints, PostgreSQL persistence and rejection behavior, retention compatibility, and the existing Student OS authority boundary. Migrations 001–041 remain immutable, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.67.0 — Student OS Operational Admission Guard
 
 NEXA 1.67.0 makes the private Student OS bridge operationally fail-soft before any model-backed request can consume bridge admission state. After bridge authentication and Student OS user-identity fencing, the route now checks the cached zero-model-cost AI Gateway operational readiness introduced in 1.65. If the Gateway is not operational, the bridge returns a structured NEXA provider `unavailable` result with HTTP 503 before durable rate-limit admission, idempotency claim, or provider/model creation.
