@@ -17,6 +17,7 @@ import {
   createStudentOsBridgeFallbackDirective,
 } from '@/lib/student-os-bridge-fallback-core';
 import {
+  STUDENT_OS_BRIDGE_CONTRACT_VERSION,
   STUDENT_OS_BRIDGE_MAX_BODY_BYTES,
   authorizeStudentOsBridge,
   getStudentOsBridgeTimeoutMs,
@@ -35,6 +36,7 @@ function noStoreHeaders(bridgeRequestId?: string) {
     'Cache-Control': 'no-store',
     'X-NEXA-Version': NEXA_VERSION,
     'X-NEXA-Provider-Contract': NEXA_PROVIDER_CONTRACT_VERSION,
+    'X-NEXA-Bridge-Contract': STUDENT_OS_BRIDGE_CONTRACT_VERSION,
     ...(bridgeRequestId ? { 'X-NEXA-Bridge-Request-Id': bridgeRequestId } : {}),
   };
 }
