@@ -90,7 +90,7 @@
   },
   "dependencies": {
     "ai": "7.0.102",
-    "next": "16.3.5",
+    "next": "16.3.8",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "pg": "8.23.0"
@@ -103,7 +103,7 @@
     "@types/pg": "8.23.1"
   },
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "packageManager": "npm@10.9.2"
 }
