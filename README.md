@@ -1,3 +1,15 @@
+# NEXA 1.69.0 — Deterministic Student OS Fallback Signaling
+
+NEXA 1.69.0 makes operational failure handling machine-readable for Student OS without changing the stable NEXA provider contract. When the authenticated Student OS bridge rejects a request because NEXA is not operationally available, the existing provider failure remains backward-compatible (`ok: false`, `code: unavailable`, `retryable`), and the response now adds a bounded `fallback` directive.
+
+The fallback directive has a separate bridge-level contract version and explicitly identifies `student-os-deterministic` as the fallback mode. It repeats only the coarse operational reason already allowed by NEXA readiness, carries the existing retryability/retry-after hint, and states `student-os-learning-intelligence` as the academic decision authority. Matching response headers let HTTP-oriented clients detect the same fallback mode without parsing model output.
+
+This does not let NEXA decide mastery, readiness, prerequisites, remediation, transition, or next-best-action state. It does the opposite: when NEXA cannot safely serve a model-backed request, the bridge explicitly hands control back to Student OS's deterministic core. No prompt, raw user identity, Gateway balance, API key, provider credential, or model response is added to the fallback directive.
+
+The provider contract remains `1.0`, existing consumers that ignore additive fields remain compatible, and no database migration is introduced. The release gate verifies every operational reason, retry semantics, response/header wiring, ordering before rate-limit/idempotency/model admission, immutable fallback directives, and preservation of the Student OS authority boundary.
+
+---
+
 # NEXA 1.68.0 — Privacy-Bounded Operational Rejection Observability
 
 NEXA 1.68.0 makes the operational admission guard introduced in 1.67 durable and diagnosable without weakening privacy. Authenticated Student OS bridge requests that are rejected before model admission now record a dedicated `operational_rejected` bridge event instead of being collapsed into the generic failure bucket.
