@@ -13,12 +13,13 @@ const [pkgText, vercelText, versionSource, readme] = await Promise.all([
 const pkg = JSON.parse(pkgText);
 const vercel = JSON.parse(vercelText);
 
-assert.equal(pkg.name, 'nexa-1-69');
-assert.equal(pkg.version, '1.69.0');
-assert.match(versionSource, /NEXA_VERSION = '1\.69\.0'/);
+assert.equal(pkg.name, 'nexa-1-70');
+assert.equal(pkg.version, '1.70.0');
+assert.match(versionSource, /NEXA_VERSION = '1\.70\.0'/);
 assert.equal(pkg.scripts['test:vercel-deployment-isolation'], 'node scripts/test-vercel-deployment-isolation.mjs');
 assert.match(pkg.scripts.test, /test:vercel-deployment-isolation/);
 assert.match(readme, /NEXA 1\.66\.0 — Branch-Local Vercel Deployment Isolation/);
+assert.match(readme, /NEXA 1\.70\.0 — Student OS Preflight Failover Readiness/);
 
 assert.equal(vercel.$schema, 'https://openapi.vercel.sh/vercel.json');
 assert.equal(vercel.framework, 'nextjs');
@@ -28,12 +29,21 @@ assert.equal(vercel.outputDirectory, '.next');
 assert.notEqual(vercel.outputDirectory, 'dist/public');
 assert.doesNotMatch(vercelText, /pnpm|docusaurus|build\//i);
 
-let migration042Exists = true;
+assert.deepEqual(vercel.git?.deploymentEnabled, {
+  'nexa-main': true,
+  'nexa-*': false,
+  'stage/nexa-*': false,
+});
+assert.equal(vercel.git.deploymentEnabled['nexa-main'], true);
+assert.equal(vercel.git.deploymentEnabled['nexa-*'], false);
+assert.equal(vercel.git.deploymentEnabled['stage/nexa-*'], false);
+
+let migration043Exists = true;
 try {
-  await access(new URL('../db/042_vercel_deployment_isolation.sql', import.meta.url));
+  await access(new URL('../db/043_vercel_deployment_isolation.sql', import.meta.url));
 } catch {
-  migration042Exists = false;
+  migration043Exists = false;
 }
-assert.equal(migration042Exists, false, 'Vercel deployment isolation must not introduce a database migration.');
+assert.equal(migration043Exists, false, 'Vercel deployment isolation must not introduce a database migration.');
 
 console.log('NEXA branch-local Vercel deployment isolation tests passed.');
