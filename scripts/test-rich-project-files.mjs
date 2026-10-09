@@ -14,7 +14,7 @@ const account = await readFile(new URL('../lib/account.ts', import.meta.url), 'u
 const tools = await readFile(new URL('../lib/project-file-tools.ts', import.meta.url), 'utf8');
 const env = await readFile(new URL('../.env.local.example', import.meta.url), 'utf8');
 
-assert.equal(pkg.version, '1.69.0');
+assert.equal(pkg.version, '1.70.0');
 assert.match(pkg.scripts.test, /test:rich-project-files/);
 assert.match(pkg.scripts['verify:ci'], /test:postgres-rich-project-files/);
 

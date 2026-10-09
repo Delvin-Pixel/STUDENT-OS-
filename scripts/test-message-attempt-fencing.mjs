@@ -8,7 +8,7 @@ const account = await readFile(new URL('../lib/account.ts', import.meta.url), 'u
 const migration = await readFile(new URL('../db/032_message_execution_attempts.sql', import.meta.url), 'utf8');
 const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(pkg.version, '1.69.0');
+assert.equal(pkg.version, '1.70.0');
 assert.match(chat, /insert into messages \(conversation_id, role, content, metadata, execution_attempt_id\)/);
 assert.match(chat, /a\.status = 'running'/);
 assert.match(chat, /where a\.id = \$1 and a\.user_id = \$2 and a\.workflow_id = \$3 and w\.conversation_id = \$4/);
