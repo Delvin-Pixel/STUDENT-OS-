@@ -2,6 +2,12 @@ import { getNexaAiGatewayReadiness, type NexaAiGatewayReadiness } from '@/lib/ai
 import { getNexaAiRuntimeConfig } from '@/lib/ai-runtime';
 import { getStudentOsBridgeAdmissionConfig } from '@/lib/student-os-bridge-admission';
 import {
+  STUDENT_OS_BRIDGE_FALLBACK_MODE,
+  createStudentOsBridgeFallbackDirective,
+  type StudentOsBridgeFallbackDirective,
+} from '@/lib/student-os-bridge-fallback-core';
+import { classifyStudentOsBridgeOperationalAdmission } from '@/lib/student-os-bridge-operational-admission-core';
+import {
   NEXA_ACADEMIC_CONTEXT_BINDING_VERSION,
   NEXA_PROVIDER_CAPABILITIES,
   NEXA_PROVIDER_CONTRACT_VERSION,
@@ -15,6 +21,7 @@ import {
 import { NEXA_VERSION } from '@/lib/version';
 
 export type StudentOsBridgeReadinessStatus = 'ready' | 'degraded';
+export type StudentOsBridgeServingMode = 'nexa' | typeof STUDENT_OS_BRIDGE_FALLBACK_MODE | 'unavailable';
 
 export type StudentOsBridgeReadiness = Readonly<{
   service: 'nexa';
@@ -44,6 +51,8 @@ export type StudentOsBridgeReadiness = Readonly<{
 }>;
 
 export type StudentOsBridgeOperationalReadiness = StudentOsBridgeReadiness & Readonly<{
+  servingMode: StudentOsBridgeServingMode;
+  fallback: StudentOsBridgeFallbackDirective | null;
   aiGatewayOperational: Readonly<{
     status: NexaAiGatewayReadiness['status'];
     reason: NexaAiGatewayReadiness['reason'];
@@ -124,10 +133,36 @@ export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentO
     if (!reasons.includes(reason)) reasons.push(reason);
   }
 
+  const operationalAdmission = classifyStudentOsBridgeOperationalAdmission({
+    status: gateway.status,
+    reason: gateway.reason,
+  });
+
+  const fallback = (
+    !operationalAdmission.allowed
+    && base.configuration.bridgeSecret === 'configured'
+  )
+    ? createStudentOsBridgeFallbackDirective({
+        reason: operationalAdmission.reason,
+        retryable: operationalAdmission.retryable,
+        retryAfterSeconds: operationalAdmission.retryAfterSeconds,
+      })
+    : null;
+
+  const servingMode: StudentOsBridgeServingMode = (
+    base.status === 'ready' && operationalAdmission.allowed
+  )
+    ? 'nexa'
+    : fallback
+      ? STUDENT_OS_BRIDGE_FALLBACK_MODE
+      : 'unavailable';
+
   return Object.freeze({
     ...base,
     status: reasons.length === 0 ? 'ready' : 'degraded',
     checkedAt: new Date().toISOString(),
+    servingMode,
+    fallback,
     aiGatewayOperational: Object.freeze({
       status: gateway.status,
       reason: gateway.reason,
