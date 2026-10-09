@@ -1,8 +1,8 @@
 import {
   getNexaAiGatewayReadiness,
   type NexaAiGatewayReadiness,
-  type NexaAiGatewayReadinessReason,
 } from '@/lib/ai-gateway-readiness';
+import type { NexaAiGatewayReadinessReason } from '@/lib/ai-gateway-readiness-core';
 
 export type StudentOsBridgeOperationalAdmission =
   | Readonly<{ allowed: true }>
