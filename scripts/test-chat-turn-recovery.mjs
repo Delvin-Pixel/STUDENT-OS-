@@ -9,7 +9,7 @@ const workflowLease = await readFile(new URL('../lib/workflow-execution-lease.ts
 const client = await readFile(new URL('../components/nexa-chat.tsx', import.meta.url), 'utf8');
 const migration = await readFile(new URL('../db/034_chat_turn_recovery_leases.sql', import.meta.url), 'utf8');
 
-assert.equal(pkg.version, '1.67.0');
+assert.equal(pkg.version, '1.68.0');
 assert.match(helper, /DEFAULT_CHAT_TURN_LEASE_MS = 15_000/);
 assert.match(helper, /DEFAULT_CHAT_TURN_HEARTBEAT_MS = 3_000/);
 assert.match(helper, /startChatTurnLeaseHeartbeat/);
