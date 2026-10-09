@@ -14,6 +14,45 @@ function boundedInteger(name: string, fallback: number, min: number, max: number
   return value;
 }
 
+function databaseConnectionOptions(connectionString: string) {
+  const ca = process.env.NEXA_DB_SSL_CA?.replace(/\\n/g, '\n').trim();
+  const allowUnverified = process.env.NEXA_DB_SSL_ALLOW_UNVERIFIED === 'true';
+
+  if (!ca && !allowUnverified) {
+    return { connectionString };
+  }
+
+  let url: URL;
+  try {
+    url = new URL(connectionString);
+  } catch {
+    return { connectionString };
+  }
+
+  const isSupabasePooler = url.hostname.toLowerCase().endsWith('.pooler.supabase.com');
+  if (!isSupabasePooler) {
+    return { connectionString };
+  }
+
+  // node-postgres lets SSL query parameters in connectionString replace an
+  // explicit ssl object. Remove them before supplying the TLS policy below.
+  for (const key of ['sslmode', 'sslcert', 'sslkey', 'sslrootcert', 'uselibpqcompat']) {
+    url.searchParams.delete(key);
+  }
+
+  if (ca) {
+    return {
+      connectionString: url.toString(),
+      ssl: { ca, rejectUnauthorized: true },
+    };
+  }
+
+  return {
+    connectionString: url.toString(),
+    ssl: { rejectUnauthorized: false },
+  };
+}
+
 function createPool() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
@@ -24,7 +63,7 @@ function createPool() {
   const statementTimeout = boundedInteger('NEXA_DB_STATEMENT_TIMEOUT_MS', 15_000, 1_000, 120_000);
 
   return new Pool({
-    connectionString,
+    ...databaseConnectionOptions(connectionString),
     max,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
