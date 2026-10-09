@@ -1,3 +1,15 @@
+# NEXA 1.66.0 — Branch-Local Vercel Deployment Isolation
+
+NEXA 1.66.0 removes the shared-project deployment conflict that previously required operators to temporarily change the existing `student-os` Vercel project's Output Directory before every NEXA deployment. The root `vercel.json` now explicitly declares `outputDirectory: ".next"` alongside the existing Next.js framework, `npm ci` install command, and `npm run build` build command.
+
+Vercel project configuration remains Student OS-owned and may keep its Vite `dist/public` output setting. NEXA's repository-local deployment configuration takes precedence for NEXA branches, so normal Git-triggered NEXA deployments can build and publish the Next.js application without mutating shared project settings or risking Student OS deployment behavior. This preserves the existing single Vercel project as requested; no replacement project or account is introduced.
+
+The configuration was proven against the existing shared project before release: with the project-level Student OS output setting left in place, the branch-local `.next` override produced a READY NEXA deployment. The release gate now locks the exact framework/install/build/output contract and rejects regressions back to `dist/public`, pnpm, Docusaurus, or generic build-directory assumptions.
+
+This release adds no database migration: migrations 001–041 remain immutable. Student OS `main` and its deterministic `learningIntelligence` authority are unchanged.
+
+---
+
 # NEXA 1.65.0 — AI Gateway Operational Readiness
 
 NEXA 1.65.0 closes the false-green deployment state discovered during live v1.64 runtime verification. A configured `AI_GATEWAY_API_KEY` is no longer treated as proof that model-backed capabilities are usable. Readiness now performs a cached, zero-model-cost AI Gateway preflight that verifies authentication through the credits endpoint, confirms the configured NEXA model is present in the Gateway catalog, confirms that the model currently exposes at least one provider endpoint, and distinguishes available from exhausted Gateway credits without invoking an inference.
