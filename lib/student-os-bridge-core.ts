@@ -11,6 +11,8 @@ export const STUDENT_OS_BRIDGE_CAPABILITIES = [
 
 export type StudentOsBridgeCapability = (typeof STUDENT_OS_BRIDGE_CAPABILITIES)[number];
 
+export const STUDENT_OS_BRIDGE_CONTRACT_VERSION = '1.0' as const;
+
 export const STUDENT_OS_BRIDGE_MAX_BODY_BYTES = 48 * 1024;
 export const STUDENT_OS_BRIDGE_SECRET_MIN_CHARS = 32;
 export const STUDENT_OS_BRIDGE_DEFAULT_TIMEOUT_MS = 18_000;
