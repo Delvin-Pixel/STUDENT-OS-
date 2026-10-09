@@ -15,6 +15,7 @@ import {
 } from '@/lib/nexa-provider';
 import {
   STUDENT_OS_BRIDGE_CONTRACT_VERSION,
+  STUDENT_OS_BRIDGE_SUPPORTED_CONTRACT_VERSIONS,
   STUDENT_OS_BRIDGE_MAX_BODY_BYTES,
   getStudentOsBridgeTimeoutMs,
   isConfiguredStudentOsBridgeSecret,
@@ -32,6 +33,7 @@ export type StudentOsBridgeReadiness = Readonly<{
   checkedAt: string;
   providerContractVersion: string;
   bridgeContractVersion: string;
+  supportedBridgeContractVersions: readonly string[];
   academicDecisionAuthority: string;
   academicContextBindingVersion: string;
   capabilities: readonly string[];
@@ -105,6 +107,7 @@ export function getStudentOsBridgeReadiness(): StudentOsBridgeReadiness {
     checkedAt: new Date().toISOString(),
     providerContractVersion: NEXA_PROVIDER_CONTRACT_VERSION,
     bridgeContractVersion: STUDENT_OS_BRIDGE_CONTRACT_VERSION,
+    supportedBridgeContractVersions: STUDENT_OS_BRIDGE_SUPPORTED_CONTRACT_VERSIONS,
     academicDecisionAuthority: NEXA_STUDENT_OS_ACADEMIC_AUTHORITY,
     academicContextBindingVersion: NEXA_ACADEMIC_CONTEXT_BINDING_VERSION,
     capabilities: NEXA_PROVIDER_CAPABILITIES,
