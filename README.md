@@ -1,3 +1,17 @@
+# NEXA 1.70.0 — Student OS Preflight Failover Readiness
+
+NEXA 1.70.0 makes the authenticated Student OS bridge health check explicitly describe how the integration can serve a request before Student OS sends one. Full model-backed readiness remains `ready` with serving mode `nexa`. When the AI Gateway is operationally unavailable but the bridge can still safely hand control back to Student OS, readiness remains honestly `degraded` while exposing serving mode `student-os-deterministic` and the same bounded fallback directive introduced in 1.69.
+
+The health endpoint keeps its existing HTTP semantics: full readiness returns 200 and degraded readiness returns 503. It now adds `X-NEXA-Bridge-Serving-Mode`, and when deterministic fallback is available it also adds `X-NEXA-Bridge-Fallback-Contract`. This lets Student OS preflight the integration and choose its deterministic `learningIntelligence` path without first attempting a model-backed bridge request.
+
+The bridge smoke verifier now treats both states as valid integration outcomes: fully ready NEXA, or an authenticated and correctly structured deterministic-fallback state. A zero-credit AI Gateway therefore remains visible as degraded model readiness without being misclassified as a broken Student OS integration.
+
+This release also adds branch-local Vercel Git deployment rules for NEXA source: `nexa-main` remains enabled, while temporary `stage/nexa-*` and verification `nexa-*` branches do not auto-deploy. Student OS branches are unspecified and therefore unchanged. This prevents verification-only NEXA branches from generating noisy failed-preview emails when branch-restricted runtime secrets are intentionally unavailable.
+
+No database migration is introduced; migrations 001–042 remain immutable. The NEXA provider contract remains `1.0`, the fallback contract remains `1.0`, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.69.0 — Deterministic Student OS Fallback Signaling
 
 NEXA 1.69.0 makes operational failure handling machine-readable for Student OS without changing the stable NEXA provider contract. When the authenticated Student OS bridge rejects a request because NEXA is not operationally available, the existing provider failure remains backward-compatible (`ok: false`, `code: unavailable`, `retryable`), and the response now adds a bounded `fallback` directive.
