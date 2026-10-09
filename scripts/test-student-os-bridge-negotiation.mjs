@@ -55,7 +55,7 @@ assert.match(routeSource, /STUDENT_OS_BRIDGE_ACCEPT_CONTRACT_HEADER/);
 assert.match(routeSource, /negotiateStudentOsBridgeContract/);
 assert.match(routeSource, /supportedContracts: contractNegotiation\.supportedVersions/);
 assert.match(routeSource, /invalid_contract_header/);
-assert.match(routeSource, /unsupported_contract/);
+assert.match(coreSource, /unsupported_contract/);
 assert.match(routeSource, /status: contractNegotiation\.reason === 'invalid_contract_header' \? 400 : 409/);
 assert.match(routeSource, /X-NEXA-Bridge-Supported-Contracts/);
 
