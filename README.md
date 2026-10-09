@@ -1,3 +1,15 @@
+# NEXA 1.65.0 — AI Gateway Operational Readiness
+
+NEXA 1.65.0 closes the false-green deployment state discovered during live v1.64 runtime verification. A configured `AI_GATEWAY_API_KEY` is no longer treated as proof that model-backed capabilities are usable. Readiness now performs a cached, zero-model-cost AI Gateway preflight that verifies authentication through the credits endpoint, confirms the configured NEXA model is present in the Gateway catalog, confirms that the model currently exposes at least one provider endpoint, and distinguishes available from exhausted Gateway credits without invoking an inference.
+
+The operational probe never returns the API key, raw billing balance, lifetime spend, provider credentials, or model output. Public readiness exposes only bounded safe state: operational/degraded/missing, a coarse reason code, available/exhausted/unknown credit state, configured model identity, model availability, and provider count. Results are cached for 30 seconds and bounded by a short network timeout so provider-control-plane latency cannot turn liveness into an expensive or unbounded dependency.
+
+`GET /api/health/live` remains local and non-billable. `GET /api/health/ready` now requires the database, rate-limit secret, and AI Gateway operational preflight to be healthy before returning 200. The authenticated Student OS bridge health endpoint uses the same operational Gateway state, preventing Student OS from admitting a learner request when NEXA has credentials but cannot actually reach a funded model provider. Configuration-only capability diagnostics remain separate from operational readiness.
+
+This release adds no database migration: migrations 001–041 remain immutable. The release gate adds dedicated AI Gateway readiness contract tests for missing credentials, timeout, authentication failure, exhausted credits, missing model, missing provider endpoints, and the fully operational state. Student OS deterministic `learningIntelligence` remains the sole academic decision authority, and no paid model call is required by CI.
+
+---
+
 # NEXA 1.64.0 — Academic Context Snapshot Binding & Provenance
 
 NEXA 1.64.0 binds every successful Student OS provider response to the normalized deterministic academic context that produced it. When Student OS supplies `academicContext`, NEXA now computes a domain-separated SHA-256 fingerprint over the normalized authority marker, snapshot ID, evidence list, and host constraints. The result metadata carries binding version `sha256-v1`, the bounded snapshot ID, the 64-character fingerprint, and evidence/constraint counts. Requests without academic context keep `metadata.academicContext = null`.
