@@ -1,3 +1,17 @@
+# NEXA 1.73.0 — Contract-Bound Idempotency Replay Safety
+
+NEXA 1.73.0 binds durable Student OS bridge idempotency to the negotiated bridge transport contract so a future transport revision cannot accidentally replay a cached result produced under another contract version.
+
+The current bridge contract remains `1.0`, and its idempotency hash is intentionally preserved byte-for-byte: `1.0` continues hashing the original Student OS bridge envelope exactly as v1.62–v1.72 did. That preserves compatibility with existing in-flight and terminal replay records during the 24-hour idempotency retention window.
+
+For any future negotiated bridge contract other than the current legacy `1.0`, NEXA hashes a canonical object containing both `bridgeContractVersion` and the request envelope. The durable request ledger therefore treats identical request IDs/payloads under different transport contracts as key-reuse mismatches rather than cross-contract replays.
+
+The route passes the negotiated bridge contract into the hash before durable claim. Rate-limit admission still occurs before the claim, provider creation still occurs after the claim, and no model call is added. The provider contract remains `1.0`, fallback contract remains `1.0`, and bridge transport contract remains `1.0`.
+
+No database migration is introduced; migrations 001–042 remain immutable. Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.72.0 — Student OS Bridge Contract Compatibility Negotiation
 
 NEXA 1.72.0 adds explicit compatibility negotiation for the private Student OS bridge transport without breaking existing clients. Updated Student OS consumers can send `X-NEXA-Bridge-Accept-Contract` with one or more comma-separated bridge transport versions they support. NEXA selects the first compatible version and returns the negotiated version in `X-NEXA-Bridge-Contract`.
