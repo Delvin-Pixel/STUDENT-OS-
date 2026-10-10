@@ -26,6 +26,7 @@ import {
   isConfiguredStudentOsBridgeSecret,
   normalizeStudentOsBridgeUserHeader,
   negotiateStudentOsBridgeContract,
+  parseStudentOsBridgeNegotiationRequired,
   parseStudentOsBridgeEnvelope,
   type StudentOsBridgeCapability,
 } from '@/lib/student-os-bridge-core';
@@ -130,22 +131,48 @@ export async function POST(request: Request) {
     );
   }
 
+  let negotiationRequired: boolean;
+  try {
+    negotiationRequired = parseStudentOsBridgeNegotiationRequired(
+      process.env.NEXA_STUDENT_OS_BRIDGE_NEGOTIATION_REQUIRED,
+    );
+  } catch {
+    return jsonResponse(
+      {
+        error: 'Student OS bridge contract negotiation policy is invalid.',
+        code: 'contract_negotiation_policy_invalid',
+      },
+      { status: 503, requestId, headers: noStoreHeaders() },
+    );
+  }
+
   const contractNegotiation = negotiateStudentOsBridgeContract(
     request.headers.get(STUDENT_OS_BRIDGE_ACCEPT_CONTRACT_HEADER),
+    negotiationRequired,
   );
   if (!contractNegotiation.compatible) {
     return jsonResponse(
       {
-        error: contractNegotiation.reason === 'invalid_contract_header'
-          ? 'Invalid Student OS bridge contract negotiation header.'
-          : 'Student OS bridge contract is incompatible.',
+        error: contractNegotiation.reason === 'contract_header_required'
+          ? 'Student OS bridge contract negotiation is required.'
+          : contractNegotiation.reason === 'invalid_contract_header'
+            ? 'Invalid Student OS bridge contract negotiation header.'
+            : 'Student OS bridge contract is incompatible.',
         code: contractNegotiation.reason,
+        negotiationRequired,
         supportedContracts: contractNegotiation.supportedVersions,
       },
       {
-        status: contractNegotiation.reason === 'invalid_contract_header' ? 400 : 409,
+        status: contractNegotiation.reason === 'contract_header_required'
+          ? 428
+          : contractNegotiation.reason === 'invalid_contract_header'
+            ? 400
+            : 409,
         requestId,
-        headers: noStoreHeaders(),
+        headers: {
+          ...noStoreHeaders(),
+          'X-NEXA-Bridge-Negotiation-Required': String(negotiationRequired),
+        },
       },
     );
   }
