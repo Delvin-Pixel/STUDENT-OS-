@@ -19,6 +19,7 @@ import {
   STUDENT_OS_BRIDGE_MAX_BODY_BYTES,
   getStudentOsBridgeTimeoutMs,
   isConfiguredStudentOsBridgeSecret,
+  parseStudentOsBridgeNegotiationRequired,
 } from '@/lib/student-os-bridge-core';
 import { NEXA_VERSION } from '@/lib/version';
 
@@ -34,6 +35,8 @@ export type StudentOsBridgeReadiness = Readonly<{
   providerContractVersion: string;
   bridgeContractVersion: string;
   supportedBridgeContractVersions: readonly string[];
+  bridgeContractNegotiationRequired: boolean | null;
+  legacyBridgeContractDefaultAllowed: boolean;
   academicDecisionAuthority: string;
   academicContextBindingVersion: string;
   capabilities: readonly string[];
@@ -50,6 +53,7 @@ export type StudentOsBridgeReadiness = Readonly<{
     runtime: 'valid' | 'invalid';
     admissionControl: 'valid' | 'invalid';
     rateLimitSecret: 'configured' | 'missing';
+    contractNegotiationPolicy: 'valid' | 'invalid';
   }>;
   reasons: readonly string[];
 }>;
@@ -90,6 +94,17 @@ export function getStudentOsBridgeReadiness(): StudentOsBridgeReadiness {
     reasons.push('runtime_configuration_invalid');
   }
 
+  let bridgeContractNegotiationRequired: boolean | null = null;
+  let contractNegotiationPolicyValid = true;
+  try {
+    bridgeContractNegotiationRequired = parseStudentOsBridgeNegotiationRequired(
+      process.env.NEXA_STUDENT_OS_BRIDGE_NEGOTIATION_REQUIRED,
+    );
+  } catch {
+    contractNegotiationPolicyValid = false;
+    reasons.push('contract_negotiation_policy_invalid');
+  }
+
   let admissionConfig: ReturnType<typeof getStudentOsBridgeAdmissionConfig> | null = null;
   let admissionControlValid = true;
   try {
@@ -108,6 +123,8 @@ export function getStudentOsBridgeReadiness(): StudentOsBridgeReadiness {
     providerContractVersion: NEXA_PROVIDER_CONTRACT_VERSION,
     bridgeContractVersion: STUDENT_OS_BRIDGE_CONTRACT_VERSION,
     supportedBridgeContractVersions: STUDENT_OS_BRIDGE_SUPPORTED_CONTRACT_VERSIONS,
+    bridgeContractNegotiationRequired,
+    legacyBridgeContractDefaultAllowed: bridgeContractNegotiationRequired === false,
     academicDecisionAuthority: NEXA_STUDENT_OS_ACADEMIC_AUTHORITY,
     academicContextBindingVersion: NEXA_ACADEMIC_CONTEXT_BINDING_VERSION,
     capabilities: NEXA_PROVIDER_CAPABILITIES,
@@ -124,6 +141,7 @@ export function getStudentOsBridgeReadiness(): StudentOsBridgeReadiness {
       runtime: runtimeValid ? 'valid' : 'invalid',
       admissionControl: admissionControlValid ? 'valid' : 'invalid',
       rateLimitSecret: rateLimitSecretConfigured ? 'configured' : 'missing',
+      contractNegotiationPolicy: contractNegotiationPolicyValid ? 'valid' : 'invalid',
     }),
     reasons: Object.freeze(reasons),
   });
