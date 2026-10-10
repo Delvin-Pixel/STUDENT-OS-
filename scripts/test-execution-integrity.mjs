@@ -6,7 +6,7 @@ const script = readFileSync(new URL('./check-execution-integrity.mjs', import.me
 const validate = readFileSync(new URL('./validate.mjs', import.meta.url), 'utf8');
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(packageJson.version, '1.73.0');
+assert.equal(packageJson.version, '1.74.0');
 assert.match(packageJson.scripts['ops:check-execution'], /check-execution-integrity\.mjs/);
 assert.match(packageJson.scripts.test, /test:execution-integrity/);
 assert.match(script, /begin transaction isolation level repeatable read, read only/);

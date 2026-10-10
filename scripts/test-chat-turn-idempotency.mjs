@@ -11,7 +11,7 @@ const account = await readFile(new URL('../lib/account.ts', import.meta.url), 'u
 const prune = await readFile(new URL('../scripts/prune-ops.mjs', import.meta.url), 'utf8');
 const validate = await readFile(new URL('../scripts/validate.mjs', import.meta.url), 'utf8');
 
-assert.equal(pkg.version, '1.73.0');
+assert.equal(pkg.version, '1.74.0');
 assert.match(pkg.scripts.test, /test:chat-turn-idempotency/);
 assert.match(helper, /on conflict \(user_id, idempotency_key\) do nothing/);
 assert.match(helper, /if \(inserted\.rows\[0\]\)/);
