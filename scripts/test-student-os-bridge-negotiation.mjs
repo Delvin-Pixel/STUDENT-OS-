@@ -56,7 +56,11 @@ assert.match(routeSource, /negotiateStudentOsBridgeContract/);
 assert.match(routeSource, /supportedContracts: contractNegotiation\.supportedVersions/);
 assert.match(routeSource, /invalid_contract_header/);
 assert.match(coreSource, /unsupported_contract/);
-assert.match(routeSource, /status: contractNegotiation\.reason === 'invalid_contract_header' \? 400 : 409/);
+assert.match(routeSource, /contract_header_required/);
+assert.match(routeSource, /\? 428/);
+assert.match(routeSource, /invalid_contract_header/);
+assert.match(routeSource, /\? 400/);
+assert.match(routeSource, /: 409/);
 assert.match(routeSource, /X-NEXA-Bridge-Supported-Contracts/);
 
 const authPos = routeSource.indexOf("authorizeStudentOsBridge(request.headers.get('authorization')");
