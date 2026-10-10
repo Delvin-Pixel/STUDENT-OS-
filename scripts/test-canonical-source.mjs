@@ -9,14 +9,14 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
 const workflow = await readFile(path.join(root, '.github/workflows/verify.yml'), 'utf8');
 
-assert.equal(pkg.name, 'nexa-1-72');
-assert.equal(pkg.version, '1.72.0');
+assert.equal(pkg.name, 'nexa-1-73');
+assert.equal(pkg.version, '1.73.0');
 assert.match(workflow, /branches: \[nexa-main\]/);
 assert.doesNotMatch(workflow, /branches: \[main\]/);
 assert.match(workflow, /actions\/checkout@v7/);
 assert.match(workflow, /actions\/setup-node@v7/);
-assert.match(workflow, /nexa-1\.72\.0-verified/);
-assert.match(workflow, /nexa-1\.72\.0-verification-evidence/);
+assert.match(workflow, /nexa-1\.73\.0-verified/);
+assert.match(workflow, /nexa-1\.73\.0-verification-evidence/);
 assert.match(workflow, /--exclude='\.\/\.git'/);
 assert.doesNotMatch(workflow, /\.nexa-verify/);
 assert.doesNotMatch(workflow, /Reconstruct exact NEXA|Reconstruct and apply NEXA/);

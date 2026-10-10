@@ -15,8 +15,8 @@ const [pkgText, coreSource, providerSource, adapterSource, routeSource, readines
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-72');
-assert.equal(pkg.version, '1.72.0');
+assert.equal(pkg.name, 'nexa-1-73');
+assert.equal(pkg.version, '1.73.0');
 assert.equal(pkg.scripts['test:academic-context-binding'], 'node scripts/test-academic-context-binding.mjs');
 assert.match(pkg.scripts.test, /test:academic-context-binding/);
 assert.match(readme, /NEXA 1\.64\.0 — Academic Context Snapshot Binding & Provenance/);

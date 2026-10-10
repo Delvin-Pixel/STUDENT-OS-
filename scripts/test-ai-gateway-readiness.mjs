@@ -23,8 +23,8 @@ const [
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-72');
-assert.equal(pkg.version, '1.72.0');
+assert.equal(pkg.name, 'nexa-1-73');
+assert.equal(pkg.version, '1.73.0');
 assert.equal(pkg.scripts['test:ai-gateway-readiness'], 'node scripts/test-ai-gateway-readiness.mjs');
 assert.match(pkg.scripts.test, /test:ai-gateway-readiness/);
 assert.match(readme, /NEXA 1\.65\.0 — AI Gateway Operational Readiness/);

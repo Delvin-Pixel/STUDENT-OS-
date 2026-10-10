@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 
 const ai = await readFile(new URL('../lib/ai-runs.ts', import.meta.url), 'utf8');
 const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-assert.equal(pkg.version, '1.72.0');
+assert.equal(pkg.version, '1.73.0');
 assert.match(ai, /execution_attempt_id/);
 assert.match(ai, /workflow_execution_attempts/);
 assert.match(ai, /for update/);

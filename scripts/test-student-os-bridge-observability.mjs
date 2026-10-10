@@ -16,8 +16,8 @@ const [pkgText, migration041, migration042, coreSource, runtimeSource, route, pr
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-72');
-assert.equal(pkg.version, '1.72.0');
+assert.equal(pkg.name, 'nexa-1-73');
+assert.equal(pkg.version, '1.73.0');
 assert.equal(pkg.scripts['test:student-os-bridge-observability'], 'node scripts/test-student-os-bridge-observability.mjs');
 assert.match(pkg.scripts.test, /test:student-os-bridge-observability/);
 assert.match(readme, /NEXA 1\.68\.0 — Privacy-Bounded Operational Rejection Observability/);

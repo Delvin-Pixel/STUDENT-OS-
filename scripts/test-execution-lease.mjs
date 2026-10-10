@@ -7,7 +7,7 @@ const lease = readFileSync(new URL('../lib/workflow-execution-lease.ts', import.
 const migration = readFileSync(new URL('../db/025_workflow_execution_leases.sql', import.meta.url), 'utf8');
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-assert.equal(pkg.version, '1.72.0');
+assert.equal(pkg.version, '1.73.0');
 assert.match(pkg.scripts.test, /test:execution-lease/);
 assert.match(chat, /acquireWorkflowExecutionLease/);
 assert.match(chat, /This workflow is already being executed by another request/);

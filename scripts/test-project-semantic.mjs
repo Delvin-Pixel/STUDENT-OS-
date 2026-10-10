@@ -15,7 +15,7 @@ const panel = await readFile(new URL('../components/project-files-panel.tsx', im
 const account = await readFile(new URL('../lib/account.ts', import.meta.url), 'utf8');
 const env = await readFile(new URL('../.env.local.example', import.meta.url), 'utf8');
 
-assert.equal(pkg.version, '1.72.0');
+assert.equal(pkg.version, '1.73.0');
 assert.match(pkg.scripts['verify:ci'], /test:postgres-project-semantic/);
 assert.match(pkg.scripts.test, /test:project-semantic/);
 

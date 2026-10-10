@@ -13,8 +13,8 @@ const [pkgText, readinessSource, healthRouteSource, smokeSource, fallbackSource,
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-72');
-assert.equal(pkg.version, '1.72.0');
+assert.equal(pkg.name, 'nexa-1-73');
+assert.equal(pkg.version, '1.73.0');
 assert.equal(
   pkg.scripts['test:student-os-bridge-preflight-failover'],
   'node scripts/test-student-os-bridge-preflight-failover.mjs',
