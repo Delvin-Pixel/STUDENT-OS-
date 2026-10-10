@@ -32,6 +32,10 @@ const commonValid =
   && response.headers.get('x-nexa-provider-contract') === '1.0'
   && response.headers.get('x-nexa-bridge-contract') === '1.0'
   && response.headers.get('x-nexa-bridge-supported-contracts') === body.supportedBridgeContractVersions.join(', ')
+  && typeof body?.bridgeContractNegotiationRequired === 'boolean'
+  && typeof body?.legacyBridgeContractDefaultAllowed === 'boolean'
+  && response.headers.get('x-nexa-bridge-negotiation-required') === String(body.bridgeContractNegotiationRequired)
+  && response.headers.get('x-nexa-bridge-legacy-default-allowed') === String(body.legacyBridgeContractDefaultAllowed)
   && response.headers.get('x-nexa-version') === body.version
   && response.headers.get('x-nexa-bridge-status') === body.status
   && response.headers.get('x-nexa-bridge-serving-mode') === body.servingMode;
