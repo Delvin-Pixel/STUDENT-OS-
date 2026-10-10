@@ -1,0 +1,71 @@
+name: Stage NEXA 1.73 guards
+
+on:
+  push:
+    branches: [stage/nexa-1.73.0-contract-bound-idempotency]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: stage/nexa-1.73.0-contract-bound-idempotency
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.16.0
+          package-manager-cache: false
+      - run: npm install --global npm@10.9.2
+      - name: Refresh release guards
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          for (const name of fs.readdirSync('scripts')) {
+            if (!name.endsWith('.mjs')) continue;
+            if (name === 'test-student-os-bridge-contract-bound-idempotency.mjs') continue;
+            const file = path.join('scripts', name);
+            let source = fs.readFileSync(file, 'utf8');
+            source = source.replaceAll("'nexa-1-72'", "'nexa-1-73'");
+            source = source.split('\n').map((line) => {
+              if ((line.includes('pkg.version') || line.includes('packageJson.version')) && line.includes('1.72.0')) {
+                return line.replaceAll('1.72.0', '1.73.0');
+              }
+              if (line.includes("NEXA_VERSION = '1\\.72\\.0'")) {
+                return line.replace("1\\.72\\.0", "1\\.73\\.0");
+              }
+              if (line.includes("nexa-1\\.72\\.0-verified")) {
+                return line.replace("nexa-1\\.72\\.0-verified", "nexa-1\\.73\\.0-verified");
+              }
+              if (line.includes("nexa-1\\.72\\.0-verification-evidence")) {
+                return line.replace("nexa-1\\.72\\.0-verification-evidence", "nexa-1\\.73\\.0-verification-evidence");
+              }
+              return line;
+            }).join('\n');
+            fs.writeFileSync(file, source);
+          }
+          NODE
+      - run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:migration-integrity
+      - run: npm run test:student-os-bridge-contract-bound-idempotency
+      - run: npm run test:student-os-bridge-idempotency
+      - run: npm run test:student-os-bridge-negotiation
+      - run: npm run test:student-os-bridge-contract-version
+      - run: npm run test:student-os-bridge-preflight-failover
+      - run: npm run test:nexa-provider-contract
+      - run: npm run test:vercel-deployment-isolation
+      - run: npm run test:student-os-bridge
+      - run: npm run typecheck
+      - name: Commit finalized guards
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts package-lock.json
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(nexa): finalize 1.73 release guards"
+          git push origin HEAD:stage/nexa-1.73.0-contract-bound-idempotency
