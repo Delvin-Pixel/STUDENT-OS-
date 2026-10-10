@@ -226,7 +226,7 @@ export async function POST(request: Request) {
       claim = await claimStudentOsBridgeRequest({
         externalUserId: envelope.request.userId,
         requestId: envelope.request.requestId,
-        requestHash: hashStudentOsBridgeRequest(envelope),
+        requestHash: hashStudentOsBridgeRequest(envelope, bridgeContractVersion),
         capability: envelope.capability,
         ownerRequestId: requestId,
       });
