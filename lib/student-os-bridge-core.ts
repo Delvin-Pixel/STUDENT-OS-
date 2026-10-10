@@ -29,7 +29,7 @@ export type StudentOsBridgeContractNegotiation =
     }>
   | Readonly<{
       compatible: false;
-      reason: 'invalid_contract_header' | 'unsupported_contract';
+      reason: 'contract_header_required' | 'invalid_contract_header' | 'unsupported_contract';
       requestedVersions: readonly string[];
       supportedVersions: readonly string[];
     }>;
@@ -57,12 +57,32 @@ function boundedTrimmedString(value: unknown, max: number) {
   return normalized;
 }
 
+export function parseStudentOsBridgeNegotiationRequired(raw: unknown) {
+  if (raw === undefined || raw === null || raw === '') return false;
+  if (typeof raw !== 'string') {
+    throw new Error('NEXA_STUDENT_OS_BRIDGE_NEGOTIATION_REQUIRED must be true or false.');
+  }
+  const value = raw.trim().toLowerCase();
+  if (value === '' || value === 'false') return false;
+  if (value === 'true') return true;
+  throw new Error('NEXA_STUDENT_OS_BRIDGE_NEGOTIATION_REQUIRED must be true or false.');
+}
+
 export function negotiateStudentOsBridgeContract(
   rawHeader: string | null,
+  requireExplicit = false,
 ): StudentOsBridgeContractNegotiation {
   const supportedVersions = STUDENT_OS_BRIDGE_SUPPORTED_CONTRACT_VERSIONS;
 
   if (rawHeader === null || rawHeader.trim() === '') {
+    if (requireExplicit) {
+      return Object.freeze({
+        compatible: false,
+        reason: 'contract_header_required',
+        requestedVersions: Object.freeze([]),
+        supportedVersions,
+      });
+    }
     return Object.freeze({
       compatible: true,
       version: STUDENT_OS_BRIDGE_CONTRACT_VERSION,
