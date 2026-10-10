@@ -1,3 +1,15 @@
+# NEXA 1.74.0 — Bridge Negotiation Policy & Legacy Sunset Readiness
+
+NEXA 1.74.0 adds a validated policy for eventually requiring explicit Student OS bridge contract negotiation without breaking current clients. The new `NEXA_STUDENT_OS_BRIDGE_NEGOTIATION_REQUIRED` setting defaults to `false`, so existing clients that omit the negotiation header continue to receive the legacy implicit `1.0` bridge contract exactly as before.
+
+When the policy is enabled, authenticated Student OS requests must send `X-NEXA-Bridge-Accept-Contract`. A missing or blank header is rejected with HTTP 428 before request-body parsing, operational admission, rate limits, idempotency claims, provider creation, or model execution. Malformed headers remain HTTP 400, while well-formed but unsupported contracts remain HTTP 409.
+
+The policy parser accepts only explicit `true` or `false` values. Invalid server configuration fails closed with HTTP 503 rather than silently changing compatibility behavior. Authenticated bridge readiness exposes whether explicit negotiation is required, whether the legacy implicit default is allowed, and whether the policy configuration is valid. Matching health headers let Student OS discover the policy before sending a capability request.
+
+This release changes no provider semantics, fallback semantics, request schema, capability set, academic authority, or database schema. The provider contract remains `1.0`, fallback contract remains `1.0`, bridge transport contract remains `1.0`, and migrations 001–042 remain immutable.
+
+---
+
 # NEXA 1.73.0 — Contract-Bound Idempotency Replay Safety
 
 NEXA 1.73.0 binds durable Student OS bridge idempotency to the negotiated bridge transport contract so a future transport revision cannot accidentally replay a cached result produced under another contract version.
