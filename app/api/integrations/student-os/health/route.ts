@@ -10,6 +10,8 @@ function headers(input?: Readonly<{
   status?: 'ready' | 'degraded';
   servingMode?: string;
   fallbackContract?: string | null;
+  negotiationRequired?: boolean | null;
+  legacyDefaultAllowed?: boolean;
 }>) {
   return {
     'Cache-Control': 'no-store',
@@ -21,6 +23,12 @@ function headers(input?: Readonly<{
     ...(input?.servingMode ? { 'X-NEXA-Bridge-Serving-Mode': input.servingMode } : {}),
     ...(input?.fallbackContract
       ? { 'X-NEXA-Bridge-Fallback-Contract': input.fallbackContract }
+      : {}),
+    ...(typeof input?.negotiationRequired === 'boolean'
+      ? { 'X-NEXA-Bridge-Negotiation-Required': String(input.negotiationRequired) }
+      : {}),
+    ...(typeof input?.legacyDefaultAllowed === 'boolean'
+      ? { 'X-NEXA-Bridge-Legacy-Default-Allowed': String(input.legacyDefaultAllowed) }
       : {}),
   };
 }
@@ -51,6 +59,8 @@ export async function GET(request: Request) {
       status: readiness.status,
       servingMode: readiness.servingMode,
       fallbackContract: readiness.fallback?.contractVersion ?? null,
+      negotiationRequired: readiness.bridgeContractNegotiationRequired,
+      legacyDefaultAllowed: readiness.legacyBridgeContractDefaultAllowed,
     }),
   });
 }
