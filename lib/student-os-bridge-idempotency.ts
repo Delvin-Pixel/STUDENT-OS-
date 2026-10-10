@@ -1,6 +1,6 @@
 import { hashRequestBody } from '@/lib/idempotency-core';
 import { query, withTransaction } from '@/lib/db';
-import type { StudentOsBridgeEnvelope } from '@/lib/student-os-bridge-core';
+import { STUDENT_OS_BRIDGE_CONTRACT_VERSION, type StudentOsBridgeEnvelope } from '@/lib/student-os-bridge-core';
 
 const BRIDGE_REQUEST_TTL_SECONDS = 24 * 60 * 60;
 const BRIDGE_REQUEST_LEASE_MS = 90_000;
@@ -39,8 +39,18 @@ export class StudentOsBridgeIdempotencyError extends Error {
   }
 }
 
-export function hashStudentOsBridgeRequest(envelope: StudentOsBridgeEnvelope) {
-  return hashRequestBody(envelope);
+export function hashStudentOsBridgeRequest(
+  envelope: StudentOsBridgeEnvelope,
+  bridgeContractVersion: string = STUDENT_OS_BRIDGE_CONTRACT_VERSION,
+) {
+  if (bridgeContractVersion === STUDENT_OS_BRIDGE_CONTRACT_VERSION) {
+    return hashRequestBody(envelope);
+  }
+
+  return hashRequestBody({
+    bridgeContractVersion,
+    envelope,
+  });
 }
 
 export async function claimStudentOsBridgeRequest(input: {
