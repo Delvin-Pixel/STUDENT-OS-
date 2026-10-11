@@ -97,7 +97,7 @@ export async function POST(request: Request) {
   let bridgeLease: StudentOsBridgeRequestLease | null = null;
   let bridgeObservationContext: Pick<
     StudentOsBridgeObservation,
-    'externalUserId' | 'bridgeRequestId' | 'serverRequestId' | 'capability'
+    'externalUserId' | 'bridgeRequestId' | 'serverRequestId' | 'capability' | 'bridgeContractVersion' | 'contractNegotiationSource'
   > | null = null;
   const observeBridge = async (
     eventType: StudentOsBridgeObservation['eventType'],
@@ -197,6 +197,8 @@ export async function POST(request: Request) {
       bridgeRequestId: envelope.request.requestId,
       serverRequestId: requestId,
       capability: envelope.capability,
+      bridgeContractVersion,
+      contractNegotiationSource: contractNegotiation.source,
     };
 
     const operationalAdmission = await enforceStudentOsBridgeOperationalAdmission();
