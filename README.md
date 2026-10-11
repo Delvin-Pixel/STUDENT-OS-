@@ -1,3 +1,15 @@
+# NEXA 1.76.0 — Privacy-Bounded Negotiation Adoption Reporting
+
+NEXA 1.76.0 turns the v1.75 negotiation-adoption ledger into a safe operator decision-support report. The new `ops:report-student-os-bridge-negotiation-adoption` command reads PostgreSQL and returns only aggregate bridge-request counts grouped by negotiation source and transport contract version.
+
+The report counts distinct bridge request IDs inside SQL so multiple lifecycle events for one request do not inflate adoption. Output contains only the bounded reporting window, aggregate explicit and legacy-default request totals, percentages, whether any legacy-default traffic was observed, and per-contract aggregate counts. It does not return request IDs, user fingerprints, prompts, response bodies, authorization material, API keys, Gateway balances, provider credentials, or raw event rows.
+
+The default reporting window is 7 days and operators may request an integer window from 1 through 90 days. A zero-sample report returns null percentages rather than implying zero adoption. The report deliberately does not auto-enable `NEXA_STUDENT_OS_BRIDGE_NEGOTIATION_REQUIRED` or declare a sunset threshold; policy changes remain an explicit operator decision based on observed evidence.
+
+No database migration is introduced. Migrations 001–043 remain immutable, the bridge/provider/fallback contracts remain `1.0`, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.75.0 — Bridge Negotiation Adoption Observability
 
 NEXA 1.75.0 makes the legacy bridge-negotiation sunset measurable before enforcement is enabled. Successful authenticated Student OS bridge requests now attach two privacy-bounded fields to the existing observability ledger: the negotiated bridge transport version and whether that version came from explicit negotiation or the legacy implicit default.
