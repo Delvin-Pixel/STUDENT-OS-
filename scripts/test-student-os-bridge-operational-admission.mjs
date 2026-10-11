@@ -13,8 +13,8 @@ const [pkgText, coreSource, runtimeSource, routeSource, readme] = await Promise.
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-74');
-assert.equal(pkg.version, '1.74.0');
+assert.equal(pkg.name, 'nexa-1-75');
+assert.equal(pkg.version, '1.75.0');
 assert.equal(
   pkg.scripts['test:student-os-bridge-operational-admission'],
   'node scripts/test-student-os-bridge-operational-admission.mjs',
