@@ -1,3 +1,15 @@
+# NEXA 1.75.0 — Bridge Negotiation Adoption Observability
+
+NEXA 1.75.0 makes the legacy bridge-negotiation sunset measurable before enforcement is enabled. Successful authenticated Student OS bridge requests now attach two privacy-bounded fields to the existing observability ledger: the negotiated bridge transport version and whether that version came from explicit negotiation or the legacy implicit default.
+
+Additive migration 043 introduces `bridge_contract_version` and `contract_negotiation_source` on `student_os_bridge_events`. Historical rows remain valid with both fields null. New runtime observations write the pair together, with database constraints allowing only version-shaped values and the bounded sources `explicit` or `legacy-default`. A partial index supports aggregate adoption analysis by negotiation source, contract version, and time.
+
+The ledger still stores no prompt, response body, authorization header, API key, raw Student OS user ID, Gateway balance, provider credential, requested-version list, or arbitrary metadata. Existing user pseudonymization, fail-soft telemetry behavior, and retention pruning remain unchanged.
+
+This release gives operators the evidence needed to decide when `NEXA_STUDENT_OS_BRIDGE_NEGOTIATION_REQUIRED` can safely move from `false` to `true`. It does not change that policy itself: legacy implicit `1.0` remains allowed by default. Provider, fallback, and bridge transport contracts remain `1.0`; Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.74.0 — Bridge Negotiation Policy & Legacy Sunset Readiness
 
 NEXA 1.74.0 adds a validated policy for eventually requiring explicit Student OS bridge contract negotiation without breaking current clients. The new `NEXA_STUDENT_OS_BRIDGE_NEGOTIATION_REQUIRED` setting defaults to `false`, so existing clients that omit the negotiation header continue to receive the legacy implicit `1.0` bridge contract exactly as before.
