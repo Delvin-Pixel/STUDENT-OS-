@@ -1,3 +1,17 @@
+# NEXA 1.78.0 — Explicit Negotiation Enforcement Evidence Gate
+
+NEXA 1.78.0 adds a read-only operator assessment for deciding whether bridge-negotiation enforcement has enough evidence to be considered for human review. The assessment consumes the privacy-bounded v1.77 adoption report and never changes `NEXA_STUDENT_OS_BRIDGE_NEGOTIATION_REQUIRED`.
+
+NEXA deliberately does not choose a traffic threshold. Operators must provide `--min-requests` explicitly, and the command accepts only a bounded positive integer. This keeps deployment policy outside the runtime and prevents a hard-coded rollout threshold from becoming an accidental product decision.
+
+The assessment returns one bounded decision: `insufficient-traffic`, `insufficient-observability`, `legacy-default-observed`, or `reviewable`. A result is reviewable only when the operator-supplied minimum sample is met, evidence coverage is complete, and no legacy-default traffic is present. Even then, `automaticPolicyChange` is always false; reviewable means the evidence may be reviewed, not that enforcement should be enabled.
+
+A zero-traffic window is always `insufficient-traffic` for every valid minimum sample. Partial or unobserved evidence cannot become reviewable regardless of explicit-adoption percentages. The command is read-only and performs no insert, update, delete, environment mutation, or deployment action.
+
+Assessment output remains aggregate-only and returns no raw Student OS user ID, user fingerprint, request ID, prompt, response body, authorization material, API key, Gateway balance, provider credential, or raw event row. No database migration is introduced; migrations 001–043 remain immutable, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.77.0 — Negotiation Adoption Evidence Coverage
 
 NEXA 1.77.0 makes the v1.76 negotiation-adoption report explicit about whether its adoption sample is actually trustworthy. An empty adoption sample is no longer ambiguous: the report now separately measures total Student OS bridge traffic and negotiation-observability coverage inside the same reporting window.
