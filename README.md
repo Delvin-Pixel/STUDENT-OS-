@@ -1,3 +1,17 @@
+# NEXA 1.77.0 — Negotiation Adoption Evidence Coverage
+
+NEXA 1.77.0 makes the v1.76 negotiation-adoption report explicit about whether its adoption sample is actually trustworthy. An empty adoption sample is no longer ambiguous: the report now separately measures total Student OS bridge traffic and negotiation-observability coverage inside the same reporting window.
+
+The new `evidenceCoverage` block reports only aggregate counts and one bounded status: `no-traffic`, `unobserved`, `partial-observability`, or `covered`. It distinguishes requests whose lifecycle events are fully negotiation-observed from requests with no negotiation metadata and requests with mixed lifecycle observability. `coveragePercent` measures only fully observed bridge requests; a zero-traffic window returns null rather than implying 100% coverage.
+
+The existing adoption fields remain backward-compatible: explicit and legacy-default request totals, percentages, whether legacy-default traffic was observed, and aggregate counts by bridge contract version. The database query still counts bridge request IDs only inside SQL and never returns request IDs or raw event rows.
+
+This release intentionally does not recommend or automatically enable `NEXA_STUDENT_OS_BRIDGE_NEGOTIATION_REQUIRED`. In particular, `no-traffic` is evidence of no traffic, not evidence of explicit-negotiation adoption. Operators must wait for real, sufficiently covered bridge traffic before making a compatibility-policy decision.
+
+The report remains privacy-bounded: it returns no raw Student OS user ID, user fingerprint, request ID, prompt, response body, authorization material, API key, Gateway balance, provider credential, or arbitrary metadata. No database migration is introduced; migrations 001–043 remain immutable, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.76.0 — Privacy-Bounded Negotiation Adoption Reporting
 
 NEXA 1.76.0 turns the v1.75 negotiation-adoption ledger into a safe operator decision-support report. The new `ops:report-student-os-bridge-negotiation-adoption` command reads PostgreSQL and returns only aggregate bridge-request counts grouped by negotiation source and transport contract version.
