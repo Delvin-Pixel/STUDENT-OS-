@@ -44,6 +44,7 @@
     "040_student_os_bridge_idempotency.sql": "fff8acfc197925fdd211b3c1776981fb9558d6bbf817ffcd847180c89069f3cf",
     "041_student_os_bridge_observability.sql": "dbb7aa560d9014a01cb416db634aefbd0f761b08f72a6f2c71fc3aa935d224ed",
     "042_student_os_bridge_operational_observability.sql": "e66760585022c5e8b0f7872e9179f83d5b582f8d4b9a06dca07b75e357a8eca8",
-    "043_student_os_bridge_negotiation_adoption_observability.sql": "67c55397f5b5fe3d520db28f5bf795b2a21b48827864ecdf277e2c72b76d6d2e"
+    "043_student_os_bridge_negotiation_adoption_observability.sql": "67c55397f5b5fe3d520db28f5bf795b2a21b48827864ecdf277e2c72b76d6d2e",
+    "044_supabase_data_api_isolation.sql": "05f8ae5203cfb55fd5dcc251479d479bbfdaa9676877f56606b9dcb0cac690aa"
   }
 }
