@@ -87,8 +87,6 @@ try {
       has_sequence_privilege('anon','public.nexa_security_probe_sequence','usage,select') as anon_sequence,
       has_sequence_privilege('authenticated','public.nexa_security_probe_sequence','usage,select') as authenticated_sequence,
       has_sequence_privilege('nexa_runtime','public.nexa_security_probe_sequence','usage,select') as runtime_sequence,
-      has_function_privilege('anon','public.nexa_security_probe_fn()','execute') as anon_function,
-      has_function_privilege('authenticated','public.nexa_security_probe_fn()','execute') as authenticated_function,
       has_function_privilege('nexa_runtime','public.nexa_security_probe_fn()','execute') as runtime_function;
   `);
   const f = future.rows[0];
@@ -98,9 +96,39 @@ try {
   assert.equal(f.anon_sequence, false);
   assert.equal(f.authenticated_sequence, false);
   assert.equal(f.runtime_sequence, true);
-  assert.equal(f.anon_function, false);
-  assert.equal(f.authenticated_function, false);
   assert.equal(f.runtime_function, true);
+
+  for (const blockedRole of ['anon', 'authenticated']) {
+    const client = await pool.connect();
+    try {
+      await client.query(`set role ${blockedRole}`);
+      await assert.rejects(
+        () => client.query('select * from public.nexa_security_probe'),
+        (error) => error?.code === '42501',
+      );
+      await assert.rejects(
+        () => client.query('select public.nexa_security_probe_fn()'),
+        (error) => error?.code === '42501',
+      );
+    } finally {
+      await client.query('reset role').catch(() => {});
+      client.release();
+    }
+  }
+
+  const runtimeClient = await pool.connect();
+  try {
+    await runtimeClient.query('set role nexa_runtime');
+    const inserted = await runtimeClient.query(
+      "insert into public.nexa_security_probe(value) values ('ok') returning id, value",
+    );
+    assert.equal(inserted.rows[0].value, 'ok');
+    const called = await runtimeClient.query('select public.nexa_security_probe_fn() as value');
+    assert.equal(Number(called.rows[0].value), 1);
+  } finally {
+    await runtimeClient.query('reset role').catch(() => {});
+    runtimeClient.release();
+  }
 
   console.log('NEXA PostgreSQL Supabase Data API isolation tests passed.');
 } finally {
