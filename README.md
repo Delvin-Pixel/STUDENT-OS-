@@ -1,3 +1,17 @@
+# NEXA 1.79.0 — Supabase Data API Isolation
+
+NEXA 1.79.0 closes the Supabase public Data API surface around NEXA's server-owned PostgreSQL schema. The live project uses a dedicated `nexa_runtime` PostgreSQL login from the server runtime and does not use `@supabase/supabase-js`, browser anon keys, or client-side PostgREST access for NEXA data.
+
+Additive migration 044 revokes `PUBLIC`, `anon`, and `authenticated` access to the `public` schema and its existing tables, sequences, and functions. It also updates the migration owner's default privileges so newly created NEXA tables, sequences, and functions do not silently reopen Data API access. The migration explicitly preserves current and future table/sequence/function privileges for `nexa_runtime`.
+
+The migration is role-aware and portable: Supabase-specific roles are handled only when present, while canonical PostgreSQL CI can apply the same migration without requiring Supabase role creation. Default-privilege changes follow `current_user`, so they bind to the actual schema migration owner in each environment rather than hardcoding a provider-specific owner.
+
+This release intentionally does not enable blanket RLS policies on NEXA's server-side tables. `nexa_runtime` is not a BYPASSRLS role, so blindly enabling RLS would risk breaking the application. Instead, NEXA removes those tables from the Supabase Data API access path while preserving least-privilege server access.
+
+The release gate includes a real PostgreSQL regression that recreates vulnerable `anon`/`authenticated` grants, reapplies migration 044, proves those roles lose schema/table/sequence/function access, proves `nexa_runtime` retains access, and verifies the same isolation for objects created after the migration. Existing migrations 001–043 remain immutable, Student OS `main` is unchanged, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.78.0 — Explicit Negotiation Enforcement Evidence Gate
 
 NEXA 1.78.0 adds a read-only operator assessment for deciding whether bridge-negotiation enforcement has enough evidence to be considered for human review. The assessment consumes the privacy-bounded v1.77 adoption report and never changes `NEXA_STUDENT_OS_BRIDGE_NEGOTIATION_REQUIRED`.
