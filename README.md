@@ -1,3 +1,15 @@
+# NEXA 1.81.0 — Runtime Security Readiness
+
+NEXA 1.81.0 promotes the v1.80 PostgreSQL least-privilege attestation from an operator-only check into the runtime readiness contract. NEXA now performs the same read-only privilege assessment through the shared database connection and caches the result for 60 seconds so ordinary readiness can detect privilege drift without repeatedly scanning PostgreSQL catalogs.
+
+Readiness requires the dedicated `nexa_runtime` role to remain login-capable but non-superuser, unable to create roles or databases, unable to replicate, unable to bypass RLS, unable to create objects in the public schema, and free of inherited database-role memberships. It also requires the intended application access to remain complete: public schema usage, database connect, CRUD access across public application tables, sequence usage/select coverage, and execute coverage across public functions.
+
+The public readiness response intentionally exposes only a bounded security state: `secure`, `insecure`, or `unavailable`, plus the coarse reason `least_privilege_violation` or `attestation_unavailable`. Detailed privilege evidence remains available only through `npm run ops:attest-runtime-role`. Public readiness does not disclose failed check names, table counts, role memberships, or grant details.
+
+An insecure or unavailable runtime-role attestation degrades readiness even when the database is reachable. The AI Gateway, database connectivity, and rate-limit checks remain unchanged. No database migration is introduced; migrations 001–044 remain immutable. NEXA provider, fallback, and Student OS bridge contracts are unchanged, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.80.0 — Runtime Role Least-Privilege Attestation
 
 NEXA 1.80.0 turns the dedicated `nexa_runtime` PostgreSQL role boundary into a continuously verifiable security contract. The release adds a read-only operator attestation that inspects the effective runtime role instead of assuming migration-time grants remain safe forever.
