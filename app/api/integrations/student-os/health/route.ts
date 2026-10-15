@@ -12,6 +12,8 @@ function headers(input?: Readonly<{
   fallbackContract?: string | null;
   negotiationRequired?: boolean | null;
   legacyDefaultAllowed?: boolean;
+  runtimeRoleSecurity?: 'secure' | 'insecure' | 'unavailable';
+  runtimeRoleSecurityReason?: string | null;
 }>) {
   return {
     'Cache-Control': 'no-store',
@@ -29,6 +31,12 @@ function headers(input?: Readonly<{
       : {}),
     ...(typeof input?.legacyDefaultAllowed === 'boolean'
       ? { 'X-NEXA-Bridge-Legacy-Default-Allowed': String(input.legacyDefaultAllowed) }
+      : {}),
+    ...(input?.runtimeRoleSecurity
+      ? { 'X-NEXA-Bridge-Runtime-Security': input.runtimeRoleSecurity }
+      : {}),
+    ...(input?.runtimeRoleSecurityReason
+      ? { 'X-NEXA-Bridge-Runtime-Security-Reason': input.runtimeRoleSecurityReason }
       : {}),
   };
 }
@@ -61,6 +69,8 @@ export async function GET(request: Request) {
       fallbackContract: readiness.fallback?.contractVersion ?? null,
       negotiationRequired: readiness.bridgeContractNegotiationRequired,
       legacyDefaultAllowed: readiness.legacyBridgeContractDefaultAllowed,
+      runtimeRoleSecurity: readiness.runtimeRoleSecurity.status,
+      runtimeRoleSecurityReason: readiness.runtimeRoleSecurity.reason,
     }),
   });
 }
