@@ -25,8 +25,8 @@ const [
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-82');
-assert.equal(pkg.version, '1.82.0');
+assert.equal(pkg.name, 'nexa-1-83');
+assert.equal(pkg.version, '1.83.0');
 assert.equal(
   pkg.scripts['test:student-os-bridge-security-admission'],
   'node scripts/test-student-os-bridge-security-admission.mjs',
