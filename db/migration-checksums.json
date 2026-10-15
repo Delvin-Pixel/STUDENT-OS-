@@ -45,6 +45,7 @@
     "041_student_os_bridge_observability.sql": "dbb7aa560d9014a01cb416db634aefbd0f761b08f72a6f2c71fc3aa935d224ed",
     "042_student_os_bridge_operational_observability.sql": "e66760585022c5e8b0f7872e9179f83d5b582f8d4b9a06dca07b75e357a8eca8",
     "043_student_os_bridge_negotiation_adoption_observability.sql": "67c55397f5b5fe3d520db28f5bf795b2a21b48827864ecdf277e2c72b76d6d2e",
-    "044_supabase_data_api_isolation.sql": "62fb9fda67a32e3b959d9ce03961b3ead463e536171062388e9fd745fbdfd097"
+    "044_supabase_data_api_isolation.sql": "62fb9fda67a32e3b959d9ce03961b3ead463e536171062388e9fd745fbdfd097",
+    "045_student_os_bridge_security_admission.sql": "69ca9b83f5a082413aa349de9dd6a7aaa36ae8943e7a5558ffa585b9be321af9"
   }
 }
