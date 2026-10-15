@@ -29,6 +29,8 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
   const databaseConnect = boolean(row.db_connect);
   const databaseCreate = boolean(row.db_create);
   const databaseTemp = boolean(row.db_temp);
+  const databaseOwnedByRuntime = boolean(row.database_owned_by_runtime);
+  const publicSchemaOwnedByRuntime = boolean(row.public_schema_owned_by_runtime);
 
   const publicTables = count(row.public_tables, 'public_tables');
   const runtimeCrudTables = count(row.runtime_crud_tables, 'runtime_crud_tables');
@@ -37,6 +39,8 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
   const publicFunctions = count(row.public_functions, 'public_functions');
   const runtimeFunctions = count(row.runtime_functions, 'runtime_functions');
   const roleMemberships = count(row.role_memberships, 'role_memberships');
+  const runtimeOwnedRelations = count(row.runtime_owned_relations, 'runtime_owned_relations');
+  const runtimeOwnedFunctions = count(row.runtime_owned_functions, 'runtime_owned_functions');
 
   const checks = Object.freeze({
     roleExists,
@@ -50,6 +54,10 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
     noSchemaCreate: !schemaCreate,
     databaseConnect,
     noDatabaseCreate: !databaseCreate,
+    noDatabaseOwnership: !databaseOwnedByRuntime,
+    noPublicSchemaOwnership: !publicSchemaOwnedByRuntime,
+    noPublicRelationOwnership: runtimeOwnedRelations === 0,
+    noPublicFunctionOwnership: runtimeOwnedFunctions === 0,
     noRoleMemberships: roleMemberships === 0,
     tableCrudCoverage: runtimeCrudTables === publicTables,
     sequenceUsageCoverage: runtimeSequences === publicSequences,
@@ -76,6 +84,10 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
       runtimeFunctions,
       roleMemberships,
       databaseTemp,
+      databaseOwnedByRuntime,
+      publicSchemaOwnedByRuntime,
+      runtimeOwnedRelations,
+      runtimeOwnedFunctions,
     }),
   });
 }
@@ -146,6 +158,37 @@ export async function queryNexaRuntimeRoleAttestation(options = {}) {
         join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'public'
       ),
+      ownership_state as (
+        select
+          exists (
+            select 1
+            from pg_database d
+            join pg_roles r on r.oid = d.datdba
+            where d.datname = current_database() and r.rolname = $1
+          ) as database_owned_by_runtime,
+          exists (
+            select 1
+            from pg_namespace n
+            join pg_roles r on r.oid = n.nspowner
+            where n.nspname = 'public' and r.rolname = $1
+          ) as public_schema_owned_by_runtime,
+          (
+            select count(*)::int
+            from pg_class c
+            join pg_namespace n on n.oid = c.relnamespace
+            join pg_roles r on r.oid = c.relowner
+            where n.nspname = 'public'
+              and c.relkind in ('r', 'p', 'S', 'v', 'm', 'f')
+              and r.rolname = $1
+          ) as runtime_owned_relations,
+          (
+            select count(*)::int
+            from pg_proc p
+            join pg_namespace n on n.oid = p.pronamespace
+            join pg_roles r on r.oid = p.proowner
+            where n.nspname = 'public' and r.rolname = $1
+          ) as runtime_owned_functions
+      ),
       membership_state as (
         select count(*)::int as role_memberships
         from pg_auth_members m
@@ -165,6 +208,10 @@ export async function queryNexaRuntimeRoleAttestation(options = {}) {
         coalesce(rs.db_connect, false) as db_connect,
         coalesce(rs.db_create, false) as db_create,
         coalesce(rs.db_temp, false) as db_temp,
+        os.database_owned_by_runtime,
+        os.public_schema_owned_by_runtime,
+        os.runtime_owned_relations,
+        os.runtime_owned_functions,
         ts.public_tables,
         ts.runtime_crud_tables,
         ss.public_sequences,
@@ -175,6 +222,7 @@ export async function queryNexaRuntimeRoleAttestation(options = {}) {
       from table_state ts
       cross join sequence_state ss
       cross join function_state fs
+      cross join ownership_state os
       cross join membership_state ms
       left join role_state rs on true
     `, [NEXA_RUNTIME_ROLE]);
