@@ -116,7 +116,10 @@ export async function queryNexaRuntimeRoleAttestation(options = {}) {
         select
           count(*)::int as public_tables,
           count(*) filter (
-            where has_table_privilege($1, c.oid, 'SELECT,INSERT,UPDATE,DELETE')
+            where has_table_privilege($1, c.oid, 'SELECT')
+              and has_table_privilege($1, c.oid, 'INSERT')
+              and has_table_privilege($1, c.oid, 'UPDATE')
+              and has_table_privilege($1, c.oid, 'DELETE')
           )::int as runtime_crud_tables
         from pg_class c
         join pg_namespace n on n.oid = c.relnamespace
@@ -126,7 +129,8 @@ export async function queryNexaRuntimeRoleAttestation(options = {}) {
         select
           count(*)::int as public_sequences,
           count(*) filter (
-            where has_sequence_privilege($1, c.oid, 'USAGE,SELECT')
+            where has_sequence_privilege($1, c.oid, 'USAGE')
+              and has_sequence_privilege($1, c.oid, 'SELECT')
           )::int as runtime_sequences
         from pg_class c
         join pg_namespace n on n.oid = c.relnamespace
