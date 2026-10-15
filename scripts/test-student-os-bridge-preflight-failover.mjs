@@ -28,7 +28,7 @@ assert.match(readinessSource, /fallback: StudentOsBridgeFallbackDirective \| nul
 assert.match(readinessSource, /classifyStudentOsBridgeOperationalAdmission/);
 assert.match(readinessSource, /createStudentOsBridgeFallbackDirective/);
 assert.match(readinessSource, /STUDENT_OS_BRIDGE_FALLBACK_MODE/);
-assert.match(readinessSource, /base\.status === 'ready' && operationalAdmission\.allowed/);
+assert.match(readinessSource, /base\.status === 'ready' && securityAdmission\.allowed && operationalAdmission\.allowed/);
 assert.match(readinessSource, /base\.configuration\.bridgeSecret === 'configured'/);
 assert.doesNotMatch(readinessSource, /generateText|ToolLoopAgent|streamText|embed\(/);
 
