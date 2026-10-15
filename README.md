@@ -1,3 +1,15 @@
+# NEXA 1.71.1 — Public Schema RLS Hardening
+
+NEXA 1.71.1 is a security hotfix for the Supabase `public` schema. All 32 NEXA tables now enable PostgreSQL Row Level Security. Each table receives one permissive policy named `nexa_runtime_server_access` whose predicate is bounded to the dedicated direct PostgreSQL login: `current_user = 'nexa_runtime'`.
+
+This preserves the existing server-side architecture without exposing tables through Supabase client roles. The table owner continues to retain owner access, Supabase `service_role` continues to use its existing PostgreSQL `BYPASSRLS` capability, and the dedicated `nexa_runtime` connection retains its normal SELECT/INSERT/UPDATE/DELETE behavior. The `anon` and `authenticated` client roles receive no RLS policy and therefore cannot read or modify rows even if table grants are added accidentally later.
+
+The release adds migration 043 and permanently advances migration integrity to 43 immutable migrations. Canonical verification includes both a static contract test and a PostgreSQL integration test that deliberately grants `anon` and `authenticated` access to a protected table, verifies they still see zero rows and cannot insert, then verifies `nexa_runtime` can read and write under RLS.
+
+No Student OS authority rule, NEXA provider contract, bridge transport contract, fallback contract, AI model behavior, or Vercel routing is changed by this hotfix.
+
+---
+
 # NEXA 1.71.0 — Student OS Bridge Transport Contract Versioning
 
 NEXA 1.71.0 introduces an explicit version for the private HTTP transport contract between Student OS and NEXA. The bridge transport is now versioned independently from the NEXA provider semantics and the deterministic fallback directive, so those layers can evolve without being incorrectly treated as one protocol.
