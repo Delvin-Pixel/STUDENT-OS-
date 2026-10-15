@@ -1,4 +1,9 @@
 import { query } from '@/lib/db';
+export type {
+  NexaRuntimeRoleSecurityReason,
+  NexaRuntimeRoleSecurityStatus,
+} from '@/lib/runtime-role-security-core';
+
 import {
   NEXA_RUNTIME_ROLE,
   classifyNexaRuntimeRoleSecurity,
