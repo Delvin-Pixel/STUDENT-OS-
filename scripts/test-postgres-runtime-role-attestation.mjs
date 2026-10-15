@@ -57,8 +57,20 @@ try {
   const restored = await queryNexaRuntimeRoleAttestation();
   assert.equal(restored.secure, true, JSON.stringify(restored));
 
+  await pool.query('drop table if exists public.nexa_runtime_ownership_probe');
+  await pool.query('create table public.nexa_runtime_ownership_probe(id integer)');
+  await pool.query('alter table public.nexa_runtime_ownership_probe owner to nexa_runtime');
+  const owned = await queryNexaRuntimeRoleAttestation();
+  assert.equal(owned.secure, false);
+  assert.ok(owned.failedChecks.includes('noPublicRelationOwnership'));
+
+  await pool.query('drop table public.nexa_runtime_ownership_probe');
+  const ownershipRestored = await queryNexaRuntimeRoleAttestation();
+  assert.equal(ownershipRestored.secure, true, JSON.stringify(ownershipRestored));
+
   console.log('NEXA PostgreSQL runtime role least-privilege attestation tests passed.');
 } finally {
   await pool.query('revoke create on schema public from nexa_runtime').catch(() => {});
+  await pool.query('drop table if exists public.nexa_runtime_ownership_probe').catch(() => {});
   await pool.end();
 }
