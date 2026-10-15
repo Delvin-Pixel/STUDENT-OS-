@@ -4,10 +4,11 @@ import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
-const [pkgText, migration041, migration042, coreSource, runtimeSource, route, prune, readme] = await Promise.all([
+const [pkgText, migration041, migration042, migration045, coreSource, runtimeSource, route, prune, readme] = await Promise.all([
   read('package.json'),
   read('db/041_student_os_bridge_observability.sql'),
   read('db/042_student_os_bridge_operational_observability.sql'),
+  read('db/045_student_os_bridge_security_admission.sql'),
   read('lib/student-os-bridge-observability-core.ts'),
   read('lib/student-os-bridge-observability.ts'),
   read('app/api/integrations/student-os/route.ts'),
@@ -36,6 +37,9 @@ assert.match(migration042, /ai_gateway_credits_exhausted/);
 assert.match(migration042, /student_os_bridge_events_operational_reason_event_check/);
 assert.match(migration042, /where operational_reason is not null/);
 assert.doesNotMatch(migration042, /balance|api[_ ]?key|prompt|response_body|external_user_id/i);
+assert.match(migration045, /runtime_role_security_violation/);
+assert.match(migration045, /runtime_role_security_unavailable/);
+assert.doesNotMatch(migration045, /balance|api[_ ]?key|prompt|response_body|external_user_id/i);
 
 assert.match(coreSource, /'operational_rejected'/);
 assert.match(runtimeSource, /fingerprintStudentOsBridgeUser/);
@@ -49,6 +53,7 @@ for (const event of ['rate_limited','mismatch','in_progress','replayed','complet
   assert.match(route, new RegExp(`observeBridge\\(['"]${event}['"]`));
 }
 assert.match(route, /operationalReason: operationalAdmission\.reason/);
+assert.match(route, /operationalReason: securityAdmission\.reason/);
 assert.match(route, /claim\.recovered \? 'recovered' : 'claimed'/);
 assert.match(prune, /student_os_bridge_events/);
 assert.match(prune, /studentOsBridgeEventsDeleted/);
