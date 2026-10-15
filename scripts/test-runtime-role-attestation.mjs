@@ -1,0 +1,112 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import {
+  NEXA_RUNTIME_ROLE,
+  buildNexaRuntimeRoleAttestation,
+} from './attest-nexa-runtime-role.mjs';
+
+const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+const [pkgText, source, readme] = await Promise.all([
+  read('package.json'),
+  read('scripts/attest-nexa-runtime-role.mjs'),
+  read('README.md'),
+]);
+const pkg = JSON.parse(pkgText);
+
+assert.equal(pkg.name, 'nexa-1-80');
+assert.equal(pkg.version, '1.80.0');
+assert.equal(pkg.scripts['ops:attest-runtime-role'], 'node scripts/attest-nexa-runtime-role.mjs');
+assert.equal(pkg.scripts['test:runtime-role-attestation'], 'node scripts/test-runtime-role-attestation.mjs');
+assert.match(pkg.scripts.test, /test:runtime-role-attestation/);
+assert.match(readme, /NEXA 1\.80\.0 — Runtime Role Least-Privilege Attestation/);
+
+assert.equal(NEXA_RUNTIME_ROLE, 'nexa_runtime');
+assert.match(source, /rolsuper/);
+assert.match(source, /rolcreaterole/);
+assert.match(source, /rolcreatedb/);
+assert.match(source, /rolreplication/);
+assert.match(source, /rolbypassrls/);
+assert.match(source, /has_schema_privilege/);
+assert.match(source, /has_database_privilege/);
+assert.match(source, /pg_auth_members/);
+assert.match(source, /has_table_privilege/);
+assert.match(source, /has_sequence_privilege/);
+assert.match(source, /has_function_privilege/);
+
+const secureRow = {
+  role_exists: true,
+  rolcanlogin: true,
+  rolsuper: false,
+  rolcreaterole: false,
+  rolcreatedb: false,
+  rolreplication: false,
+  rolbypassrls: false,
+  public_usage: true,
+  public_create: false,
+  db_connect: true,
+  db_create: false,
+  db_temp: true,
+  public_tables: 12,
+  runtime_crud_tables: 12,
+  public_sequences: 4,
+  runtime_sequences: 4,
+  public_functions: 3,
+  runtime_functions: 3,
+  role_memberships: 0,
+};
+
+const secure = buildNexaRuntimeRoleAttestation(secureRow);
+assert.equal(secure.secure, true);
+assert.deepEqual([...secure.failedChecks], []);
+assert.equal(secure.checks.noSuperuser, true);
+assert.equal(secure.checks.noCreateRole, true);
+assert.equal(secure.checks.noCreateDatabase, true);
+assert.equal(secure.checks.noReplication, true);
+assert.equal(secure.checks.noBypassRls, true);
+assert.equal(secure.checks.noSchemaCreate, true);
+assert.equal(secure.checks.noDatabaseCreate, true);
+assert.equal(secure.checks.noRoleMemberships, true);
+assert.equal(secure.checks.tableCrudCoverage, true);
+assert.equal(secure.checks.sequenceUsageCoverage, true);
+assert.equal(secure.checks.functionExecuteCoverage, true);
+assert.equal(secure.evidence.databaseTemp, true);
+assert.equal(Object.isFrozen(secure), true);
+assert.equal(Object.isFrozen(secure.checks), true);
+assert.equal(Object.isFrozen(secure.failedChecks), true);
+
+for (const [field, expectedFailure, value] of [
+  ['rolsuper', 'noSuperuser', true],
+  ['rolcreaterole', 'noCreateRole', true],
+  ['rolcreatedb', 'noCreateDatabase', true],
+  ['rolreplication', 'noReplication', true],
+  ['rolbypassrls', 'noBypassRls', true],
+  ['public_create', 'noSchemaCreate', true],
+  ['db_create', 'noDatabaseCreate', true],
+  ['role_memberships', 'noRoleMemberships', 1],
+  ['runtime_crud_tables', 'tableCrudCoverage', 11],
+  ['runtime_sequences', 'sequenceUsageCoverage', 3],
+  ['runtime_functions', 'functionExecuteCoverage', 2],
+]) {
+  const result = buildNexaRuntimeRoleAttestation({ ...secureRow, [field]: value });
+  assert.equal(result.secure, false, field);
+  assert.ok(result.failedChecks.includes(expectedFailure), field);
+}
+
+for (const [field, expectedFailure] of [
+  ['role_exists', 'roleExists'],
+  ['rolcanlogin', 'login'],
+  ['public_usage', 'schemaUsage'],
+  ['db_connect', 'databaseConnect'],
+]) {
+  const result = buildNexaRuntimeRoleAttestation({ ...secureRow, [field]: false });
+  assert.equal(result.secure, false, field);
+  assert.ok(result.failedChecks.includes(expectedFailure), field);
+}
+
+assert.throws(
+  () => buildNexaRuntimeRoleAttestation({ ...secureRow, public_tables: -1 }),
+  /public_tables/,
+);
+
+console.log('NEXA runtime role least-privilege attestation tests passed.');
