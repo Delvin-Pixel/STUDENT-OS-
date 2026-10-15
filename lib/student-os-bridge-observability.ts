@@ -1,12 +1,15 @@
 import type { NexaAiGatewayReadinessReason } from '@/lib/ai-gateway-readiness-core';
 import { query } from '@/lib/db';
 import type { StudentOsBridgeAdmissionScope } from '@/lib/student-os-bridge-admission';
+import type { StudentOsBridgeSecurityReason } from '@/lib/student-os-bridge-security-admission-core';
 import type { StudentOsBridgeCapability, StudentOsBridgeContractNegotiation } from '@/lib/student-os-bridge-core';
 import {
   fingerprintStudentOsBridgeUser,
   normalizeStudentOsBridgeDurationMs,
   type StudentOsBridgeEventType,
 } from '@/lib/student-os-bridge-observability-core';
+
+export type StudentOsBridgeOperationalReason = NexaAiGatewayReadinessReason | StudentOsBridgeSecurityReason;
 
 export type StudentOsBridgeObservation = Readonly<{
   externalUserId: string;
@@ -18,7 +21,7 @@ export type StudentOsBridgeObservation = Readonly<{
   durationMs: number;
   limitScope?: StudentOsBridgeAdmissionScope | null;
   providerOk?: boolean | null;
-  operationalReason?: NexaAiGatewayReadinessReason | null;
+  operationalReason?: StudentOsBridgeOperationalReason | null;
   bridgeContractVersion?: string | null;
   contractNegotiationSource?: Extract<StudentOsBridgeContractNegotiation, { compatible: true }>['source'] | null;
 }>;
