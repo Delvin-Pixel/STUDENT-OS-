@@ -11,6 +11,7 @@ import {
 import { NEXA_PROVIDER_CONTRACT_VERSION, createNexaProviderFailure, type NexaProvider, type NexaProviderRequest, type NexaProviderResult } from '@/lib/nexa-provider';
 import { recordStudentOsBridgeEvent, type StudentOsBridgeObservation } from '@/lib/student-os-bridge-observability';
 import { enforceStudentOsBridgeOperationalAdmission } from '@/lib/student-os-bridge-operational-admission';
+import { enforceStudentOsBridgeSecurityAdmission } from '@/lib/student-os-bridge-security-admission';
 import {
   STUDENT_OS_BRIDGE_FALLBACK_CONTRACT_VERSION,
   STUDENT_OS_BRIDGE_FALLBACK_MODE,
@@ -200,6 +201,33 @@ export async function POST(request: Request) {
       bridgeContractVersion,
       contractNegotiationSource: contractNegotiation.source,
     };
+
+    const securityAdmission = await enforceStudentOsBridgeSecurityAdmission();
+    if (!securityAdmission.allowed) {
+      await observeBridge('operational_rejected', 503, {
+        providerOk: false,
+        operationalReason: securityAdmission.reason,
+      });
+      return jsonResponse(
+        {
+          error: 'Student OS bridge is unavailable because NEXA runtime security is not ready.',
+          code: securityAdmission.reason,
+        },
+        {
+          status: 503,
+          requestId,
+          headers: {
+            ...noStoreHeaders(envelope.request.requestId, bridgeContractVersion),
+            'X-NEXA-Bridge-Security-Status': securityAdmission.status,
+            'X-NEXA-Bridge-Security-Reason': securityAdmission.reason,
+            'X-NEXA-Bridge-Serving-Mode': 'unavailable',
+            ...(securityAdmission.retryAfterSeconds === null
+              ? {}
+              : { 'Retry-After': String(securityAdmission.retryAfterSeconds) }),
+          },
+        },
+      );
+    }
 
     const operationalAdmission = await enforceStudentOsBridgeOperationalAdmission();
     if (!operationalAdmission.allowed) {
