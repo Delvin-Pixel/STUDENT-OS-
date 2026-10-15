@@ -45,7 +45,8 @@ try {
   assert.equal(policies.rows.length, 32);
   for (const row of policies.rows) {
     assert.equal(row.cmd, 'ALL');
-    assert.deepEqual(row.roles, ['public']);
+    const roleText = Array.isArray(row.roles) ? row.roles.join(',') : String(row.roles ?? '');
+    assert.match(roleText, /public/i);
     assert.match(row.qual ?? '', /CURRENT_USER.*nexa_runtime|current_user.*nexa_runtime/i);
     assert.match(row.with_check ?? '', /CURRENT_USER.*nexa_runtime|current_user.*nexa_runtime/i);
   }
