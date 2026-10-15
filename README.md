@@ -1,3 +1,17 @@
+# NEXA 1.80.0 — Runtime Role Least-Privilege Attestation
+
+NEXA 1.80.0 turns the dedicated `nexa_runtime` PostgreSQL role boundary into a continuously verifiable security contract. The release adds a read-only operator attestation that inspects the effective runtime role instead of assuming migration-time grants remain safe forever.
+
+The attestation requires `nexa_runtime` to exist and remain login-capable while proving it is not a superuser, cannot create roles or databases, cannot replicate, cannot bypass RLS, cannot create objects in the `public` schema, cannot create at the database level, and inherits no other database roles. It also verifies that the runtime role still has the application access NEXA intentionally needs: schema usage, database connect, full CRUD coverage on public application tables, sequence usage/select coverage, and execute coverage on public functions.
+
+Database TEMP privilege is reported as evidence but is not treated as an escalation failure because temporary objects are session-local and may be required by database tooling. The release does not grant or revoke live production privileges and introduces no database migration; migrations 001–044 remain immutable.
+
+`npm run ops:attest-runtime-role` provides a read-only operator check against the configured `DATABASE_URL`. Canonical verification includes both a pure contract suite and a PostgreSQL integration test that proves privilege widening is detected. In the integration database, temporarily granting schema CREATE flips the attestation to insecure, and revoking it restores the secure result.
+
+This release extends the Supabase Data API isolation work from 1.79 without changing NEXA provider behavior, Student OS bridge contracts, deterministic fallback semantics, or Student OS academic authority.
+
+---
+
 # NEXA 1.79.0 — Supabase Data API Isolation
 
 NEXA 1.79.0 closes the Supabase public Data API surface around NEXA's server-owned PostgreSQL schema. The live project uses a dedicated `nexa_runtime` PostgreSQL login from the server runtime and does not use `@supabase/supabase-js`, browser anon keys, or client-side PostgREST access for NEXA data.
