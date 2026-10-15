@@ -1,4 +1,5 @@
 import { getNexaAiGatewayReadiness, type NexaAiGatewayReadiness } from '@/lib/ai-gateway-readiness';
+import { getNexaRuntimeRoleSecurity, type NexaRuntimeRoleSecurity } from '@/lib/runtime-role-security';
 import { getNexaAiRuntimeConfig } from '@/lib/ai-runtime';
 import { getStudentOsBridgeAdmissionConfig } from '@/lib/student-os-bridge-admission';
 import {
@@ -7,6 +8,7 @@ import {
   type StudentOsBridgeFallbackDirective,
 } from '@/lib/student-os-bridge-fallback-core';
 import { classifyStudentOsBridgeOperationalAdmission } from '@/lib/student-os-bridge-operational-admission-core';
+import { classifyStudentOsBridgeSecurityAdmission } from '@/lib/student-os-bridge-security-admission-core';
 import {
   NEXA_ACADEMIC_CONTEXT_BINDING_VERSION,
   NEXA_PROVIDER_CAPABILITIES,
@@ -61,6 +63,10 @@ export type StudentOsBridgeReadiness = Readonly<{
 export type StudentOsBridgeOperationalReadiness = StudentOsBridgeReadiness & Readonly<{
   servingMode: StudentOsBridgeServingMode;
   fallback: StudentOsBridgeFallbackDirective | null;
+  runtimeRoleSecurity: Readonly<{
+    status: NexaRuntimeRoleSecurity['status'];
+    reason: NexaRuntimeRoleSecurity['reason'];
+  }>;
   aiGatewayOperational: Readonly<{
     status: NexaAiGatewayReadiness['status'];
     reason: NexaAiGatewayReadiness['reason'];
@@ -149,13 +155,23 @@ export function getStudentOsBridgeReadiness(): StudentOsBridgeReadiness {
 
 export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentOsBridgeOperationalReadiness> {
   const base = getStudentOsBridgeReadiness();
-  const gateway = await getNexaAiGatewayReadiness();
+  const [gateway, runtimeRoleSecurity] = await Promise.all([
+    getNexaAiGatewayReadiness(),
+    getNexaRuntimeRoleSecurity(),
+  ]);
   const reasons = [...base.reasons];
+
+  if (runtimeRoleSecurity.status !== 'secure') {
+    const reason = runtimeRoleSecurity.reason ?? 'attestation_unavailable';
+    if (!reasons.includes(reason)) reasons.push(reason);
+  }
 
   if (gateway.status !== 'operational') {
     const reason = gateway.reason ?? 'ai_gateway_status_unavailable';
     if (!reasons.includes(reason)) reasons.push(reason);
   }
+
+  const securityAdmission = classifyStudentOsBridgeSecurityAdmission(runtimeRoleSecurity.status);
 
   const operationalAdmission = classifyStudentOsBridgeOperationalAdmission({
     status: gateway.status,
@@ -163,7 +179,8 @@ export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentO
   });
 
   const fallback = (
-    !operationalAdmission.allowed
+    securityAdmission.allowed
+    && !operationalAdmission.allowed
     && base.configuration.bridgeSecret === 'configured'
   )
     ? createStudentOsBridgeFallbackDirective({
@@ -174,7 +191,7 @@ export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentO
     : null;
 
   const servingMode: StudentOsBridgeServingMode = (
-    base.status === 'ready' && operationalAdmission.allowed
+    base.status === 'ready' && securityAdmission.allowed && operationalAdmission.allowed
   )
     ? 'nexa'
     : fallback
@@ -187,6 +204,10 @@ export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentO
     checkedAt: new Date().toISOString(),
     servingMode,
     fallback,
+    runtimeRoleSecurity: Object.freeze({
+      status: runtimeRoleSecurity.status,
+      reason: runtimeRoleSecurity.reason,
+    }),
     aiGatewayOperational: Object.freeze({
       status: gateway.status,
       reason: gateway.reason,
