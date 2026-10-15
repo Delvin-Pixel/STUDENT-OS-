@@ -93,6 +93,37 @@ export async function getNexaRuntimeRoleSecurity(
         join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'public'
       ),
+      ownership_state as (
+        select
+          exists (
+            select 1
+            from pg_database d
+            join pg_roles r on r.oid = d.datdba
+            where d.datname = current_database() and r.rolname = $1
+          ) as database_owned_by_runtime,
+          exists (
+            select 1
+            from pg_namespace n
+            join pg_roles r on r.oid = n.nspowner
+            where n.nspname = 'public' and r.rolname = $1
+          ) as public_schema_owned_by_runtime,
+          (
+            select count(*)::int
+            from pg_class c
+            join pg_namespace n on n.oid = c.relnamespace
+            join pg_roles r on r.oid = c.relowner
+            where n.nspname = 'public'
+              and c.relkind in ('r', 'p', 'S', 'v', 'm', 'f')
+              and r.rolname = $1
+          ) as runtime_owned_relations,
+          (
+            select count(*)::int
+            from pg_proc p
+            join pg_namespace n on n.oid = p.pronamespace
+            join pg_roles r on r.oid = p.proowner
+            where n.nspname = 'public' and r.rolname = $1
+          ) as runtime_owned_functions
+      ),
       membership_state as (
         select count(*)::int as role_memberships
         from pg_auth_members m
@@ -111,6 +142,10 @@ export async function getNexaRuntimeRoleSecurity(
         coalesce(rs.public_create, false) as public_create,
         coalesce(rs.db_connect, false) as db_connect,
         coalesce(rs.db_create, false) as db_create,
+        os.database_owned_by_runtime,
+        os.public_schema_owned_by_runtime,
+        os.runtime_owned_relations,
+        os.runtime_owned_functions,
         ts.public_tables,
         ts.runtime_crud_tables,
         ss.public_sequences,
@@ -121,6 +156,7 @@ export async function getNexaRuntimeRoleSecurity(
       from table_state ts
       cross join sequence_state ss
       cross join function_state fs
+      cross join ownership_state os
       cross join membership_state ms
       left join role_state rs on true
     `, [NEXA_RUNTIME_ROLE]);
