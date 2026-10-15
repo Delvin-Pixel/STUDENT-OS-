@@ -1,3 +1,19 @@
+# NEXA 1.82.0 — Security-Aware Student OS Bridge Admission
+
+NEXA 1.82.0 extends the v1.81 runtime-role security boundary into the authenticated Student OS bridge itself. A direct bridge request can no longer bypass general NEXA readiness when the dedicated `nexa_runtime` PostgreSQL role is insecure or its least-privilege attestation is unavailable.
+
+After authentication, contract negotiation, and bounded request validation establish a privacy-safe observation context, the bridge now performs runtime-role security admission before AI Gateway admission, rate limits, idempotency claims, provider creation, or model execution. A secure runtime role proceeds normally. An insecure role is rejected with the bounded reason `runtime_role_security_violation`; an unavailable security attestation is rejected with `runtime_role_security_unavailable` and a short retry hint.
+
+Security rejection does not create a NEXA fallback directive because the NEXA runtime itself is not trusted to serve the bridge in that state. The response instead marks bridge serving mode as `unavailable`; Student OS remains free to continue through its own deterministic `learningIntelligence` path outside NEXA.
+
+Authenticated bridge readiness now includes the bounded runtime-role security state. Model-backed serving mode `nexa` requires both secure runtime-role security and an operational AI Gateway. Deterministic Gateway fallback is offered only while runtime-role security remains secure. Any insecure or unavailable runtime-role attestation forces the bridge serving mode to `unavailable`.
+
+Additive migration 045 extends the existing privacy-bounded `operational_reason` constraint with the two runtime-security reasons. The event ledger still stores no prompt, response body, authorization material, API key, Gateway balance, provider credential, raw Student OS user ID, or arbitrary metadata. Existing HMAC user pseudonymization and fail-soft observability behavior remain unchanged.
+
+Migrations 001–044 remain immutable. NEXA provider, fallback, and bridge transport contracts remain unchanged, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.81.0 — Runtime Security Readiness
 
 NEXA 1.81.0 promotes the v1.80 PostgreSQL least-privilege attestation from an operator-only check into the runtime readiness contract. NEXA now performs the same read-only privilege assessment through the shared database connection and caches the result for 60 seconds so ordinary readiness can detect privilege drift without repeatedly scanning PostgreSQL catalogs.
