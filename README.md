@@ -1,3 +1,17 @@
+# NEXA 1.83.0 — Runtime Object Ownership Isolation
+
+NEXA 1.83.0 closes an ownership-based privilege path that ordinary grant checks cannot detect. The dedicated `nexa_runtime` PostgreSQL role must now remain a pure application runtime identity: it may use the NEXA data surface through explicitly granted privileges, but it must not own the database, the `public` schema, any public relation, or any public function.
+
+Both the cached runtime security readiness check and the detailed operator attestation enforce the same ownership boundary. The database-owner check detects ownership of the current database, the schema-owner check detects ownership of `public`, relation ownership covers public tables, partitioned tables, sequences, views, materialized views, and foreign tables, and function ownership covers public routines represented in PostgreSQL's procedure catalog.
+
+Ownership drift is fail-closed because object owners can retain control even when CREATE or ordinary privilege checks appear restricted. Public readiness remains privacy- and security-bounded: it continues to expose only `secure`, `insecure`, or `unavailable` with a coarse reason. Detailed ownership evidence and failed-check names remain available only through `npm run ops:attest-runtime-role`.
+
+The PostgreSQL verification suite deliberately transfers ownership of a temporary public table to `nexa_runtime`, verifies that the attestation becomes insecure with `noPublicRelationOwnership`, removes the probe object, and verifies that security returns to green.
+
+No database migration is introduced; migrations 001–045 remain immutable. Student OS bridge security admission from 1.82 continues to consume the same runtime-security readiness result, so ownership drift also blocks model-backed bridge admission. NEXA provider, fallback, and bridge transport contracts remain unchanged, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.82.0 — Security-Aware Student OS Bridge Admission
 
 NEXA 1.82.0 extends the v1.81 runtime-role security boundary into the authenticated Student OS bridge itself. A direct bridge request can no longer bypass general NEXA readiness when the dedicated `nexa_runtime` PostgreSQL role is insecure or its least-privilege attestation is unavailable.
