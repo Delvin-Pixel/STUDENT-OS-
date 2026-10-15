@@ -1,0 +1,79 @@
+export const NEXA_RUNTIME_ROLE = 'nexa_runtime' as const;
+
+export type NexaRuntimeRoleSecurityStatus = 'secure' | 'insecure' | 'unavailable';
+export type NexaRuntimeRoleSecurityReason =
+  | 'least_privilege_violation'
+  | 'attestation_unavailable'
+  | null;
+
+export type RuntimeRoleSecurityRow = Readonly<{
+  role_exists: boolean;
+  rolcanlogin: boolean;
+  rolsuper: boolean;
+  rolcreaterole: boolean;
+  rolcreatedb: boolean;
+  rolreplication: boolean;
+  rolbypassrls: boolean;
+  public_usage: boolean;
+  public_create: boolean;
+  db_connect: boolean;
+  db_create: boolean;
+  public_tables: number | string;
+  runtime_crud_tables: number | string;
+  public_sequences: number | string;
+  runtime_sequences: number | string;
+  public_functions: number | string;
+  runtime_functions: number | string;
+  role_memberships: number | string;
+}>;
+
+function integer(value: number | string) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+export function classifyNexaRuntimeRoleSecurity(
+  row: RuntimeRoleSecurityRow | null | undefined,
+): 'secure' | 'insecure' {
+  if (!row) return 'insecure';
+
+  const publicTables = integer(row.public_tables);
+  const runtimeCrudTables = integer(row.runtime_crud_tables);
+  const publicSequences = integer(row.public_sequences);
+  const runtimeSequences = integer(row.runtime_sequences);
+  const publicFunctions = integer(row.public_functions);
+  const runtimeFunctions = integer(row.runtime_functions);
+  const roleMemberships = integer(row.role_memberships);
+
+  if (
+    publicTables === null
+    || runtimeCrudTables === null
+    || publicSequences === null
+    || runtimeSequences === null
+    || publicFunctions === null
+    || runtimeFunctions === null
+    || roleMemberships === null
+  ) {
+    return 'insecure';
+  }
+
+  return (
+    row.role_exists === true
+    && row.rolcanlogin === true
+    && row.rolsuper === false
+    && row.rolcreaterole === false
+    && row.rolcreatedb === false
+    && row.rolreplication === false
+    && row.rolbypassrls === false
+    && row.public_usage === true
+    && row.public_create === false
+    && row.db_connect === true
+    && row.db_create === false
+    && roleMemberships === 0
+    && runtimeCrudTables === publicTables
+    && runtimeSequences === publicSequences
+    && runtimeFunctions === publicFunctions
+  )
+    ? 'secure'
+    : 'insecure';
+}
