@@ -33,6 +33,10 @@ assert.match(source, /pg_auth_members/);
 assert.match(source, /has_table_privilege/);
 assert.match(source, /has_sequence_privilege/);
 assert.match(source, /has_function_privilege/);
+assert.match(source, /database_owned_by_runtime/);
+assert.match(source, /public_schema_owned_by_runtime/);
+assert.match(source, /runtime_owned_relations/);
+assert.match(source, /runtime_owned_functions/);
 
 const secureRow = {
   role_exists: true,
@@ -47,6 +51,10 @@ const secureRow = {
   db_connect: true,
   db_create: false,
   db_temp: true,
+  database_owned_by_runtime: false,
+  public_schema_owned_by_runtime: false,
+  runtime_owned_relations: 0,
+  runtime_owned_functions: 0,
   public_tables: 12,
   runtime_crud_tables: 12,
   public_sequences: 4,
@@ -66,6 +74,10 @@ assert.equal(secure.checks.noReplication, true);
 assert.equal(secure.checks.noBypassRls, true);
 assert.equal(secure.checks.noSchemaCreate, true);
 assert.equal(secure.checks.noDatabaseCreate, true);
+assert.equal(secure.checks.noDatabaseOwnership, true);
+assert.equal(secure.checks.noPublicSchemaOwnership, true);
+assert.equal(secure.checks.noPublicRelationOwnership, true);
+assert.equal(secure.checks.noPublicFunctionOwnership, true);
 assert.equal(secure.checks.noRoleMemberships, true);
 assert.equal(secure.checks.tableCrudCoverage, true);
 assert.equal(secure.checks.sequenceUsageCoverage, true);
@@ -83,6 +95,10 @@ for (const [field, expectedFailure, value] of [
   ['rolbypassrls', 'noBypassRls', true],
   ['public_create', 'noSchemaCreate', true],
   ['db_create', 'noDatabaseCreate', true],
+  ['database_owned_by_runtime', 'noDatabaseOwnership', true],
+  ['public_schema_owned_by_runtime', 'noPublicSchemaOwnership', true],
+  ['runtime_owned_relations', 'noPublicRelationOwnership', 1],
+  ['runtime_owned_functions', 'noPublicFunctionOwnership', 1],
   ['role_memberships', 'noRoleMemberships', 1],
   ['runtime_crud_tables', 'tableCrudCoverage', 11],
   ['runtime_sequences', 'sequenceUsageCoverage', 3],
