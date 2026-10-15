@@ -14,8 +14,8 @@ const [pkgText, source, readme] = await Promise.all([
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-80');
-assert.equal(pkg.version, '1.80.0');
+assert.equal(pkg.name, 'nexa-1-81');
+assert.equal(pkg.version, '1.81.0');
 assert.equal(pkg.scripts['ops:attest-runtime-role'], 'node scripts/attest-nexa-runtime-role.mjs');
 assert.equal(pkg.scripts['test:runtime-role-attestation'], 'node scripts/test-runtime-role-attestation.mjs');
 assert.match(pkg.scripts.test, /test:runtime-role-attestation/);
