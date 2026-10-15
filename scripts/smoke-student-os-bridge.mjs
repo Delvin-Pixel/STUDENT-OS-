@@ -38,7 +38,10 @@ const commonValid =
   && response.headers.get('x-nexa-bridge-legacy-default-allowed') === String(body.legacyBridgeContractDefaultAllowed)
   && response.headers.get('x-nexa-version') === body.version
   && response.headers.get('x-nexa-bridge-status') === body.status
-  && response.headers.get('x-nexa-bridge-serving-mode') === body.servingMode;
+  && response.headers.get('x-nexa-bridge-serving-mode') === body.servingMode
+  && body?.runtimeRoleSecurity?.status === 'secure'
+  && body?.runtimeRoleSecurity?.reason === null
+  && response.headers.get('x-nexa-bridge-runtime-security') === 'secure';
 
 const fullReady =
   response.status === 200
