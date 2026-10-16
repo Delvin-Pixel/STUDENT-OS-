@@ -1,3 +1,17 @@
+# NEXA 1.85.0 — Exact Runtime Privilege Surface
+
+NEXA 1.85.0 turns the dedicated `nexa_runtime` PostgreSQL role from a minimum-access check into an exact least-privilege contract. The runtime must still retain the application privileges NEXA needs, but it must also remain free of table and sequence privileges that are not part of the intended server runtime surface.
+
+For public tables, the runtime continues to require `SELECT`, `INSERT`, `UPDATE`, and `DELETE` coverage. It must now have zero `TRUNCATE`, `REFERENCES`, `TRIGGER`, or PostgreSQL 17 `MAINTAIN` grants. For public sequences, the existing `USAGE` + `SELECT` coverage remains required while `UPDATE` is explicitly forbidden.
+
+Both cached runtime security readiness and the detailed operator attestation enforce the same exact privilege boundary. Any forbidden privilege count above zero makes runtime security insecure and therefore also blocks model-backed Student OS bridge admission through the security-aware admission layer introduced in v1.82.
+
+The PostgreSQL regression creates isolated table and sequence probes. It grants each forbidden privilege one at a time, proves the attestation fails with the matching bounded check, revokes the privilege, and proves the runtime returns to secure before testing the next one. Live production evidence before this release showed zero `TRUNCATE`, `REFERENCES`, `TRIGGER`, `MAINTAIN`, and sequence `UPDATE` grants for `nexa_runtime`.
+
+No database migration is introduced; migrations 001–045 remain immutable. NEXA provider, fallback, and Student OS bridge transport contracts remain unchanged, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.84.0 — Runtime SECURITY DEFINER Isolation
 
 NEXA 1.84.0 closes a function-execution privilege path that ordinary grants and object-ownership checks cannot detect. The dedicated `nexa_runtime` role must not be able to execute any public PostgreSQL function declared `SECURITY DEFINER`.
