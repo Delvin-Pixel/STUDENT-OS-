@@ -36,6 +36,8 @@ assert.match(runtimeSource, /database_owned_by_runtime/);
 assert.match(runtimeSource, /public_schema_owned_by_runtime/);
 assert.match(runtimeSource, /runtime_owned_relations/);
 assert.match(runtimeSource, /runtime_owned_functions/);
+assert.match(runtimeSource, /runtime_security_definer_functions/);
+assert.match(runtimeSource, /prosecdef/);
 
 assert.match(healthSource, /runtimeRoleSecurity: NexaRuntimeRoleSecurityStatus/);
 assert.match(healthSource, /runtimeRoleSecurityReason: NexaRuntimeRoleSecurityReason/);
@@ -69,6 +71,7 @@ const secureRow = {
   public_schema_owned_by_runtime: false,
   runtime_owned_relations: 0,
   runtime_owned_functions: 0,
+  runtime_security_definer_functions: 0,
   public_tables: 12,
   runtime_crud_tables: 12,
   public_sequences: 4,
@@ -97,6 +100,7 @@ for (const [field, value] of [
   ['public_schema_owned_by_runtime', true],
   ['runtime_owned_relations', 1],
   ['runtime_owned_functions', 1],
+  ['runtime_security_definer_functions', 1],
   ['role_memberships', 1],
   ['runtime_crud_tables', 11],
   ['runtime_sequences', 3],
