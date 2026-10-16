@@ -25,8 +25,13 @@ export type RuntimeRoleSecurityRow = Readonly<{
   runtime_security_definer_functions: number | string;
   public_tables: number | string;
   runtime_crud_tables: number | string;
+  runtime_truncate_tables: number | string;
+  runtime_references_tables: number | string;
+  runtime_trigger_tables: number | string;
+  runtime_maintain_tables: number | string;
   public_sequences: number | string;
   runtime_sequences: number | string;
+  runtime_update_sequences: number | string;
   public_functions: number | string;
   runtime_functions: number | string;
   role_memberships: number | string;
@@ -44,8 +49,13 @@ export function classifyNexaRuntimeRoleSecurity(
 
   const publicTables = integer(row.public_tables);
   const runtimeCrudTables = integer(row.runtime_crud_tables);
+  const runtimeTruncateTables = integer(row.runtime_truncate_tables);
+  const runtimeReferencesTables = integer(row.runtime_references_tables);
+  const runtimeTriggerTables = integer(row.runtime_trigger_tables);
+  const runtimeMaintainTables = integer(row.runtime_maintain_tables);
   const publicSequences = integer(row.public_sequences);
   const runtimeSequences = integer(row.runtime_sequences);
+  const runtimeUpdateSequences = integer(row.runtime_update_sequences);
   const publicFunctions = integer(row.public_functions);
   const runtimeFunctions = integer(row.runtime_functions);
   const roleMemberships = integer(row.role_memberships);
@@ -56,8 +66,13 @@ export function classifyNexaRuntimeRoleSecurity(
   if (
     publicTables === null
     || runtimeCrudTables === null
+    || runtimeTruncateTables === null
+    || runtimeReferencesTables === null
+    || runtimeTriggerTables === null
+    || runtimeMaintainTables === null
     || publicSequences === null
     || runtimeSequences === null
+    || runtimeUpdateSequences === null
     || publicFunctions === null
     || runtimeFunctions === null
     || roleMemberships === null
@@ -87,7 +102,12 @@ export function classifyNexaRuntimeRoleSecurity(
     && runtimeSecurityDefinerFunctions === 0
     && roleMemberships === 0
     && runtimeCrudTables === publicTables
+    && runtimeTruncateTables === 0
+    && runtimeReferencesTables === 0
+    && runtimeTriggerTables === 0
+    && runtimeMaintainTables === 0
     && runtimeSequences === publicSequences
+    && runtimeUpdateSequences === 0
     && runtimeFunctions === publicFunctions
   )
     ? 'secure'
