@@ -37,6 +37,8 @@ assert.match(source, /database_owned_by_runtime/);
 assert.match(source, /public_schema_owned_by_runtime/);
 assert.match(source, /runtime_owned_relations/);
 assert.match(source, /runtime_owned_functions/);
+assert.match(source, /runtime_security_definer_functions/);
+assert.match(source, /prosecdef/);
 
 const secureRow = {
   role_exists: true,
@@ -55,6 +57,7 @@ const secureRow = {
   public_schema_owned_by_runtime: false,
   runtime_owned_relations: 0,
   runtime_owned_functions: 0,
+  runtime_security_definer_functions: 0,
   public_tables: 12,
   runtime_crud_tables: 12,
   public_sequences: 4,
@@ -78,11 +81,13 @@ assert.equal(secure.checks.noDatabaseOwnership, true);
 assert.equal(secure.checks.noPublicSchemaOwnership, true);
 assert.equal(secure.checks.noPublicRelationOwnership, true);
 assert.equal(secure.checks.noPublicFunctionOwnership, true);
+assert.equal(secure.checks.noExecutableSecurityDefinerFunctions, true);
 assert.equal(secure.checks.noRoleMemberships, true);
 assert.equal(secure.checks.tableCrudCoverage, true);
 assert.equal(secure.checks.sequenceUsageCoverage, true);
 assert.equal(secure.checks.functionExecuteCoverage, true);
 assert.equal(secure.evidence.databaseTemp, true);
+assert.equal(secure.evidence.runtimeSecurityDefinerFunctions, 0);
 assert.equal(Object.isFrozen(secure), true);
 assert.equal(Object.isFrozen(secure.checks), true);
 assert.equal(Object.isFrozen(secure.failedChecks), true);
@@ -99,6 +104,7 @@ for (const [field, expectedFailure, value] of [
   ['public_schema_owned_by_runtime', 'noPublicSchemaOwnership', true],
   ['runtime_owned_relations', 'noPublicRelationOwnership', 1],
   ['runtime_owned_functions', 'noPublicFunctionOwnership', 1],
+  ['runtime_security_definer_functions', 'noExecutableSecurityDefinerFunctions', 1],
   ['role_memberships', 'noRoleMemberships', 1],
   ['runtime_crud_tables', 'tableCrudCoverage', 11],
   ['runtime_sequences', 'sequenceUsageCoverage', 3],
