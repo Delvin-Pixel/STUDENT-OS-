@@ -68,9 +68,29 @@ try {
   const ownershipRestored = await queryNexaRuntimeRoleAttestation();
   assert.equal(ownershipRestored.secure, true, JSON.stringify(ownershipRestored));
 
+  await pool.query('drop function if exists public.nexa_runtime_security_definer_probe()');
+  await pool.query(`
+    create function public.nexa_runtime_security_definer_probe()
+    returns integer
+    language sql
+    security definer
+    as 'select 1'
+  `);
+  await pool.query('grant execute on function public.nexa_runtime_security_definer_probe() to nexa_runtime');
+  const definer = await queryNexaRuntimeRoleAttestation();
+  assert.equal(definer.secure, false);
+  assert.ok(definer.failedChecks.includes('noExecutableSecurityDefinerFunctions'));
+
+  await pool.query('alter function public.nexa_runtime_security_definer_probe() security invoker');
+  const invokerRestored = await queryNexaRuntimeRoleAttestation();
+  assert.equal(invokerRestored.secure, true, JSON.stringify(invokerRestored));
+
+  await pool.query('drop function public.nexa_runtime_security_definer_probe()');
+
   console.log('NEXA PostgreSQL runtime role least-privilege attestation tests passed.');
 } finally {
   await pool.query('revoke create on schema public from nexa_runtime').catch(() => {});
   await pool.query('drop table if exists public.nexa_runtime_ownership_probe').catch(() => {});
+  await pool.query('drop function if exists public.nexa_runtime_security_definer_probe()').catch(() => {});
   await pool.end();
 }
