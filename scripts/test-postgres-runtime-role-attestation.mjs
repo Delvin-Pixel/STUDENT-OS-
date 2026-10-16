@@ -87,10 +87,73 @@ try {
 
   await pool.query('drop function public.nexa_runtime_security_definer_probe()');
 
+  await pool.query('drop table if exists public.nexa_runtime_privilege_probe');
+  await pool.query('create table public.nexa_runtime_privilege_probe(id integer)');
+  await pool.query(
+    'grant select, insert, update, delete on table public.nexa_runtime_privilege_probe to nexa_runtime',
+  );
+  await pool.query(
+    'revoke truncate, references, trigger, maintain on table public.nexa_runtime_privilege_probe from nexa_runtime',
+  );
+
+  const exactTableBaseline = await queryNexaRuntimeRoleAttestation();
+  assert.equal(exactTableBaseline.secure, true, JSON.stringify(exactTableBaseline));
+
+  for (const [privilege, failedCheck] of [
+    ['truncate', 'noTableTruncate'],
+    ['references', 'noTableReferences'],
+    ['trigger', 'noTableTrigger'],
+    ['maintain', 'noTableMaintain'],
+  ]) {
+    await pool.query(
+      `grant ${privilege} on table public.nexa_runtime_privilege_probe to nexa_runtime`,
+    );
+    const expanded = await queryNexaRuntimeRoleAttestation();
+    assert.equal(expanded.secure, false, privilege);
+    assert.ok(expanded.failedChecks.includes(failedCheck), privilege);
+
+    await pool.query(
+      `revoke ${privilege} on table public.nexa_runtime_privilege_probe from nexa_runtime`,
+    );
+    const exactAgain = await queryNexaRuntimeRoleAttestation();
+    assert.equal(exactAgain.secure, true, JSON.stringify(exactAgain));
+  }
+
+  await pool.query('drop table public.nexa_runtime_privilege_probe');
+
+  await pool.query('drop sequence if exists public.nexa_runtime_privilege_probe_seq');
+  await pool.query('create sequence public.nexa_runtime_privilege_probe_seq');
+  await pool.query(
+    'grant usage, select on sequence public.nexa_runtime_privilege_probe_seq to nexa_runtime',
+  );
+  await pool.query(
+    'revoke update on sequence public.nexa_runtime_privilege_probe_seq from nexa_runtime',
+  );
+
+  const exactSequenceBaseline = await queryNexaRuntimeRoleAttestation();
+  assert.equal(exactSequenceBaseline.secure, true, JSON.stringify(exactSequenceBaseline));
+
+  await pool.query(
+    'grant update on sequence public.nexa_runtime_privilege_probe_seq to nexa_runtime',
+  );
+  const sequenceExpanded = await queryNexaRuntimeRoleAttestation();
+  assert.equal(sequenceExpanded.secure, false);
+  assert.ok(sequenceExpanded.failedChecks.includes('noSequenceUpdate'));
+
+  await pool.query(
+    'revoke update on sequence public.nexa_runtime_privilege_probe_seq from nexa_runtime',
+  );
+  const sequenceRestored = await queryNexaRuntimeRoleAttestation();
+  assert.equal(sequenceRestored.secure, true, JSON.stringify(sequenceRestored));
+
+  await pool.query('drop sequence public.nexa_runtime_privilege_probe_seq');
+
   console.log('NEXA PostgreSQL runtime role least-privilege attestation tests passed.');
 } finally {
   await pool.query('revoke create on schema public from nexa_runtime').catch(() => {});
   await pool.query('drop table if exists public.nexa_runtime_ownership_probe').catch(() => {});
   await pool.query('drop function if exists public.nexa_runtime_security_definer_probe()').catch(() => {});
+  await pool.query('drop table if exists public.nexa_runtime_privilege_probe').catch(() => {});
+  await pool.query('drop sequence if exists public.nexa_runtime_privilege_probe_seq').catch(() => {});
   await pool.end();
 }
