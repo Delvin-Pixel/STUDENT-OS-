@@ -37,6 +37,11 @@ assert.match(runtimeSource, /public_schema_owned_by_runtime/);
 assert.match(runtimeSource, /runtime_owned_relations/);
 assert.match(runtimeSource, /runtime_owned_functions/);
 assert.match(runtimeSource, /runtime_security_definer_functions/);
+assert.match(runtimeSource, /runtime_truncate_tables/);
+assert.match(runtimeSource, /runtime_references_tables/);
+assert.match(runtimeSource, /runtime_trigger_tables/);
+assert.match(runtimeSource, /runtime_maintain_tables/);
+assert.match(runtimeSource, /runtime_update_sequences/);
 assert.match(runtimeSource, /prosecdef/);
 
 assert.match(healthSource, /runtimeRoleSecurity: NexaRuntimeRoleSecurityStatus/);
@@ -74,8 +79,13 @@ const secureRow = {
   runtime_security_definer_functions: 0,
   public_tables: 12,
   runtime_crud_tables: 12,
+  runtime_truncate_tables: 0,
+  runtime_references_tables: 0,
+  runtime_trigger_tables: 0,
+  runtime_maintain_tables: 0,
   public_sequences: 4,
   runtime_sequences: 4,
+  runtime_update_sequences: 0,
   public_functions: 3,
   runtime_functions: 3,
   role_memberships: 0,
@@ -103,7 +113,12 @@ for (const [field, value] of [
   ['runtime_security_definer_functions', 1],
   ['role_memberships', 1],
   ['runtime_crud_tables', 11],
+  ['runtime_truncate_tables', 1],
+  ['runtime_references_tables', 1],
+  ['runtime_trigger_tables', 1],
+  ['runtime_maintain_tables', 1],
   ['runtime_sequences', 3],
+  ['runtime_update_sequences', 1],
   ['runtime_functions', 2],
 ]) {
   assert.equal(
