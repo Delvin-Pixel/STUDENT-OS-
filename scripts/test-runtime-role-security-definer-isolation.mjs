@@ -14,8 +14,8 @@ const [pkgText, coreSource, runtimeSource, operatorSource, pgTestSource, readme]
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-84');
-assert.equal(pkg.version, '1.84.0');
+assert.equal(pkg.name, 'nexa-1-85');
+assert.equal(pkg.version, '1.85.0');
 assert.equal(
   pkg.scripts['test:runtime-role-security-definer-isolation'],
   'node scripts/test-runtime-role-security-definer-isolation.mjs',

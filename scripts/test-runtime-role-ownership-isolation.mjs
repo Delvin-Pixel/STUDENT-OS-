@@ -23,8 +23,8 @@ const [
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-84');
-assert.equal(pkg.version, '1.84.0');
+assert.equal(pkg.name, 'nexa-1-85');
+assert.equal(pkg.version, '1.85.0');
 assert.equal(
   pkg.scripts['test:runtime-role-ownership-isolation'],
   'node scripts/test-runtime-role-ownership-isolation.mjs',
