@@ -41,6 +41,7 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
   const roleMemberships = count(row.role_memberships, 'role_memberships');
   const runtimeOwnedRelations = count(row.runtime_owned_relations, 'runtime_owned_relations');
   const runtimeOwnedFunctions = count(row.runtime_owned_functions, 'runtime_owned_functions');
+  const runtimeSecurityDefinerFunctions = count(row.runtime_security_definer_functions, 'runtime_security_definer_functions');
 
   const checks = Object.freeze({
     roleExists,
@@ -58,6 +59,7 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
     noPublicSchemaOwnership: !publicSchemaOwnedByRuntime,
     noPublicRelationOwnership: runtimeOwnedRelations === 0,
     noPublicFunctionOwnership: runtimeOwnedFunctions === 0,
+    noExecutableSecurityDefinerFunctions: runtimeSecurityDefinerFunctions === 0,
     noRoleMemberships: roleMemberships === 0,
     tableCrudCoverage: runtimeCrudTables === publicTables,
     sequenceUsageCoverage: runtimeSequences === publicSequences,
@@ -88,6 +90,7 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
       publicSchemaOwnedByRuntime,
       runtimeOwnedRelations,
       runtimeOwnedFunctions,
+      runtimeSecurityDefinerFunctions,
     }),
   });
 }
@@ -153,7 +156,11 @@ export async function queryNexaRuntimeRoleAttestation(options = {}) {
           count(*)::int as public_functions,
           count(*) filter (
             where has_function_privilege($1, p.oid, 'EXECUTE')
-          )::int as runtime_functions
+          )::int as runtime_functions,
+          count(*) filter (
+            where p.prosecdef
+              and has_function_privilege($1, p.oid, 'EXECUTE')
+          )::int as runtime_security_definer_functions
         from pg_proc p
         join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'public'
@@ -218,6 +225,7 @@ export async function queryNexaRuntimeRoleAttestation(options = {}) {
         ss.runtime_sequences,
         fs.public_functions,
         fs.runtime_functions,
+        fs.runtime_security_definer_functions,
         ms.role_memberships
       from table_state ts
       cross join sequence_state ss
