@@ -34,8 +34,13 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
 
   const publicTables = count(row.public_tables, 'public_tables');
   const runtimeCrudTables = count(row.runtime_crud_tables, 'runtime_crud_tables');
+  const runtimeTruncateTables = count(row.runtime_truncate_tables, 'runtime_truncate_tables');
+  const runtimeReferencesTables = count(row.runtime_references_tables, 'runtime_references_tables');
+  const runtimeTriggerTables = count(row.runtime_trigger_tables, 'runtime_trigger_tables');
+  const runtimeMaintainTables = count(row.runtime_maintain_tables, 'runtime_maintain_tables');
   const publicSequences = count(row.public_sequences, 'public_sequences');
   const runtimeSequences = count(row.runtime_sequences, 'runtime_sequences');
+  const runtimeUpdateSequences = count(row.runtime_update_sequences, 'runtime_update_sequences');
   const publicFunctions = count(row.public_functions, 'public_functions');
   const runtimeFunctions = count(row.runtime_functions, 'runtime_functions');
   const roleMemberships = count(row.role_memberships, 'role_memberships');
@@ -62,7 +67,12 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
     noExecutableSecurityDefinerFunctions: runtimeSecurityDefinerFunctions === 0,
     noRoleMemberships: roleMemberships === 0,
     tableCrudCoverage: runtimeCrudTables === publicTables,
+    noTableTruncate: runtimeTruncateTables === 0,
+    noTableReferences: runtimeReferencesTables === 0,
+    noTableTrigger: runtimeTriggerTables === 0,
+    noTableMaintain: runtimeMaintainTables === 0,
     sequenceUsageCoverage: runtimeSequences === publicSequences,
+    noSequenceUpdate: runtimeUpdateSequences === 0,
     functionExecuteCoverage: runtimeFunctions === publicFunctions,
   });
 
@@ -80,8 +90,13 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
     evidence: Object.freeze({
       publicTables,
       runtimeCrudTables,
+      runtimeTruncateTables,
+      runtimeReferencesTables,
+      runtimeTriggerTables,
+      runtimeMaintainTables,
       publicSequences,
       runtimeSequences,
+      runtimeUpdateSequences,
       publicFunctions,
       runtimeFunctions,
       roleMemberships,
@@ -135,7 +150,19 @@ export async function queryNexaRuntimeRoleAttestation(options = {}) {
               and has_table_privilege($1, c.oid, 'INSERT')
               and has_table_privilege($1, c.oid, 'UPDATE')
               and has_table_privilege($1, c.oid, 'DELETE')
-          )::int as runtime_crud_tables
+          )::int as runtime_crud_tables,
+          count(*) filter (
+            where has_table_privilege($1, c.oid, 'TRUNCATE')
+          )::int as runtime_truncate_tables,
+          count(*) filter (
+            where has_table_privilege($1, c.oid, 'REFERENCES')
+          )::int as runtime_references_tables,
+          count(*) filter (
+            where has_table_privilege($1, c.oid, 'TRIGGER')
+          )::int as runtime_trigger_tables,
+          count(*) filter (
+            where has_table_privilege($1, c.oid, 'MAINTAIN')
+          )::int as runtime_maintain_tables
         from pg_class c
         join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public' and c.relkind in ('r', 'p')
@@ -146,7 +173,10 @@ export async function queryNexaRuntimeRoleAttestation(options = {}) {
           count(*) filter (
             where has_sequence_privilege($1, c.oid, 'USAGE')
               and has_sequence_privilege($1, c.oid, 'SELECT')
-          )::int as runtime_sequences
+          )::int as runtime_sequences,
+          count(*) filter (
+            where has_sequence_privilege($1, c.oid, 'UPDATE')
+          )::int as runtime_update_sequences
         from pg_class c
         join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public' and c.relkind = 'S'
@@ -221,8 +251,13 @@ export async function queryNexaRuntimeRoleAttestation(options = {}) {
         os.runtime_owned_functions,
         ts.public_tables,
         ts.runtime_crud_tables,
+        ts.runtime_truncate_tables,
+        ts.runtime_references_tables,
+        ts.runtime_trigger_tables,
+        ts.runtime_maintain_tables,
         ss.public_sequences,
         ss.runtime_sequences,
+        ss.runtime_update_sequences,
         fs.public_functions,
         fs.runtime_functions,
         fs.runtime_security_definer_functions,
