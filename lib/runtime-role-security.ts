@@ -88,7 +88,11 @@ export async function getNexaRuntimeRoleSecurity(
           count(*)::int as public_functions,
           count(*) filter (
             where has_function_privilege($1, p.oid, 'EXECUTE')
-          )::int as runtime_functions
+          )::int as runtime_functions,
+          count(*) filter (
+            where p.prosecdef
+              and has_function_privilege($1, p.oid, 'EXECUTE')
+          )::int as runtime_security_definer_functions
         from pg_proc p
         join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'public'
@@ -152,6 +156,7 @@ export async function getNexaRuntimeRoleSecurity(
         ss.runtime_sequences,
         fs.public_functions,
         fs.runtime_functions,
+        fs.runtime_security_definer_functions,
         ms.role_memberships
       from table_state ts
       cross join sequence_state ss
