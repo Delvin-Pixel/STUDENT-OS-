@@ -22,6 +22,7 @@ export type RuntimeRoleSecurityRow = Readonly<{
   public_schema_owned_by_runtime: boolean;
   runtime_owned_relations: number | string;
   runtime_owned_functions: number | string;
+  runtime_security_definer_functions: number | string;
   public_tables: number | string;
   runtime_crud_tables: number | string;
   public_sequences: number | string;
@@ -50,6 +51,7 @@ export function classifyNexaRuntimeRoleSecurity(
   const roleMemberships = integer(row.role_memberships);
   const runtimeOwnedRelations = integer(row.runtime_owned_relations);
   const runtimeOwnedFunctions = integer(row.runtime_owned_functions);
+  const runtimeSecurityDefinerFunctions = integer(row.runtime_security_definer_functions);
 
   if (
     publicTables === null
@@ -61,6 +63,7 @@ export function classifyNexaRuntimeRoleSecurity(
     || roleMemberships === null
     || runtimeOwnedRelations === null
     || runtimeOwnedFunctions === null
+    || runtimeSecurityDefinerFunctions === null
   ) {
     return 'insecure';
   }
@@ -81,6 +84,7 @@ export function classifyNexaRuntimeRoleSecurity(
     && row.public_schema_owned_by_runtime === false
     && runtimeOwnedRelations === 0
     && runtimeOwnedFunctions === 0
+    && runtimeSecurityDefinerFunctions === 0
     && roleMemberships === 0
     && runtimeCrudTables === publicTables
     && runtimeSequences === publicSequences
