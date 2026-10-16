@@ -38,6 +38,11 @@ assert.match(source, /public_schema_owned_by_runtime/);
 assert.match(source, /runtime_owned_relations/);
 assert.match(source, /runtime_owned_functions/);
 assert.match(source, /runtime_security_definer_functions/);
+assert.match(source, /runtime_truncate_tables/);
+assert.match(source, /runtime_references_tables/);
+assert.match(source, /runtime_trigger_tables/);
+assert.match(source, /runtime_maintain_tables/);
+assert.match(source, /runtime_update_sequences/);
 assert.match(source, /prosecdef/);
 
 const secureRow = {
@@ -60,8 +65,13 @@ const secureRow = {
   runtime_security_definer_functions: 0,
   public_tables: 12,
   runtime_crud_tables: 12,
+  runtime_truncate_tables: 0,
+  runtime_references_tables: 0,
+  runtime_trigger_tables: 0,
+  runtime_maintain_tables: 0,
   public_sequences: 4,
   runtime_sequences: 4,
+  runtime_update_sequences: 0,
   public_functions: 3,
   runtime_functions: 3,
   role_memberships: 0,
@@ -84,10 +94,20 @@ assert.equal(secure.checks.noPublicFunctionOwnership, true);
 assert.equal(secure.checks.noExecutableSecurityDefinerFunctions, true);
 assert.equal(secure.checks.noRoleMemberships, true);
 assert.equal(secure.checks.tableCrudCoverage, true);
+assert.equal(secure.checks.noTableTruncate, true);
+assert.equal(secure.checks.noTableReferences, true);
+assert.equal(secure.checks.noTableTrigger, true);
+assert.equal(secure.checks.noTableMaintain, true);
 assert.equal(secure.checks.sequenceUsageCoverage, true);
+assert.equal(secure.checks.noSequenceUpdate, true);
 assert.equal(secure.checks.functionExecuteCoverage, true);
 assert.equal(secure.evidence.databaseTemp, true);
 assert.equal(secure.evidence.runtimeSecurityDefinerFunctions, 0);
+assert.equal(secure.evidence.runtimeTruncateTables, 0);
+assert.equal(secure.evidence.runtimeReferencesTables, 0);
+assert.equal(secure.evidence.runtimeTriggerTables, 0);
+assert.equal(secure.evidence.runtimeMaintainTables, 0);
+assert.equal(secure.evidence.runtimeUpdateSequences, 0);
 assert.equal(Object.isFrozen(secure), true);
 assert.equal(Object.isFrozen(secure.checks), true);
 assert.equal(Object.isFrozen(secure.failedChecks), true);
@@ -107,7 +127,12 @@ for (const [field, expectedFailure, value] of [
   ['runtime_security_definer_functions', 'noExecutableSecurityDefinerFunctions', 1],
   ['role_memberships', 'noRoleMemberships', 1],
   ['runtime_crud_tables', 'tableCrudCoverage', 11],
+  ['runtime_truncate_tables', 'noTableTruncate', 1],
+  ['runtime_references_tables', 'noTableReferences', 1],
+  ['runtime_trigger_tables', 'noTableTrigger', 1],
+  ['runtime_maintain_tables', 'noTableMaintain', 1],
   ['runtime_sequences', 'sequenceUsageCoverage', 3],
+  ['runtime_update_sequences', 'noSequenceUpdate', 1],
   ['runtime_functions', 'functionExecuteCoverage', 2],
 ]) {
   const result = buildNexaRuntimeRoleAttestation({ ...secureRow, [field]: value });
