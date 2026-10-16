@@ -1,3 +1,17 @@
+# NEXA 1.84.0 — Runtime SECURITY DEFINER Isolation
+
+NEXA 1.84.0 closes a function-execution privilege path that ordinary grants and object-ownership checks cannot detect. The dedicated `nexa_runtime` role must not be able to execute any public PostgreSQL function declared `SECURITY DEFINER`.
+
+A `SECURITY DEFINER` function runs with the privileges of its owner rather than the calling runtime role. That means a function owned by a more privileged role could become an escalation path even when `nexa_runtime` is non-superuser, owns no database objects, cannot create schema/database objects, and otherwise has only the intended application grants.
+
+Both cached runtime security readiness and the detailed operator attestation now count public functions that are simultaneously `SECURITY DEFINER` and executable by `nexa_runtime`. Any non-zero count makes the runtime security state insecure. Public readiness remains bounded to `secure`, `insecure`, or `unavailable`; detailed counts and failed-check names remain operator-only evidence.
+
+The PostgreSQL regression creates a temporary executable `SECURITY DEFINER` function, proves the attestation fails with `noExecutableSecurityDefinerFunctions`, converts the same function to `SECURITY INVOKER`, and proves the security state returns to green. Live production evidence currently shows zero public functions and therefore zero executable `SECURITY DEFINER` exposure.
+
+No database migration is introduced; migrations 001–045 remain immutable. Student OS bridge security admission continues to consume the shared runtime-security readiness result, so future `SECURITY DEFINER` drift automatically blocks model-backed bridge admission. NEXA provider, fallback, and bridge transport contracts remain unchanged, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.83.0 — Runtime Object Ownership Isolation
 
 NEXA 1.83.0 closes an ownership-based privilege path that ordinary grant checks cannot detect. The dedicated `nexa_runtime` PostgreSQL role must now remain a pure application runtime identity: it may use the NEXA data surface through explicitly granted privileges, but it must not own the database, the `public` schema, any public relation, or any public function.
