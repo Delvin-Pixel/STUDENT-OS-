@@ -67,7 +67,19 @@ export async function getNexaRuntimeRoleSecurity(
               and has_table_privilege($1, c.oid, 'INSERT')
               and has_table_privilege($1, c.oid, 'UPDATE')
               and has_table_privilege($1, c.oid, 'DELETE')
-          )::int as runtime_crud_tables
+          )::int as runtime_crud_tables,
+          count(*) filter (
+            where has_table_privilege($1, c.oid, 'TRUNCATE')
+          )::int as runtime_truncate_tables,
+          count(*) filter (
+            where has_table_privilege($1, c.oid, 'REFERENCES')
+          )::int as runtime_references_tables,
+          count(*) filter (
+            where has_table_privilege($1, c.oid, 'TRIGGER')
+          )::int as runtime_trigger_tables,
+          count(*) filter (
+            where has_table_privilege($1, c.oid, 'MAINTAIN')
+          )::int as runtime_maintain_tables
         from pg_class c
         join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public' and c.relkind in ('r', 'p')
@@ -78,7 +90,10 @@ export async function getNexaRuntimeRoleSecurity(
           count(*) filter (
             where has_sequence_privilege($1, c.oid, 'USAGE')
               and has_sequence_privilege($1, c.oid, 'SELECT')
-          )::int as runtime_sequences
+          )::int as runtime_sequences,
+          count(*) filter (
+            where has_sequence_privilege($1, c.oid, 'UPDATE')
+          )::int as runtime_update_sequences
         from pg_class c
         join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public' and c.relkind = 'S'
@@ -152,8 +167,13 @@ export async function getNexaRuntimeRoleSecurity(
         os.runtime_owned_functions,
         ts.public_tables,
         ts.runtime_crud_tables,
+        ts.runtime_truncate_tables,
+        ts.runtime_references_tables,
+        ts.runtime_trigger_tables,
+        ts.runtime_maintain_tables,
         ss.public_sequences,
         ss.runtime_sequences,
+        ss.runtime_update_sequences,
         fs.public_functions,
         fs.runtime_functions,
         fs.runtime_security_definer_functions,
