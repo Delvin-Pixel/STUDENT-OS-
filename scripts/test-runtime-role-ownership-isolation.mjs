@@ -73,6 +73,7 @@ const secureRow = {
   public_schema_owned_by_runtime: false,
   runtime_owned_relations: 0,
   runtime_owned_functions: 0,
+  runtime_security_definer_functions: 0,
   public_tables: 12,
   runtime_crud_tables: 12,
   public_sequences: 4,
