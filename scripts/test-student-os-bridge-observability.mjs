@@ -4,11 +4,12 @@ import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
-const [pkgText, migration041, migration042, migration045, coreSource, runtimeSource, route, prune, readme] = await Promise.all([
+const [pkgText, migration041, migration042, migration045, migration046, coreSource, runtimeSource, route, prune, readme] = await Promise.all([
   read('package.json'),
   read('db/041_student_os_bridge_observability.sql'),
   read('db/042_student_os_bridge_operational_observability.sql'),
   read('db/045_student_os_bridge_security_admission.sql'),
+  read('db/046_student_os_bridge_data_api_security_admission.sql'),
   read('lib/student-os-bridge-observability-core.ts'),
   read('lib/student-os-bridge-observability.ts'),
   read('app/api/integrations/student-os/route.ts'),
@@ -17,8 +18,8 @@ const [pkgText, migration041, migration042, migration045, coreSource, runtimeSou
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-88');
-assert.equal(pkg.version, '1.88.0');
+assert.equal(pkg.name, 'nexa-1-89');
+assert.equal(pkg.version, '1.89.0');
 assert.equal(pkg.scripts['test:student-os-bridge-observability'], 'node scripts/test-student-os-bridge-observability.mjs');
 assert.match(pkg.scripts.test, /test:student-os-bridge-observability/);
 assert.match(readme, /NEXA 1\.68\.0 — Privacy-Bounded Operational Rejection Observability/);
@@ -40,6 +41,10 @@ assert.doesNotMatch(migration042, /balance|api[_ ]?key|prompt|response_body|exte
 assert.match(migration045, /runtime_role_security_violation/);
 assert.match(migration045, /runtime_role_security_unavailable/);
 assert.doesNotMatch(migration045, /balance|api[_ ]?key|prompt|response_body|external_user_id/i);
+assert.match(migration046, /data_api_current_exposure/);
+assert.match(migration046, /data_api_future_default_risk/);
+assert.match(migration046, /data_api_isolation_unavailable/);
+assert.doesNotMatch(migration046, /balance|api[_ ]?key|prompt|response_body|external_user_id/i);
 
 assert.match(coreSource, /'operational_rejected'/);
 assert.match(runtimeSource, /fingerprintStudentOsBridgeUser/);
