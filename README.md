@@ -1,3 +1,17 @@
+# NEXA 1.86.0 — Exact Runtime Default Privilege Surface
+
+NEXA 1.86.0 extends the dedicated `nexa_runtime` least-privilege contract from existing PostgreSQL objects to the default privileges that govern future objects. A runtime role can be exact today and silently widen tomorrow if `ALTER DEFAULT PRIVILEGES` drifts, so runtime security readiness and the operator attestation now inspect `pg_default_acl` directly.
+
+Every default grant group to `nexa_runtime` must be scoped to the `public` schema, must carry no grant option, and must match one exact approved privilege set. Future tables may grant only `SELECT`, `INSERT`, `UPDATE`, and `DELETE`; future sequences may grant only `USAGE` and `SELECT`; future functions may grant only `EXECUTE`. At least one configured default grant group for each of those three object classes must remain present.
+
+Any extra privilege, missing object-class default, grant option, unsupported default object class, or default grant outside `public` makes runtime security insecure. Because Student OS bridge admission already consumes the shared runtime-security readiness state, default-privilege drift automatically blocks model-backed bridge admission before provider creation or model execution.
+
+The PostgreSQL regression normalizes an exact default-ACL baseline, then deliberately widens future table privileges, future sequence privileges, grant options, and another schema one at a time. Each drift must fail attestation with bounded evidence; restoring the exact defaults must return security to green. Live production evidence before this release showed exactly one `public` default group for tables, sequences, and functions with no grant options and no extra privileges.
+
+No database migration is introduced; migrations 001–045 remain immutable. NEXA provider, fallback, and Student OS bridge transport contracts remain unchanged, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.85.0 — Exact Runtime Privilege Surface
 
 NEXA 1.85.0 turns the dedicated `nexa_runtime` PostgreSQL role from a minimum-access check into an exact least-privilege contract. The runtime must still retain the application privileges NEXA needs, but it must also remain free of table and sequence privileges that are not part of the intended server runtime surface.
