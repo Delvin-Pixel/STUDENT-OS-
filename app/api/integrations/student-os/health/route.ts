@@ -20,7 +20,7 @@ function headers(input?: Readonly<{
   dataApiPlatformReason?: string | null;
   dataApiEffectiveSecurity?: 'secure' | 'insecure' | 'unavailable';
   dataApiEffectiveSecurityReason?: string | null;
-  dataApiRemediationStatus?: 'no-action' | 'owner-action-required' | 'security-review-required' | 'unavailable';
+  dataApiRemediationStatus?: 'no-action' | 'owner-action-required' | 'security-review-required' | 'verification-required' | 'unavailable';
   dataApiRemediationAction?: string;
   dataApiRemediationSqlFeasibility?: string;
 }>) {
