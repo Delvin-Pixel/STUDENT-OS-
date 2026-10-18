@@ -7,6 +7,7 @@ const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const [
   pkgText,
   coreSource,
+  effectiveCoreSource,
   runtimeSource,
   routeSource,
   readinessSource,
@@ -18,6 +19,7 @@ const [
 ] = await Promise.all([
   read('package.json'),
   read('lib/student-os-bridge-security-admission-core.ts'),
+  read('lib/supabase-data-api-effective-security-core.ts'),
   read('lib/student-os-bridge-security-admission.ts'),
   read('app/api/integrations/student-os/route.ts'),
   read('lib/student-os-bridge-readiness.ts'),
@@ -105,7 +107,19 @@ assert.match(migration046, /data_api_isolation_unavailable/);
 assert.match(migration047, /data_api_platform_unavailable/);
 assert.doesNotMatch(migration047, /prompt|response_body|external_user_id|api[_ ]?key|balance/i);
 
-const transpiled = ts.transpileModule(coreSource, {
+const effectiveTranspiled = ts.transpileModule(effectiveCoreSource, {
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+  },
+}).outputText;
+const effectiveUrl = `data:text/javascript;base64,${Buffer.from(effectiveTranspiled).toString('base64')}`;
+
+const isolatedCoreSource = coreSource.replace(
+  "'@/lib/supabase-data-api-effective-security-core'",
+  JSON.stringify(effectiveUrl),
+);
+const transpiled = ts.transpileModule(isolatedCoreSource, {
   compilerOptions: {
     module: ts.ModuleKind.ESNext,
     target: ts.ScriptTarget.ES2022,
