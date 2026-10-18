@@ -7,6 +7,7 @@ const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const [
   pkgText,
   coreSource,
+  effectiveCoreSource,
   runtimeSource,
   healthSource,
   bridgeReadinessSource,
@@ -16,6 +17,7 @@ const [
 ] = await Promise.all([
   read('package.json'),
   read('lib/supabase-data-api-remediation-core.ts'),
+  read('lib/supabase-data-api-effective-security-core.ts'),
   read('lib/supabase-data-api-remediation-readiness.ts'),
   read('lib/health.ts'),
   read('lib/student-os-bridge-readiness.ts'),
@@ -40,8 +42,11 @@ assert.match(runtimeSource, /pg_default_acl/);
 assert.match(runtimeSource, /aclexplode/);
 assert.match(runtimeSource, /pg_has_role\(current_user, owner\.rolname, 'MEMBER'\)/);
 assert.match(runtimeSource, /classifyNexaDataApiRemediationPlan/);
-assert.match(runtimeSource, /review-data-api-platform-state/);
+assert.match(runtimeSource, /platformStatus: input\.platformStatus/);
+assert.match(runtimeSource, /isolationStatus: input\.isolationStatus/);
 assert.match(runtimeSource, /review-remediation-attestation/);
+assert.match(runtimeSource, /remediation_attestation_unavailable/);
+assert.doesNotMatch(runtimeSource, /review-data-api-platform-state/);
 assert.doesNotMatch(runtimeSource, /alter\s+default\s+privileges/i);
 assert.doesNotMatch(runtimeSource, /\brevoke\s+/i);
 assert.doesNotMatch(runtimeSource, /\bgrant\s+/i);
@@ -56,6 +61,8 @@ for (const token of [
   assert.match(healthSource, new RegExp(token));
 }
 assert.match(healthSource, /getNexaDataApiRemediationReadiness/);
+assert.match(healthSource, /platformStatus: dataApiPlatform\.status/);
+assert.match(healthSource, /isolationStatus: dataApiIsolation\.status/);
 assert.doesNotMatch(
   healthSource,
   /riskyDefaultOwnerCount|alterableRiskyDefaultOwnerCount|protectedRiskyDefaultOwnerCount|owner_name|rolname/,
@@ -64,6 +71,8 @@ assert.doesNotMatch(
 assert.match(bridgeReadinessSource, /dataApiRemediation:/);
 assert.match(bridgeReadinessSource, /recommendedAction/);
 assert.match(bridgeReadinessSource, /sqlRemediationFeasibility/);
+assert.match(bridgeReadinessSource, /platformStatus: dataApiPlatform\.status/);
+assert.match(bridgeReadinessSource, /isolationStatus: dataApiIsolation\.status/);
 assert.doesNotMatch(
   bridgeReadinessSource,
   /riskyDefaultOwnerCount|alterableRiskyDefaultOwnerCount|protectedRiskyDefaultOwnerCount/,
@@ -78,20 +87,48 @@ for (const token of [
   'pg_default_acl',
   'alterable_risky_default_owner_count',
   'disable-data-api-in-dashboard',
+  'verify-data-api-platform-state',
+  'verify-data-api-isolation-attestation',
   'automaticRemediation: false',
+  'probeDataApiPlatform',
 ]) {
   assert.ok(operatorSource.includes(token), token);
 }
 
-const transpiled = ts.transpileModule(coreSource, {
+const effectiveTranspiled = ts.transpileModule(effectiveCoreSource, {
   compilerOptions: {
     module: ts.ModuleKind.ESNext,
     target: ts.ScriptTarget.ES2022,
   },
 }).outputText;
-const core = await import(`data:text/javascript;base64,${Buffer.from(transpiled).toString('base64')}`);
+const effectiveUrl = `data:text/javascript;base64,${Buffer.from(effectiveTranspiled).toString('base64')}`;
+
+const isolatedCoreSource = coreSource
+  .replace(
+    "'@/lib/supabase-data-api-effective-security-core'",
+    JSON.stringify(effectiveUrl),
+  )
+  .replace(
+    /import type \{ NexaDataApiIsolationStatus \} from '@\/lib\/supabase-data-api-isolation-core';\n/,
+    '',
+  )
+  .replace(
+    /import type \{ NexaDataApiPlatformStatus \} from '@\/lib\/supabase-data-api-platform-core';\n/,
+    '',
+  );
+
+const transpiled = ts.transpileModule(isolatedCoreSource, {
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+  },
+}).outputText;
+const core = await import(
+  `data:text/javascript;base64,${Buffer.from(transpiled).toString('base64')}`
+);
 
 const protectedPlan = core.classifyNexaDataApiRemediationPlan({
+  platformStatus: 'enabled',
   isolationStatus: 'future-default-risk',
   riskyDefaultOwnerCount: 1,
   alterableRiskyDefaultOwnerCount: 0,
@@ -101,6 +138,10 @@ assert.deepEqual(protectedPlan, {
   recommendedAction: 'disable-data-api-in-dashboard',
   sqlRemediationFeasibility: 'blocked-by-default-owner',
   automaticRemediation: false,
+  platformStatus: 'enabled',
+  isolationStatus: 'future-default-risk',
+  effectiveSecurityStatus: 'insecure',
+  effectiveSecurityReason: 'data_api_future_default_risk',
   currentExposure: false,
   futureDefaultRisk: true,
   riskyDefaultOwnerCount: 1,
@@ -109,27 +150,51 @@ assert.deepEqual(protectedPlan, {
 });
 assert.equal(Object.isFrozen(protectedPlan), true);
 
-const alterablePlan = core.classifyNexaDataApiRemediationPlan({
+const disabledPlan = core.classifyNexaDataApiRemediationPlan({
+  platformStatus: 'disabled',
   isolationStatus: 'future-default-risk',
   riskyDefaultOwnerCount: 1,
+  alterableRiskyDefaultOwnerCount: 0,
+});
+assert.equal(disabledPlan.status, 'no-action');
+assert.equal(disabledPlan.recommendedAction, 'none');
+assert.equal(disabledPlan.sqlRemediationFeasibility, 'not-needed');
+assert.equal(disabledPlan.effectiveSecurityStatus, 'secure');
+assert.equal(disabledPlan.effectiveSecurityReason, null);
+assert.equal(disabledPlan.futureDefaultRisk, true);
+
+const currentExposurePlan = core.classifyNexaDataApiRemediationPlan({
+  platformStatus: 'enabled',
+  isolationStatus: 'exposed',
+  riskyDefaultOwnerCount: 2,
   alterableRiskyDefaultOwnerCount: 1,
 });
-assert.equal(alterablePlan.status, 'owner-action-required');
-assert.equal(alterablePlan.recommendedAction, 'disable-data-api-in-dashboard');
-assert.equal(
-  alterablePlan.sqlRemediationFeasibility,
-  'technically-possible-but-automatic-remediation-disabled',
-);
-assert.equal(alterablePlan.automaticRemediation, false);
+assert.equal(currentExposurePlan.status, 'security-review-required');
+assert.equal(currentExposurePlan.recommendedAction, 'review-current-data-api-exposure');
+assert.equal(currentExposurePlan.sqlRemediationFeasibility, 'blocked-by-default-owner');
+assert.equal(currentExposurePlan.effectiveSecurityReason, 'data_api_current_exposure');
 
-const isolatedPlan = core.classifyNexaDataApiRemediationPlan({
+const platformUnavailable = core.classifyNexaDataApiRemediationPlan({
+  platformStatus: 'unavailable',
   isolationStatus: 'isolated',
   riskyDefaultOwnerCount: 0,
   alterableRiskyDefaultOwnerCount: 0,
 });
-assert.equal(isolatedPlan.status, 'no-action');
-assert.equal(isolatedPlan.recommendedAction, 'none');
-assert.equal(isolatedPlan.sqlRemediationFeasibility, 'not-needed');
+assert.equal(platformUnavailable.status, 'verification-required');
+assert.equal(platformUnavailable.recommendedAction, 'verify-data-api-platform-state');
+assert.equal(platformUnavailable.sqlRemediationFeasibility, 'not-evaluated');
+assert.equal(platformUnavailable.effectiveSecurityReason, 'data_api_platform_unavailable');
+
+const isolationUnavailable = core.classifyNexaDataApiRemediationPlan({
+  platformStatus: 'enabled',
+  isolationStatus: 'unavailable',
+  riskyDefaultOwnerCount: 0,
+  alterableRiskyDefaultOwnerCount: 0,
+});
+assert.equal(isolationUnavailable.status, 'verification-required');
+assert.equal(isolationUnavailable.recommendedAction, 'verify-data-api-isolation-attestation');
+assert.equal(isolationUnavailable.sqlRemediationFeasibility, 'not-evaluated');
+assert.equal(isolationUnavailable.effectiveSecurityReason, 'data_api_isolation_unavailable');
 
 let migration048Exists = true;
 try {
