@@ -71,10 +71,11 @@ assert.match(healthSource, /dataApiEffectiveSecurity\.status === 'secure'/);
 assert.doesNotMatch(healthSource, /dataApiPlatform\.status !== 'unavailable'/);
 assert.doesNotMatch(healthSource, /dataApiIsolation\.status === 'isolated'/);
 
-assert.doesNotMatch(
-  securityAdmissionSource,
-  /supabase-data-api-platform|getNexaDataApiPlatformReadiness|dataApiPlatform/,
-);
+assert.match(securityAdmissionSource, /getNexaDataApiPlatformReadiness\(\)/);
+assert.match(securityAdmissionSource, /getNexaDataApiIsolationReadiness\(\)/);
+assert.match(securityAdmissionSource, /dataApiPlatformStatus: dataApiPlatform\.status/);
+assert.match(securityAdmissionSource, /dataApiIsolationStatus: dataApiIsolation\.status/);
+assert.match(securityAdmissionSource, /classifyStudentOsBridgeSecurityAdmission/);
 
 const transpiled = ts.transpileModule(coreSource, {
   compilerOptions: {
