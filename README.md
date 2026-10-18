@@ -1,3 +1,17 @@
+# NEXA 1.94.0 — Platform-Aware Data API Remediation Closure
+
+NEXA 1.94.0 makes the Data API remediation planner consistent with the effective-security model introduced in 1.93. The planner now evaluates both the Supabase Data API platform state and PostgreSQL ACL isolation before recommending action.
+
+When the Data API is disabled, the planner reports `no-action` even if dormant default ACL risk remains, because those privileges are no longer reachable through the disabled platform edge. When the Data API is enabled, existing isolation behavior remains fail-closed: current exposure requires security review, future-default risk requires the project owner to disable the Data API, and a clean isolated state requires no action.
+
+If the Data API platform state cannot be verified, the planner reports `verification-required` and recommends verifying the platform state rather than guessing. If the platform is enabled but ACL isolation cannot be attested, it recommends verifying the isolation attestation. Automatic remediation remains disabled in every state.
+
+The operator probe uses the same fixed non-existent PostgREST canary pattern as runtime readiness. It requests no application rows, reads only a bounded response needed to classify the PostgREST state, and never prints the publishable key, API keys, credentials, prompts, user identities, or response bodies.
+
+The live runtime, Student OS bridge security admission, NEXA provider/fallback/bridge contracts, and Student OS deterministic academic authority are unchanged. No database migration is introduced; migrations 001–047 remain immutable.
+
+---
+
 # NEXA 1.93.0 — Effective Data API Security Reconciliation
 
 NEXA 1.93.0 reconciles Supabase Data API platform state with the existing PostgreSQL isolation attestation so security readiness reflects the effective attack surface instead of treating dormant ACL risk as active exposure after the Data API is disabled.
