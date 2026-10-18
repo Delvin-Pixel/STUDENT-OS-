@@ -6,6 +6,9 @@ import {
 
 export const NEXA_DATA_API_PLATFORM_CACHE_MS = 60_000;
 const DEFAULT_TIMEOUT_MS = 5_000;
+const PROBE_BODY_MAX_BYTES = 2_048;
+const PROBE_RELATION = '__nexa_data_api_platform_probe_nonexistent__';
+const PROBE_COLUMN = '__nexa_probe_column__';
 
 export type NexaDataApiPlatformReadiness = Readonly<{
   status: NexaDataApiPlatformStatus;
@@ -49,10 +52,36 @@ function configuredEndpoint() {
     throw new Error('NEXA_SUPABASE_URL must be the HTTPS root URL of a Supabase project.');
   }
 
+  const probe = new URL(`/rest/v1/${PROBE_RELATION}`, url.origin);
+  probe.searchParams.set('select', PROBE_COLUMN);
+  probe.searchParams.set('limit', '0');
+
   return Object.freeze({
-    url: new URL('/rest/v1/', url.origin).toString(),
+    url: probe.toString(),
     apiKey,
   });
+}
+
+async function readBoundedPostgrestCode(response: Response) {
+  if (!response.body) return null;
+
+  let bytes: ArrayBuffer;
+  try {
+    bytes = await response.arrayBuffer();
+  } catch {
+    return null;
+  }
+
+  if (bytes.byteLength === 0 || bytes.byteLength > PROBE_BODY_MAX_BYTES) return null;
+
+  try {
+    const parsed = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    const code = (parsed as Record<string, unknown>).code;
+    return typeof code === 'string' && /^PGRST\d{3}$/.test(code) ? code : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getNexaDataApiPlatformReadiness(
@@ -75,6 +104,7 @@ export async function getNexaDataApiPlatformReadiness(
       configured: false,
       httpStatus: null,
       failed: false,
+      postgrestCode: null,
     });
     return Object.freeze({
       ...classification,
@@ -91,19 +121,17 @@ export async function getNexaDataApiPlatformReadiness(
       redirect: 'manual',
       signal: AbortSignal.timeout(timeoutMs()),
       headers: {
-        Accept: 'application/openapi+json',
+        Accept: 'application/json',
         apikey: endpoint.apiKey,
       },
     });
 
-    try {
-      await response.body?.cancel();
-    } catch {}
-
+    const postgrestCode = await readBoundedPostgrestCode(response);
     const classification = classifyNexaDataApiPlatformProbe({
       configured: true,
       httpStatus: response.status,
       failed: false,
+      postgrestCode,
     });
     const value = Object.freeze({
       ...classification,
@@ -124,6 +152,7 @@ export async function getNexaDataApiPlatformReadiness(
       configured: true,
       httpStatus: null,
       failed: true,
+      postgrestCode: null,
     });
     const value = Object.freeze({
       ...classification,
