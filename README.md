@@ -1,3 +1,17 @@
+# NEXA 1.87.0 — Supabase Data API Exposure Attestation
+
+NEXA 1.87.0 turns the v1.79 Supabase Data API hardening into a continuously measurable security boundary without pretending the connected runtime can manage Supabase's platform integration settings. The new read-only operator attestation distinguishes current effective exposure from future-object default-privilege risk for NEXA's `public` schema.
+
+The attestation inspects only the Data API principals that can expose NEXA data directly: `PUBLIC`, `anon`, and `authenticated` when those roles exist. Current exposure covers schema `USAGE`/ `CREATE`, any effective privilege on public tables or sequences, and executable public functions. Future risk covers default ACL groups in the `public` schema that grant those principals access to newly created tables, sequences, or functions. Supabase-managed schemas such as `storage`, `graphql`, and `graphql_public` are deliberately outside the NEXA attestation boundary.
+
+The bounded status has three states. `isolated` means current public objects are unreachable and no public-schema default ACL exposure is configured. `future-default-risk` means current NEXA objects remain isolated but future objects could inherit Data API access. `exposed` means at least one current public-schema access path exists or the evidence is malformed. The command reports aggregate counts only; it does not return object names, row data, prompts, credentials, API keys, user identities, or raw ACL rows.
+
+This release is intentionally read-only and performs no automatic platform remediation. In the live Supabase project, current NEXA public objects are isolated, while `supabase_admin` owns broad public-schema defaults for `anon` and `authenticated`, so the expected production state is `future-default-risk` until the supported platform Data API configuration is explicitly remediated. NEXA itself continues using direct PostgreSQL through `nexa_runtime` and does not depend on Supabase REST or GraphQL data endpoints.
+
+No database migration is introduced; migrations 001–045 remain immutable. Runtime-role security from v1.86 remains independently secure, NEXA provider/fallback/bridge contracts remain unchanged, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.86.0 — Exact Runtime Default Privilege Surface
 
 NEXA 1.86.0 extends the dedicated `nexa_runtime` least-privilege contract from existing PostgreSQL objects to the default privileges that govern future objects. A runtime role can be exact today and silently widen tomorrow if `ALTER DEFAULT PRIVILEGES` drifts, so runtime security readiness and the operator attestation now inspect `pg_default_acl` directly.
