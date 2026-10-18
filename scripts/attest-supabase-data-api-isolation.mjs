@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import pg from 'pg';
 import { pathToFileURL } from 'node:url';
+
 function count(value) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
@@ -39,90 +40,200 @@ export async function queryNexaDataApiIsolation(options = {}) {
 
   try {
     const result = await pool.query(`
-      with blocked_roles as (
-        select 'PUBLIC'::text as role_name
-        union all
-        select rolname from pg_roles where rolname in ('anon', 'authenticated')
+      with named_roles as (
+        select rolname
+        from pg_roles
+        where rolname in ('anon', 'authenticated')
       ),
-      current_state as (
+      public_schema as (
+        select oid, nspowner, nspacl
+        from pg_namespace
+        where nspname = 'public'
+      ),
+      public_schema_acl as (
+        select x.grantee, x.privilege_type
+        from public_schema s
+        cross join lateral aclexplode(
+          coalesce(s.nspacl, acldefault('n', s.nspowner))
+        ) x
+      ),
+      schema_state as (
+        select (
+          select count(*)::int
+          from named_roles r
+          where has_schema_privilege(r.rolname, 'public', 'USAGE')
+             or has_schema_privilege(r.rolname, 'public', 'CREATE')
+        ) + (
+          select count(*)::int
+          from (
+            select 1
+            from public_schema_acl
+            where grantee = 0
+              and privilege_type in ('USAGE', 'CREATE')
+            limit 1
+          ) public_exposure
+        ) as current_schema_exposures
+      ),
+      table_state as (
         select
-          count(*) filter (
-            where has_schema_privilege(br.role_name, 'public', 'USAGE')
-               or has_schema_privilege(br.role_name, 'public', 'CREATE')
-          )::int as current_schema_exposures,
-          sum((
+          (
+            select coalesce(sum((
+              select count(*)::int
+              from pg_class c
+              join pg_namespace n on n.oid = c.relnamespace
+              where n.nspname = 'public'
+                and c.relkind in ('r', 'p')
+                and (
+                  has_table_privilege(r.rolname, c.oid, 'SELECT')
+                  or has_table_privilege(r.rolname, c.oid, 'INSERT')
+                  or has_table_privilege(r.rolname, c.oid, 'UPDATE')
+                  or has_table_privilege(r.rolname, c.oid, 'DELETE')
+                  or has_table_privilege(r.rolname, c.oid, 'TRUNCATE')
+                  or has_table_privilege(r.rolname, c.oid, 'REFERENCES')
+                  or has_table_privilege(r.rolname, c.oid, 'TRIGGER')
+                  or has_table_privilege(r.rolname, c.oid, 'MAINTAIN')
+                )
+            )), 0)::int
+            from named_roles r
+          ) + (
             select count(*)::int
             from pg_class c
             join pg_namespace n on n.oid = c.relnamespace
+            cross join lateral aclexplode(
+              coalesce(c.relacl, acldefault('r', c.relowner))
+            ) x
             where n.nspname = 'public'
               and c.relkind in ('r', 'p')
-              and (
-                has_table_privilege(br.role_name, c.oid, 'SELECT')
-                or has_table_privilege(br.role_name, c.oid, 'INSERT')
-                or has_table_privilege(br.role_name, c.oid, 'UPDATE')
-                or has_table_privilege(br.role_name, c.oid, 'DELETE')
-                or has_table_privilege(br.role_name, c.oid, 'TRUNCATE')
-                or has_table_privilege(br.role_name, c.oid, 'REFERENCES')
-                or has_table_privilege(br.role_name, c.oid, 'TRIGGER')
-                or has_table_privilege(br.role_name, c.oid, 'MAINTAIN')
+              and x.grantee = 0
+              and x.privilege_type in (
+                'SELECT','INSERT','UPDATE','DELETE',
+                'TRUNCATE','REFERENCES','TRIGGER','MAINTAIN'
               )
-          ))::int as current_table_exposures,
-          sum((
+          ) as current_table_exposures
+      ),
+      sequence_state as (
+        select
+          (
+            select coalesce(sum((
+              select count(*)::int
+              from pg_class c
+              join pg_namespace n on n.oid = c.relnamespace
+              where n.nspname = 'public'
+                and c.relkind = 'S'
+                and (
+                  has_sequence_privilege(r.rolname, c.oid, 'USAGE')
+                  or has_sequence_privilege(r.rolname, c.oid, 'SELECT')
+                  or has_sequence_privilege(r.rolname, c.oid, 'UPDATE')
+                )
+            )), 0)::int
+            from named_roles r
+          ) + (
             select count(*)::int
             from pg_class c
             join pg_namespace n on n.oid = c.relnamespace
+            cross join lateral aclexplode(
+              coalesce(c.relacl, acldefault('S', c.relowner))
+            ) x
             where n.nspname = 'public'
               and c.relkind = 'S'
-              and (
-                has_sequence_privilege(br.role_name, c.oid, 'USAGE')
-                or has_sequence_privilege(br.role_name, c.oid, 'SELECT')
-                or has_sequence_privilege(br.role_name, c.oid, 'UPDATE')
-              )
-          ))::int as current_sequence_exposures,
-          sum((
+              and x.grantee = 0
+              and x.privilege_type in ('USAGE','SELECT','UPDATE')
+          ) as current_sequence_exposures
+      ),
+      function_state as (
+        select
+          (
+            select coalesce(sum((
+              select count(*)::int
+              from pg_proc p
+              join pg_namespace n on n.oid = p.pronamespace
+              where n.nspname = 'public'
+                and has_function_privilege(r.rolname, p.oid, 'EXECUTE')
+            )), 0)::int
+            from named_roles r
+          ) + (
             select count(*)::int
             from pg_proc p
             join pg_namespace n on n.oid = p.pronamespace
+            cross join lateral aclexplode(
+              coalesce(p.proacl, acldefault('f', p.proowner))
+            ) x
             where n.nspname = 'public'
-              and has_function_privilege(br.role_name, p.oid, 'EXECUTE')
-          ))::int as current_function_exposures
-        from blocked_roles br
+              and x.grantee = 0
+              and x.privilege_type = 'EXECUTE'
+          ) as current_function_exposures
       ),
-      default_entries as (
-        select
+      relevant_default_owners as (
+        select distinct d.defaclrole as role_oid
+        from pg_default_acl d
+        left join pg_namespace n on n.oid = d.defaclnamespace
+        where d.defaclnamespace = 0 or n.nspname = 'public'
+        union
+        select distinct c.relowner
+        from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public'
+        union
+        select distinct p.proowner
+        from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+      ),
+      explicit_default_groups as (
+        select distinct
           d.defaclrole,
+          d.defaclnamespace,
           d.defaclobjtype,
-          coalesce(n.nspname, '') as schema_name,
-          case when x.grantee = 0 then 'PUBLIC' else grantee.rolname end as grantee,
-          x.is_grantable
+          x.grantee,
+          bool_or(x.is_grantable) over (
+            partition by d.defaclrole, d.defaclnamespace, d.defaclobjtype, x.grantee
+          ) as has_grant_option
         from pg_default_acl d
         left join pg_namespace n on n.oid = d.defaclnamespace
         cross join lateral aclexplode(d.defaclacl) x
         left join pg_roles grantee on grantee.oid = x.grantee
-        where coalesce(n.nspname, '') = 'public'
+        where (d.defaclnamespace = 0 or n.nspname = 'public')
           and (
             x.grantee = 0
             or grantee.rolname in ('anon', 'authenticated')
           )
       ),
-      default_groups as (
-        select
-          defaclrole,
-          defaclobjtype,
-          schema_name,
-          grantee,
-          bool_or(is_grantable) as has_grant_option
-        from default_entries
-        group by defaclrole, defaclobjtype, schema_name, grantee
+      implicit_public_function_defaults as (
+        select distinct owner.role_oid
+        from relevant_default_owners owner
+        cross join lateral aclexplode(
+          coalesce(
+            (
+              select d.defaclacl
+              from pg_default_acl d
+              where d.defaclrole = owner.role_oid
+                and d.defaclnamespace = 0
+                and d.defaclobjtype = 'f'
+              limit 1
+            ),
+            acldefault('f', owner.role_oid)
+          )
+        ) x
+        where x.grantee = 0 and x.privilege_type = 'EXECUTE'
       )
       select
-        cs.current_schema_exposures,
-        coalesce(cs.current_table_exposures, 0)::int as current_table_exposures,
-        coalesce(cs.current_sequence_exposures, 0)::int as current_sequence_exposures,
-        coalesce(cs.current_function_exposures, 0)::int as current_function_exposures,
-        (select count(*)::int from default_groups) as public_default_acl_exposures,
-        (select count(*)::int from default_groups where has_grant_option) as public_default_acl_grant_options
-      from current_state cs
+        ss.current_schema_exposures,
+        ts.current_table_exposures,
+        qs.current_sequence_exposures,
+        fs.current_function_exposures,
+        (
+          (select count(*) from explicit_default_groups)
+          + (select count(*) from implicit_public_function_defaults)
+        )::int as public_default_acl_exposures,
+        (
+          select count(*)::int
+          from explicit_default_groups
+          where has_grant_option
+        ) as public_default_acl_grant_options
+      from schema_state ss
+      cross join table_state ts
+      cross join sequence_state qs
+      cross join function_state fs
     `);
 
     const row = result.rows[0] ?? {};
