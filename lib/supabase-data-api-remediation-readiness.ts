@@ -2,9 +2,11 @@ import { query } from '@/lib/db';
 import {
   classifyNexaDataApiRemediationPlan,
   type NexaDataApiRemediationAction,
+  type NexaDataApiRemediationPlan,
   type NexaDataApiRemediationStatus,
   type NexaDataApiSqlRemediationFeasibility,
 } from '@/lib/supabase-data-api-remediation-core';
+import type { NexaDataApiEffectiveSecurityReason } from '@/lib/supabase-data-api-effective-security-core';
 import type { NexaDataApiIsolationReadinessStatus } from '@/lib/supabase-data-api-isolation';
 import type { NexaDataApiPlatformStatus } from '@/lib/supabase-data-api-platform-core';
 
@@ -16,7 +18,6 @@ export type NexaDataApiRemediationReadinessStatus =
 
 export type NexaDataApiRemediationReadinessAction =
   | NexaDataApiRemediationAction
-  | 'review-data-api-platform-state'
   | 'review-remediation-attestation';
 
 export type NexaDataApiRemediationReadinessSqlFeasibility =
@@ -24,10 +25,8 @@ export type NexaDataApiRemediationReadinessSqlFeasibility =
   | 'unknown';
 
 export type NexaDataApiRemediationReadinessReason =
-  | 'data_api_platform_unavailable'
-  | 'data_api_isolation_unavailable'
-  | 'remediation_attestation_unavailable'
-  | null;
+  | NexaDataApiEffectiveSecurityReason
+  | 'remediation_attestation_unavailable';
 
 export type NexaDataApiRemediationReadiness = Readonly<{
   status: NexaDataApiRemediationReadinessStatus;
@@ -53,30 +52,26 @@ const globalForDataApiRemediation = globalThis as typeof globalThis & {
   nexaDataApiRemediationReadinessCache?: CacheEntry;
 };
 
-function unavailable(
+function fromPlan(
   started: number,
-  reason: Exclude<NexaDataApiRemediationReadinessReason, null>,
-  action: Extract<
-    NexaDataApiRemediationReadinessAction,
-    'review-data-api-platform-state' | 'review-remediation-attestation'
-  >,
+  plan: NexaDataApiRemediationPlan,
 ): NexaDataApiRemediationReadiness {
   return Object.freeze({
-    status: 'unavailable',
-    recommendedAction: action,
-    sqlRemediationFeasibility: 'unknown',
-    reason,
+    status: plan.status,
+    recommendedAction: plan.recommendedAction,
+    sqlRemediationFeasibility: plan.sqlRemediationFeasibility,
+    reason: plan.effectiveSecurityReason,
     checkedAt: new Date().toISOString(),
     latencyMs: Date.now() - started,
   });
 }
 
-function noAction(started: number): NexaDataApiRemediationReadiness {
+function unavailable(started: number): NexaDataApiRemediationReadiness {
   return Object.freeze({
-    status: 'no-action',
-    recommendedAction: 'none',
-    sqlRemediationFeasibility: 'not-needed',
-    reason: null,
+    status: 'unavailable',
+    recommendedAction: 'review-remediation-attestation',
+    sqlRemediationFeasibility: 'unknown',
+    reason: 'remediation_attestation_unavailable',
     checkedAt: new Date().toISOString(),
     latencyMs: Date.now() - started,
   });
@@ -89,24 +84,17 @@ export async function getNexaDataApiRemediationReadiness(input: Readonly<{
 }>): Promise<NexaDataApiRemediationReadiness> {
   const started = Date.now();
 
-  if (input.platformStatus === 'disabled') {
-    return noAction(started);
-  }
-
-  if (input.platformStatus === 'unavailable') {
-    return unavailable(
-      started,
-      'data_api_platform_unavailable',
-      'review-data-api-platform-state',
-    );
-  }
-
-  if (input.isolationStatus === 'unavailable') {
-    return unavailable(
-      started,
-      'data_api_isolation_unavailable',
-      'review-remediation-attestation',
-    );
+  if (
+    input.platformStatus === 'disabled'
+    || input.platformStatus === 'unavailable'
+    || input.isolationStatus === 'unavailable'
+  ) {
+    return fromPlan(started, classifyNexaDataApiRemediationPlan({
+      platformStatus: input.platformStatus,
+      isolationStatus: input.isolationStatus,
+      riskyDefaultOwnerCount: 0,
+      alterableRiskyDefaultOwnerCount: 0,
+    }));
   }
 
   const cacheKey = `${input.platformStatus}:${input.isolationStatus}`;
@@ -150,18 +138,12 @@ export async function getNexaDataApiRemediationReadiness(input: Readonly<{
       alterable_risky_default_owner_count: 0,
     };
     const plan = classifyNexaDataApiRemediationPlan({
+      platformStatus: input.platformStatus,
       isolationStatus: input.isolationStatus,
       riskyDefaultOwnerCount: Number(row.risky_default_owner_count),
       alterableRiskyDefaultOwnerCount: Number(row.alterable_risky_default_owner_count),
     });
-    const value = Object.freeze({
-      status: plan.status,
-      recommendedAction: plan.recommendedAction,
-      sqlRemediationFeasibility: plan.sqlRemediationFeasibility,
-      reason: null,
-      checkedAt: new Date().toISOString(),
-      latencyMs: Date.now() - started,
-    } satisfies NexaDataApiRemediationReadiness);
+    const value = fromPlan(started, plan);
 
     if (!input.bypassCache) {
       globalForDataApiRemediation.nexaDataApiRemediationReadinessCache = {
@@ -173,10 +155,6 @@ export async function getNexaDataApiRemediationReadiness(input: Readonly<{
 
     return value;
   } catch {
-    return unavailable(
-      started,
-      'remediation_attestation_unavailable',
-      'review-remediation-attestation',
-    );
+    return unavailable(started);
   }
 }
