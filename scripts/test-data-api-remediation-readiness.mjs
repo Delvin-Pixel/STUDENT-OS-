@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import { access, readFile } from 'node:fs/promises';
-import ts from 'typescript';
+import { classifyRemediationPlan } from './plan-supabase-data-api-remediation.mjs';
 
 const read=(p)=>readFile(new URL(`../${p}`,import.meta.url),'utf8');
 const [pkgText,coreSource,runtimeSource,healthSource,bridgeSource,routeSource,readme]=await Promise.all([
@@ -38,10 +38,7 @@ assert.match(routeSource,/X-NEXA-Bridge-Data-API-Remediation-SQL-Feasibility/);
 assert.doesNotMatch(healthSource,/riskyDefaultOwnerCount|alterableRiskyDefaultOwnerCount|protectedRiskyDefaultOwnerCount|owner_name|rolname/);
 assert.doesNotMatch(bridgeSource,/riskyDefaultOwnerCount|alterableRiskyDefaultOwnerCount|protectedRiskyDefaultOwnerCount/);
 
-const transpiled=ts.transpileModule(coreSource,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
-const core=await import(`data:text/javascript;base64,${Buffer.from(transpiled).toString('base64')}`);
-
-const blocked=core.classifyNexaDataApiRemediationPlan({
+const blocked=classifyRemediationPlan({
   platformStatus:'enabled',
   isolationStatus:'future-default-risk',
   riskyDefaultOwnerCount:1,
@@ -52,7 +49,7 @@ assert.equal(blocked.recommendedAction,'disable-data-api-in-dashboard');
 assert.equal(blocked.sqlRemediationFeasibility,'blocked-by-default-owner');
 assert.equal(blocked.automaticRemediation,false);
 
-const disabled=core.classifyNexaDataApiRemediationPlan({
+const disabled=classifyRemediationPlan({
   platformStatus:'disabled',
   isolationStatus:'future-default-risk',
   riskyDefaultOwnerCount:1,
@@ -62,7 +59,7 @@ assert.equal(disabled.status,'no-action');
 assert.equal(disabled.recommendedAction,'none');
 assert.equal(disabled.sqlRemediationFeasibility,'not-needed');
 
-const unavailable=core.classifyNexaDataApiRemediationPlan({
+const unavailable=classifyRemediationPlan({
   platformStatus:'unavailable',
   isolationStatus:'future-default-risk',
   riskyDefaultOwnerCount:1,
