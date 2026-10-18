@@ -2,6 +2,7 @@ import { getNexaAiGatewayReadiness, type NexaAiGatewayReadiness } from '@/lib/ai
 import { getNexaRuntimeRoleSecurity, type NexaRuntimeRoleSecurity } from '@/lib/runtime-role-security';
 import { getNexaDataApiIsolationReadiness, type NexaDataApiIsolationReadiness } from '@/lib/supabase-data-api-isolation';
 import { getNexaDataApiPlatformReadiness, type NexaDataApiPlatformReadiness } from '@/lib/supabase-data-api-platform';
+import { getNexaDataApiRemediationReadiness, type NexaDataApiRemediationReadiness } from '@/lib/supabase-data-api-remediation-readiness';
 import {
   classifyNexaDataApiEffectiveSecurity,
   type NexaDataApiEffectiveSecurity,
@@ -84,6 +85,12 @@ export type StudentOsBridgeOperationalReadiness = StudentOsBridgeReadiness & Rea
   dataApiEffectiveSecurity: Readonly<{
     status: NexaDataApiEffectiveSecurity['status'];
     reason: NexaDataApiEffectiveSecurity['reason'];
+  }>;
+  dataApiRemediation: Readonly<{
+    status: NexaDataApiRemediationReadiness['status'];
+    recommendedAction: NexaDataApiRemediationReadiness['recommendedAction'];
+    sqlRemediationFeasibility: NexaDataApiRemediationReadiness['sqlRemediationFeasibility'];
+    reason: NexaDataApiRemediationReadiness['reason'];
   }>;
   aiGatewayOperational: Readonly<{
     status: NexaAiGatewayReadiness['status'];
@@ -191,6 +198,11 @@ export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentO
     isolationStatus: dataApiIsolation.status,
   });
 
+  const dataApiRemediation = await getNexaDataApiRemediationReadiness({
+    platformStatus: dataApiPlatform.status,
+    isolationStatus: dataApiIsolation.status,
+  });
+
   if (dataApiEffectiveSecurity.status !== 'secure') {
     const reason = dataApiEffectiveSecurity.reason ?? 'data_api_isolation_unavailable';
     if (!reasons.includes(reason)) reasons.push(reason);
@@ -253,6 +265,12 @@ export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentO
     dataApiEffectiveSecurity: Object.freeze({
       status: dataApiEffectiveSecurity.status,
       reason: dataApiEffectiveSecurity.reason,
+    }),
+    dataApiRemediation: Object.freeze({
+      status: dataApiRemediation.status,
+      recommendedAction: dataApiRemediation.recommendedAction,
+      sqlRemediationFeasibility: dataApiRemediation.sqlRemediationFeasibility,
+      reason: dataApiRemediation.reason,
     }),
     aiGatewayOperational: Object.freeze({
       status: gateway.status,
