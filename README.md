@@ -1,3 +1,17 @@
+# NEXA 1.91.0 — Supabase Data API Platform-State Readiness
+
+NEXA 1.91.0 adds a read-only runtime probe for the Supabase Data API platform edge so NEXA can distinguish a reachable/enabled Data API from a disabled integration or an unverifiable platform state. The probe requests only the project Data API root, uses the project publishable client key, never names a table, never reads rows, and cancels the response body immediately after receiving the HTTP status.
+
+The platform state is bounded to `enabled`, `disabled`, or `unavailable`. Missing configuration, rejected credentials, unexpected HTTP responses, and network failures remain fail-closed through bounded reason codes. The probe is cached for 60 seconds and uses a short configurable timeout. The configured Supabase URL must be an HTTPS root URL on a 20-character `.supabase.co` project hostname, preventing the readiness path from becoming a general outbound fetch primitive.
+
+Public readiness now exposes `dataApiPlatform` and `dataApiPlatformReason`. The existing ACL isolation attestation remains independently visible as `dataApiIsolation`. This release is intentionally conservative: global readiness still requires database ACL state `isolated`, and Student OS bridge security admission remains unchanged. A future release may combine a verified disabled platform state with ACL evidence after compatibility testing.
+
+The runtime requires `NEXA_SUPABASE_URL` and an active `NEXA_SUPABASE_PUBLISHABLE_KEY`. The publishable key is a client credential intended for public applications; NEXA still does not use it to read or mutate any application data. Direct PostgreSQL through `nexa_runtime` remains the application data path.
+
+No database migration is introduced; migrations 001–046 remain immutable. NEXA provider, fallback, Student OS bridge transport, runtime-role security, Data API ACL attestation, and Student OS deterministic academic authority remain unchanged.
+
+---
+
 # NEXA 1.90.0 — Supabase Data API Remediation Planning
 
 NEXA 1.90.0 turns the Data API security blocker into a bounded, read-only operator remediation plan. The new `npm run ops:plan-data-api-remediation` command combines the existing Data API isolation attestation with PostgreSQL default-ACL ownership evidence so operators can tell whether the live risk is safely remediable through the connected database role or requires an account-owner platform action.
