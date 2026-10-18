@@ -1,3 +1,17 @@
+# NEXA 1.95.0 — Data API Remediation Readiness Surface
+
+NEXA 1.95.0 promotes the platform-aware Data API remediation planner from an operator-only command into bounded runtime readiness. General NEXA readiness and authenticated Student OS bridge readiness can now state not only that effective Data API security is degraded, but also what class of remediation is required.
+
+The public runtime surface exposes only three bounded remediation fields: status, recommended action, and SQL-remediation feasibility. Raw ACL rows, role names, object names, risky-owner counts, grant details, credentials, API keys, prompts, response bodies, and user data remain operator-only and are never returned by health endpoints.
+
+When the Data API is disabled, remediation is reported as `no-action`. When the platform is enabled with future-default risk, the runtime checks whether the current database identity is actually authorized to alter the risky default owner. A protected owner produces `owner-action-required`, recommends `disable-data-api-in-dashboard`, and reports SQL remediation as `blocked-by-default-owner`. Automatic privilege mutation remains disabled.
+
+Authenticated Student OS bridge health mirrors the same bounded state in JSON and three headers so HTTP-oriented clients can distinguish security failure from the required remediation path. The existing effective-security admission gate is unchanged: insecure Data API state still blocks NEXA model-backed bridge serving.
+
+No database migration is introduced; migrations 001–047 remain immutable. NEXA provider, fallback, bridge transport, negotiation, and academic-authority contracts remain unchanged.
+
+---
+
 # NEXA 1.94.0 — Platform-Aware Data API Remediation Closure
 
 NEXA 1.94.0 makes the Data API remediation planner consistent with the effective-security model introduced in 1.93. The planner now evaluates both the Supabase Data API platform state and PostgreSQL ACL isolation before recommending action.
