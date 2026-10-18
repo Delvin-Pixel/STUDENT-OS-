@@ -1,5 +1,7 @@
 import type { NexaRuntimeRoleSecurityStatus } from '@/lib/runtime-role-security-core';
 import type { NexaDataApiIsolationStatus } from '@/lib/supabase-data-api-isolation-core';
+import type { NexaDataApiPlatformStatus } from '@/lib/supabase-data-api-platform-core';
+import { classifyNexaDataApiEffectiveSecurity } from '@/lib/supabase-data-api-effective-security-core';
 
 export type StudentOsBridgeDataApiIsolationStatus =
   | NexaDataApiIsolationStatus
@@ -8,6 +10,7 @@ export type StudentOsBridgeDataApiIsolationStatus =
 export type StudentOsBridgeSecurityReason =
   | 'runtime_role_security_violation'
   | 'runtime_role_security_unavailable'
+  | 'data_api_platform_unavailable'
   | 'data_api_current_exposure'
   | 'data_api_future_default_risk'
   | 'data_api_isolation_unavailable';
@@ -26,6 +29,7 @@ export type StudentOsBridgeSecurityAdmission =
 export function classifyStudentOsBridgeSecurityAdmission(
   input: Readonly<{
     runtimeRoleStatus: NexaRuntimeRoleSecurityStatus;
+    dataApiPlatformStatus: NexaDataApiPlatformStatus;
     dataApiIsolationStatus: StudentOsBridgeDataApiIsolationStatus;
   }>,
 ): StudentOsBridgeSecurityAdmission {
@@ -51,38 +55,32 @@ export function classifyStudentOsBridgeSecurityAdmission(
     });
   }
 
-  if (input.dataApiIsolationStatus === 'unavailable') {
+  const dataApiSecurity = classifyNexaDataApiEffectiveSecurity({
+    platformStatus: input.dataApiPlatformStatus,
+    isolationStatus: input.dataApiIsolationStatus,
+  });
+
+  if (dataApiSecurity.status === 'secure') {
+    return Object.freeze({ allowed: true });
+  }
+
+  if (dataApiSecurity.status === 'unavailable') {
     return Object.freeze({
       allowed: false,
       source: 'data-api',
       status: 'unavailable',
-      reason: 'data_api_isolation_unavailable',
+      reason: dataApiSecurity.reason ?? 'data_api_isolation_unavailable',
       retryable: true,
       retryAfterSeconds: 30,
     });
   }
 
-  if (input.dataApiIsolationStatus === 'exposed') {
-    return Object.freeze({
-      allowed: false,
-      source: 'data-api',
-      status: 'insecure',
-      reason: 'data_api_current_exposure',
-      retryable: false,
-      retryAfterSeconds: null,
-    });
-  }
-
-  if (input.dataApiIsolationStatus === 'future-default-risk') {
-    return Object.freeze({
-      allowed: false,
-      source: 'data-api',
-      status: 'insecure',
-      reason: 'data_api_future_default_risk',
-      retryable: false,
-      retryAfterSeconds: null,
-    });
-  }
-
-  return Object.freeze({ allowed: true });
+  return Object.freeze({
+    allowed: false,
+    source: 'data-api',
+    status: 'insecure',
+    reason: dataApiSecurity.reason ?? 'data_api_current_exposure',
+    retryable: false,
+    retryAfterSeconds: null,
+  });
 }
