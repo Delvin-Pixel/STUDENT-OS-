@@ -21,8 +21,8 @@ const [
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-92');
-assert.equal(pkg.version, '1.92.0');
+assert.equal(pkg.name, 'nexa-1-93');
+assert.equal(pkg.version, '1.93.0');
 assert.equal(
   pkg.scripts['test:data-api-isolation-readiness'],
   'node scripts/test-data-api-isolation-readiness.mjs',
