@@ -2,6 +2,11 @@ import { getNexaAiGatewayReadiness, type NexaAiGatewayReadiness } from '@/lib/ai
 import { query } from '@/lib/db';
 import { hasConfiguredRateLimitSecret } from '@/lib/rate-limit';
 import {
+  getNexaDataApiPlatformReadiness,
+  type NexaDataApiPlatformReason,
+  type NexaDataApiPlatformStatus,
+} from '@/lib/supabase-data-api-platform';
+import {
   getNexaDataApiIsolationReadiness,
   type NexaDataApiIsolationReadinessReason,
   type NexaDataApiIsolationReadinessStatus,
@@ -22,6 +27,8 @@ export type HealthStatus = {
   runtimeRoleSecurityReason: NexaRuntimeRoleSecurityReason;
   dataApiIsolation: NexaDataApiIsolationReadinessStatus;
   dataApiIsolationReason: NexaDataApiIsolationReadinessReason;
+  dataApiPlatform: NexaDataApiPlatformStatus;
+  dataApiPlatformReason: NexaDataApiPlatformReason;
   aiGateway: 'configured' | 'missing';
   aiGatewayOperational: NexaAiGatewayReadiness['status'];
   aiGatewayReason: NexaAiGatewayReadiness['reason'];
@@ -37,12 +44,13 @@ export async function getReadiness(): Promise<HealthStatus> {
   const started = Date.now();
   const rateLimitSecretConfigured = hasConfiguredRateLimitSecret();
 
-  const [databaseResult, runtimeRoleSecurity, dataApiIsolation, gateway] = await Promise.all([
+  const [databaseResult, runtimeRoleSecurity, dataApiIsolation, dataApiPlatform, gateway] = await Promise.all([
     query('select 1 as ok')
       .then(() => 'ok' as const)
       .catch(() => 'unavailable' as const),
     getNexaRuntimeRoleSecurity(),
     getNexaDataApiIsolationReadiness(),
+    getNexaDataApiPlatformReadiness(),
     getNexaAiGatewayReadiness(),
   ]);
 
@@ -50,6 +58,7 @@ export async function getReadiness(): Promise<HealthStatus> {
     databaseResult === 'ok'
     && runtimeRoleSecurity.status === 'secure'
     && dataApiIsolation.status === 'isolated'
+    && dataApiPlatform.status !== 'unavailable'
     && gateway.status === 'operational'
     && rateLimitSecretConfigured
   );
@@ -63,6 +72,8 @@ export async function getReadiness(): Promise<HealthStatus> {
     runtimeRoleSecurityReason: runtimeRoleSecurity.reason,
     dataApiIsolation: dataApiIsolation.status,
     dataApiIsolationReason: dataApiIsolation.reason,
+    dataApiPlatform: dataApiPlatform.status,
+    dataApiPlatformReason: dataApiPlatform.reason,
     aiGateway: gateway.configured ? 'configured' : 'missing',
     aiGatewayOperational: gateway.status,
     aiGatewayReason: gateway.reason,
