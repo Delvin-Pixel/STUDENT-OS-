@@ -14,6 +14,8 @@ function headers(input?: Readonly<{
   legacyDefaultAllowed?: boolean;
   runtimeRoleSecurity?: 'secure' | 'insecure' | 'unavailable';
   runtimeRoleSecurityReason?: string | null;
+  dataApiIsolation?: 'isolated' | 'future-default-risk' | 'exposed' | 'unavailable';
+  dataApiIsolationReason?: string | null;
 }>) {
   return {
     'Cache-Control': 'no-store',
@@ -37,6 +39,12 @@ function headers(input?: Readonly<{
       : {}),
     ...(input?.runtimeRoleSecurityReason
       ? { 'X-NEXA-Bridge-Runtime-Security-Reason': input.runtimeRoleSecurityReason }
+      : {}),
+    ...(input?.dataApiIsolation
+      ? { 'X-NEXA-Bridge-Data-API-Isolation': input.dataApiIsolation }
+      : {}),
+    ...(input?.dataApiIsolationReason
+      ? { 'X-NEXA-Bridge-Data-API-Isolation-Reason': input.dataApiIsolationReason }
       : {}),
   };
 }
@@ -71,6 +79,8 @@ export async function GET(request: Request) {
       legacyDefaultAllowed: readiness.legacyBridgeContractDefaultAllowed,
       runtimeRoleSecurity: readiness.runtimeRoleSecurity.status,
       runtimeRoleSecurityReason: readiness.runtimeRoleSecurity.reason,
+      dataApiIsolation: readiness.dataApiIsolation.status,
+      dataApiIsolationReason: readiness.dataApiIsolation.reason,
     }),
   });
 }
