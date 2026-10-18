@@ -1,5 +1,6 @@
 import { getNexaAiGatewayReadiness, type NexaAiGatewayReadiness } from '@/lib/ai-gateway-readiness';
 import { getNexaRuntimeRoleSecurity, type NexaRuntimeRoleSecurity } from '@/lib/runtime-role-security';
+import { getNexaDataApiIsolationReadiness, type NexaDataApiIsolationReadiness } from '@/lib/supabase-data-api-isolation';
 import { getNexaAiRuntimeConfig } from '@/lib/ai-runtime';
 import { getStudentOsBridgeAdmissionConfig } from '@/lib/student-os-bridge-admission';
 import {
@@ -66,6 +67,10 @@ export type StudentOsBridgeOperationalReadiness = StudentOsBridgeReadiness & Rea
   runtimeRoleSecurity: Readonly<{
     status: NexaRuntimeRoleSecurity['status'];
     reason: NexaRuntimeRoleSecurity['reason'];
+  }>;
+  dataApiIsolation: Readonly<{
+    status: NexaDataApiIsolationReadiness['status'];
+    reason: NexaDataApiIsolationReadiness['reason'];
   }>;
   aiGatewayOperational: Readonly<{
     status: NexaAiGatewayReadiness['status'];
@@ -155,9 +160,10 @@ export function getStudentOsBridgeReadiness(): StudentOsBridgeReadiness {
 
 export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentOsBridgeOperationalReadiness> {
   const base = getStudentOsBridgeReadiness();
-  const [gateway, runtimeRoleSecurity] = await Promise.all([
+  const [gateway, runtimeRoleSecurity, dataApiIsolation] = await Promise.all([
     getNexaAiGatewayReadiness(),
     getNexaRuntimeRoleSecurity(),
+    getNexaDataApiIsolationReadiness(),
   ]);
   const reasons = [...base.reasons];
 
@@ -166,12 +172,20 @@ export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentO
     if (!reasons.includes(reason)) reasons.push(reason);
   }
 
+  if (dataApiIsolation.status !== 'isolated') {
+    const reason = dataApiIsolation.reason ?? 'attestation_unavailable';
+    if (!reasons.includes(reason)) reasons.push(reason);
+  }
+
   if (gateway.status !== 'operational') {
     const reason = gateway.reason ?? 'ai_gateway_status_unavailable';
     if (!reasons.includes(reason)) reasons.push(reason);
   }
 
-  const securityAdmission = classifyStudentOsBridgeSecurityAdmission(runtimeRoleSecurity.status);
+  const securityAdmission = classifyStudentOsBridgeSecurityAdmission({
+    runtimeRoleStatus: runtimeRoleSecurity.status,
+    dataApiIsolationStatus: dataApiIsolation.status,
+  });
 
   const operationalAdmission = classifyStudentOsBridgeOperationalAdmission({
     status: gateway.status,
@@ -207,6 +221,10 @@ export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentO
     runtimeRoleSecurity: Object.freeze({
       status: runtimeRoleSecurity.status,
       reason: runtimeRoleSecurity.reason,
+    }),
+    dataApiIsolation: Object.freeze({
+      status: dataApiIsolation.status,
+      reason: dataApiIsolation.reason,
     }),
     aiGatewayOperational: Object.freeze({
       status: gateway.status,
