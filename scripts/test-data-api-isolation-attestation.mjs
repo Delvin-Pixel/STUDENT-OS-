@@ -35,9 +35,10 @@ for (const token of [
   "'anon'",
   "'authenticated'",
   "n.nspname = 'public'",
-  "coalesce(n.nspname, '') = 'public'",
+  "d.defaclnamespace = 0 or n.nspname = 'public'",
   "dataApiIntegration: 'unknown'",
   'automaticRemediation: false',
+  "acldefault('f', owner.role_oid)",
 ]) {
   assert.ok(operatorSource.includes(token), token);
 }
