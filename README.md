@@ -1,3 +1,19 @@
+# NEXA 1.93.0 — Effective Data API Security Reconciliation
+
+NEXA 1.93.0 reconciles Supabase Data API platform state with the existing PostgreSQL isolation attestation so security readiness reflects the effective attack surface instead of treating dormant ACL risk as active exposure after the Data API is disabled.
+
+A new shared effective-security classifier combines the bounded platform state (`enabled`, `disabled`, or `unavailable`) with the existing isolation state (`isolated`, `future-default-risk`, `exposed`, or `unavailable`). When the Data API platform is disabled, effective Data API security is `secure` even if dormant PostgreSQL default grants remain visible in the raw isolation attestation. The raw isolation state is still exposed for operator review and future re-enable risk; it is not erased or rewritten.
+
+When the platform is enabled, NEXA remains fail-closed exactly where it matters: `isolated` is secure, current exposure is insecure, future-default risk is insecure, and an unavailable isolation attestation is unavailable. If the platform probe itself is unavailable, effective security is unavailable regardless of ACL state.
+
+Global readiness and authenticated Student OS bridge admission now use the same effective-security classifier. Runtime-role security keeps precedence over the Data API boundary. Authenticated bridge readiness exposes raw platform state, raw isolation evidence, and the effective security result separately so Student OS can distinguish active security from latent configuration risk.
+
+Additive migration 047 extends only the privacy-bounded bridge event reason constraint with `data_api_platform_unavailable`. No new table, row payload, prompt, response body, user identity, API key, balance, provider credential, or arbitrary metadata is introduced.
+
+Migrations 001–046 remain immutable. NEXA provider, fallback, and bridge transport contracts remain unchanged, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.92.0 — Supabase Data API Probe Semantics
 
 NEXA 1.92.0 corrects the Data API platform-state probe introduced in 1.91. The previous probe targeted Supabase's exact `/rest/v1/` OpenAPI root with a publishable key. Supabase intentionally restricts that root to elevated API keys, so a valid publishable key can receive HTTP 403 even while the Data API is enabled. Treating that response as rejected credentials created a false-negative readiness state.
