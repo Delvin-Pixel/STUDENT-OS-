@@ -1,3 +1,19 @@
+# NEXA 1.89.0 — Data API–Aware Student OS Bridge Security Admission
+
+NEXA 1.89.0 extends the authenticated Student OS bridge security boundary from PostgreSQL runtime-role security to Supabase Data API isolation. Model-backed bridge execution now requires both a secure `nexa_runtime` role and a fully `isolated` Data API state before NEXA proceeds to AI Gateway admission, rate limits, idempotency claims, provider creation, or model execution.
+
+The security classifier remains fail-closed and ordered. Runtime-role security is evaluated first. If the runtime role is secure, Data API state is then evaluated: `isolated` proceeds, `future-default-risk` is rejected with `data_api_future_default_risk`, `exposed` is rejected with `data_api_current_exposure`, and an unavailable attestation is rejected with `data_api_isolation_unavailable` plus a short retry hint.
+
+Security rejections remain privacy-bounded. The bridge returns only a generic security status, a bounded source (`runtime-role` or `data-api`), and the coarse reason. Authenticated bridge readiness exposes the bounded Data API state and reason so Student OS can preflight the integration without attempting model-backed work.
+
+A Data API security rejection does not invoke NEXA's model fallback directive because NEXA's own security boundary is not ready. Student OS remains free to continue through its deterministic `learningIntelligence` path outside NEXA, which remains the sole academic decision authority.
+
+Additive migration 046 widens only the existing `student_os_bridge_events.operational_reason` constraint so privacy-safe observability can persist the three new Data API security reasons. No new table or sensitive event field is introduced, and migrations 001–045 remain immutable.
+
+The live Supabase project is currently `future-default-risk`, with zero current schema/table/sequence/function exposure but future-object default ACL risk. Therefore, after this release, model-backed Student OS bridge requests are expected to fail closed until the supported Data API/default-privilege remediation is completed. NEXA's general liveness and direct PostgreSQL runtime remain unaffected.
+
+---
+
 # NEXA 1.88.0 — Supabase Data API Runtime Readiness
 
 NEXA 1.88.0 promotes the v1.87 Supabase Data API isolation attestation into the public runtime readiness contract. The runtime executes the same read-only PostgreSQL evidence query as the operator attestation and caches the bounded result for 60 seconds so ordinary readiness can detect Data API exposure drift without repeatedly scanning ACL catalogs.
