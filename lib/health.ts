@@ -21,6 +21,12 @@ import {
   type NexaRuntimeRoleSecurityReason,
   type NexaRuntimeRoleSecurityStatus,
 } from '@/lib/runtime-role-security';
+import {
+  getNexaDataApiRemediationReadiness,
+  type NexaDataApiRemediationReadinessAction,
+  type NexaDataApiRemediationReadinessSqlFeasibility,
+  type NexaDataApiRemediationReadinessStatus,
+} from '@/lib/supabase-data-api-remediation-readiness';
 import { NEXA_VERSION } from '@/lib/version';
 
 export type HealthStatus = {
@@ -36,6 +42,9 @@ export type HealthStatus = {
   dataApiPlatformReason: NexaDataApiPlatformReason;
   dataApiEffectiveSecurity: NexaDataApiEffectiveSecurityStatus;
   dataApiEffectiveSecurityReason: NexaDataApiEffectiveSecurityReason;
+  dataApiRemediationStatus: NexaDataApiRemediationReadinessStatus;
+  dataApiRemediationAction: NexaDataApiRemediationReadinessAction;
+  dataApiRemediationSqlFeasibility: NexaDataApiRemediationReadinessSqlFeasibility;
   aiGateway: 'configured' | 'missing';
   aiGatewayOperational: NexaAiGatewayReadiness['status'];
   aiGatewayReason: NexaAiGatewayReadiness['reason'];
@@ -66,6 +75,11 @@ export async function getReadiness(): Promise<HealthStatus> {
     isolationStatus: dataApiIsolation.status,
   });
 
+  const dataApiRemediation = await getNexaDataApiRemediationReadiness({
+    platformStatus: dataApiPlatform.status,
+    isolationStatus: dataApiIsolation.status,
+  });
+
   const healthy = (
     databaseResult === 'ok'
     && runtimeRoleSecurity.status === 'secure'
@@ -87,6 +101,9 @@ export async function getReadiness(): Promise<HealthStatus> {
     dataApiPlatformReason: dataApiPlatform.reason,
     dataApiEffectiveSecurity: dataApiEffectiveSecurity.status,
     dataApiEffectiveSecurityReason: dataApiEffectiveSecurity.reason,
+    dataApiRemediationStatus: dataApiRemediation.status,
+    dataApiRemediationAction: dataApiRemediation.recommendedAction,
+    dataApiRemediationSqlFeasibility: dataApiRemediation.sqlRemediationFeasibility,
     aiGateway: gateway.configured ? 'configured' : 'missing',
     aiGatewayOperational: gateway.status,
     aiGatewayReason: gateway.reason,
