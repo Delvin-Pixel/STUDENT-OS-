@@ -20,6 +20,9 @@ function headers(input?: Readonly<{
   dataApiPlatformReason?: string | null;
   dataApiEffectiveSecurity?: 'secure' | 'insecure' | 'unavailable';
   dataApiEffectiveSecurityReason?: string | null;
+  dataApiRemediationStatus?: 'no-action' | 'owner-action-required' | 'security-review-required' | 'unavailable';
+  dataApiRemediationAction?: string;
+  dataApiRemediationSqlFeasibility?: string;
 }>) {
   return {
     'Cache-Control': 'no-store',
@@ -62,6 +65,15 @@ function headers(input?: Readonly<{
     ...(input?.dataApiEffectiveSecurityReason
       ? { 'X-NEXA-Bridge-Data-API-Effective-Security-Reason': input.dataApiEffectiveSecurityReason }
       : {}),
+    ...(input?.dataApiRemediationStatus
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-Status': input.dataApiRemediationStatus }
+      : {}),
+    ...(input?.dataApiRemediationAction
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-Action': input.dataApiRemediationAction }
+      : {}),
+    ...(input?.dataApiRemediationSqlFeasibility
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-SQL-Feasibility': input.dataApiRemediationSqlFeasibility }
+      : {}),
   };
 }
 
@@ -101,6 +113,9 @@ export async function GET(request: Request) {
       dataApiPlatformReason: readiness.dataApiPlatform.reason,
       dataApiEffectiveSecurity: readiness.dataApiEffectiveSecurity.status,
       dataApiEffectiveSecurityReason: readiness.dataApiEffectiveSecurity.reason,
+      dataApiRemediationStatus: readiness.dataApiRemediation.status,
+      dataApiRemediationAction: readiness.dataApiRemediation.recommendedAction,
+      dataApiRemediationSqlFeasibility: readiness.dataApiRemediation.sqlRemediationFeasibility,
     }),
   });
 }
