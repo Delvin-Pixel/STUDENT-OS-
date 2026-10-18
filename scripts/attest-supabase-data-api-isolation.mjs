@@ -1,7 +1,28 @@
 #!/usr/bin/env node
 import pg from 'pg';
 import { pathToFileURL } from 'node:url';
-import { classifyNexaDataApiIsolation } from '../lib/supabase-data-api-isolation-core.ts';
+function count(value) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+export function classifyNexaDataApiIsolationEvidence(row) {
+  if (!row) return 'exposed';
+  const values = [
+    count(row.current_schema_exposures),
+    count(row.current_table_exposures),
+    count(row.current_sequence_exposures),
+    count(row.current_function_exposures),
+    count(row.public_default_acl_exposures),
+    count(row.public_default_acl_grant_options),
+  ];
+  if (values.some((value) => value === null)) return 'exposed';
+
+  const [schema, tables, sequences, functions, defaults, grantOptions] = values;
+  if (schema > 0 || tables > 0 || sequences > 0 || functions > 0) return 'exposed';
+  if (defaults > 0 || grantOptions > 0) return 'future-default-risk';
+  return 'isolated';
+}
 
 export async function queryNexaDataApiIsolation(options = {}) {
   const connectionString = options.connectionString ?? process.env.DATABASE_URL;
@@ -105,7 +126,7 @@ export async function queryNexaDataApiIsolation(options = {}) {
     `);
 
     const row = result.rows[0] ?? {};
-    const status = classifyNexaDataApiIsolation(row);
+    const status = classifyNexaDataApiIsolationEvidence(row);
     return Object.freeze({
       status,
       dataApiIntegration: 'unknown',
