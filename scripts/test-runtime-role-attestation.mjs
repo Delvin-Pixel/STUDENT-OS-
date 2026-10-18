@@ -77,7 +77,17 @@ const secureRow = {
   role_memberships: 0,
 };
 
-const secure = buildNexaRuntimeRoleAttestation(secureRow);
+const secureDefaultPrivileges = {
+  default_acl_groups: 3,
+  default_table_acl_groups: 1,
+  default_sequence_acl_groups: 1,
+  default_function_acl_groups: 1,
+  default_acl_mismatched_groups: 0,
+  default_acl_grant_option_groups: 0,
+  default_acl_outside_public_groups: 0,
+};
+
+const secure = buildNexaRuntimeRoleAttestation(secureRow, secureDefaultPrivileges);
 assert.equal(secure.secure, true);
 assert.deepEqual([...secure.failedChecks], []);
 assert.equal(secure.checks.noSuperuser, true);
@@ -135,7 +145,7 @@ for (const [field, expectedFailure, value] of [
   ['runtime_update_sequences', 'noSequenceUpdate', 1],
   ['runtime_functions', 'functionExecuteCoverage', 2],
 ]) {
-  const result = buildNexaRuntimeRoleAttestation({ ...secureRow, [field]: value });
+  const result = buildNexaRuntimeRoleAttestation({ ...secureRow, [field]: value }, secureDefaultPrivileges);
   assert.equal(result.secure, false, field);
   assert.ok(result.failedChecks.includes(expectedFailure), field);
 }
@@ -146,13 +156,13 @@ for (const [field, expectedFailure] of [
   ['public_usage', 'schemaUsage'],
   ['db_connect', 'databaseConnect'],
 ]) {
-  const result = buildNexaRuntimeRoleAttestation({ ...secureRow, [field]: false });
+  const result = buildNexaRuntimeRoleAttestation({ ...secureRow, [field]: false }, secureDefaultPrivileges);
   assert.equal(result.secure, false, field);
   assert.ok(result.failedChecks.includes(expectedFailure), field);
 }
 
 assert.throws(
-  () => buildNexaRuntimeRoleAttestation({ ...secureRow, public_tables: -1 }),
+  () => buildNexaRuntimeRoleAttestation({ ...secureRow, public_tables: -1 }, secureDefaultPrivileges),
   /public_tables/,
 );
 
