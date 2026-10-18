@@ -13,8 +13,8 @@ const [pkgText, fallbackSource, routeSource, providerSource, readme] = await Pro
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-93');
-assert.equal(pkg.version, '1.93.0');
+assert.equal(pkg.name, 'nexa-1-94');
+assert.equal(pkg.version, '1.94.0');
 assert.equal(
   pkg.scripts['test:student-os-bridge-fallback'],
   'node scripts/test-student-os-bridge-fallback.mjs',

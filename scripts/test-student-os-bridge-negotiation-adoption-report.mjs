@@ -11,8 +11,8 @@ const [pkgText, reportSource, readme] = await Promise.all([
 const pkg = JSON.parse(pkgText);
 const reportModule = await import('../scripts/report-student-os-bridge-negotiation-adoption.mjs');
 
-assert.equal(pkg.name, 'nexa-1-93');
-assert.equal(pkg.version, '1.93.0');
+assert.equal(pkg.name, 'nexa-1-94');
+assert.equal(pkg.version, '1.94.0');
 assert.equal(
   pkg.scripts['ops:report-student-os-bridge-negotiation-adoption'],
   'node scripts/report-student-os-bridge-negotiation-adoption.mjs',
