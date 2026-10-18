@@ -12,8 +12,8 @@ const [pkgText, migration, manifestText, readme] = await Promise.all([
 const pkg = JSON.parse(pkgText);
 const manifest = JSON.parse(manifestText);
 
-assert.equal(pkg.name, 'nexa-1-89');
-assert.equal(pkg.version, '1.89.0');
+assert.equal(pkg.name, 'nexa-1-90');
+assert.equal(pkg.version, '1.90.0');
 assert.equal(
   pkg.scripts['test:supabase-data-api-isolation'],
   'node scripts/test-supabase-data-api-isolation.mjs',
