@@ -23,29 +23,35 @@ const [
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-91');
-assert.equal(pkg.version, '1.91.0');
+assert.equal(pkg.name, 'nexa-1-92');
+assert.equal(pkg.version, '1.92.0');
 assert.equal(
   pkg.scripts['test:data-api-platform-readiness'],
   'node scripts/test-data-api-platform-readiness.mjs',
 );
 assert.match(pkg.scripts.test, /test:data-api-platform-readiness/);
-assert.match(readme, /NEXA 1\.91\.0 — Supabase Data API Platform-State Readiness/);
+assert.match(readme, /NEXA 1\.92\.0 — Supabase Data API Probe Semantics/);
 
 for (const token of [
   'NEXA_DATA_API_PLATFORM_CACHE_MS = 60_000',
-  "new URL('/rest/v1/'",
-  "Accept: 'application/openapi+json'",
+  "PROBE_RELATION = '__nexa_data_api_platform_probe_nonexistent__'",
+  "PROBE_COLUMN = '__nexa_probe_column__'",
+  "probe.searchParams.set('limit', '0')",
+  "Accept: 'application/json'",
   'apikey: endpoint.apiKey',
-  'response.body?.cancel()',
+  'response.arrayBuffer()',
+  'PROBE_BODY_MAX_BYTES = 2_048',
   'AbortSignal.timeout',
   '/^[a-z0-9]{20}\\.supabase\\.co$/',
 ]) {
   assert.ok(runtimeSource.includes(token), token);
 }
 
-assert.doesNotMatch(runtimeSource, /response\.json\(|response\.text\(|\.table\(|from\(['"]/);
+assert.doesNotMatch(runtimeSource, /application\/openapi\+json/);
+assert.doesNotMatch(runtimeSource, /new URL\(['"]\/rest\/v1\/['"]/);
+assert.doesNotMatch(runtimeSource, /response\.text\(|\.table\(|from\(['"]/);
 assert.doesNotMatch(runtimeSource, /service_role|secret[_ -]?key/i);
+assert.match(runtimeSource, /\^PGRST\\d\{3\}\$/);
 assert.match(envExample, /NEXA_SUPABASE_URL=/);
 assert.match(envExample, /NEXA_SUPABASE_PUBLISHABLE_KEY=/);
 assert.match(envExample, /NEXA_SUPABASE_DATA_API_PROBE_TIMEOUT_MS=5000/);
@@ -70,15 +76,18 @@ const transpiled = ts.transpileModule(coreSource, {
 const core = await import(`data:text/javascript;base64,${Buffer.from(transpiled).toString('base64')}`);
 
 const cases = [
-  [{ configured: false, httpStatus: null, failed: false }, ['unavailable', 'configuration_missing']],
-  [{ configured: true, httpStatus: null, failed: true }, ['unavailable', 'probe_failed']],
-  [{ configured: true, httpStatus: 200, failed: false }, ['enabled', null]],
-  [{ configured: true, httpStatus: 204, failed: false }, ['enabled', null]],
-  [{ configured: true, httpStatus: 404, failed: false }, ['disabled', null]],
-  [{ configured: true, httpStatus: 410, failed: false }, ['disabled', null]],
-  [{ configured: true, httpStatus: 401, failed: false }, ['unavailable', 'credential_rejected']],
-  [{ configured: true, httpStatus: 403, failed: false }, ['unavailable', 'credential_rejected']],
-  [{ configured: true, httpStatus: 500, failed: false }, ['unavailable', 'unexpected_status']],
+  [{ configured: false, httpStatus: null, failed: false, postgrestCode: null }, ['unavailable', 'configuration_missing']],
+  [{ configured: true, httpStatus: null, failed: true, postgrestCode: null }, ['unavailable', 'probe_failed']],
+  [{ configured: true, httpStatus: 200, failed: false, postgrestCode: null }, ['enabled', null]],
+  [{ configured: true, httpStatus: 206, failed: false, postgrestCode: null }, ['enabled', null]],
+  [{ configured: true, httpStatus: 404, failed: false, postgrestCode: 'PGRST205' }, ['enabled', null]],
+  [{ configured: true, httpStatus: 400, failed: false, postgrestCode: 'PGRST204' }, ['enabled', null]],
+  [{ configured: true, httpStatus: 406, failed: false, postgrestCode: 'PGRST106' }, ['disabled', null]],
+  [{ configured: true, httpStatus: 404, failed: false, postgrestCode: null }, ['disabled', null]],
+  [{ configured: true, httpStatus: 410, failed: false, postgrestCode: null }, ['disabled', null]],
+  [{ configured: true, httpStatus: 401, failed: false, postgrestCode: null }, ['unavailable', 'credential_rejected']],
+  [{ configured: true, httpStatus: 403, failed: false, postgrestCode: null }, ['unavailable', 'unexpected_status']],
+  [{ configured: true, httpStatus: 500, failed: false, postgrestCode: null }, ['unavailable', 'unexpected_status']],
 ];
 for (const [input, expected] of cases) {
   const result = core.classifyNexaDataApiPlatformProbe(input);
@@ -89,14 +98,14 @@ for (const [input, expected] of cases) {
 
 let migration047Exists = true;
 try {
-  await access(new URL('../db/047_data_api_platform_readiness.sql', import.meta.url));
+  await access(new URL('../db/047_data_api_probe_semantics.sql', import.meta.url));
 } catch {
   migration047Exists = false;
 }
 assert.equal(
   migration047Exists,
   false,
-  'Data API platform-state readiness must not introduce migration 047.',
+  'Data API probe semantics must not introduce migration 047.',
 );
 
-console.log('NEXA Supabase Data API platform-state readiness tests passed.');
+console.log('NEXA Supabase Data API probe semantics tests passed.');
