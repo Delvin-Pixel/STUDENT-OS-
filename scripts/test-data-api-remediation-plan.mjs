@@ -28,7 +28,7 @@ assert.equal(
   'node scripts/test-data-api-remediation-plan.mjs',
 );
 assert.match(pkg.scripts.test, /test:data-api-remediation-plan/);
-assert.match(readme, /NEXA 1\.94\.0 — Platform-Aware Data API Remediation Closure/);
+assert.match(readme, /NEXA 1\.94\.0 — Data API Remediation Readiness/);
 
 for (const token of [
   'pg_default_acl',
