@@ -1,4 +1,5 @@
 import { query } from '@/lib/db';
+import { classifyNexaRuntimeDefaultPrivileges, type RuntimeRoleDefaultPrivilegeRow } from '@/lib/runtime-role-default-privileges-core';
 export type {
   NexaRuntimeRoleSecurityReason,
   NexaRuntimeRoleSecurityStatus,
@@ -186,7 +187,68 @@ export async function getNexaRuntimeRoleSecurity(
       left join role_state rs on true
     `, [NEXA_RUNTIME_ROLE]);
 
-    const status = classifyNexaRuntimeRoleSecurity(result.rows[0]);
+    const defaultPrivileges = await query<RuntimeRoleDefaultPrivilegeRow>(`
+      with default_entries as (
+        select
+          d.defaclrole,
+          coalesce(n.nspname, '') as schema_name,
+          d.defaclobjtype,
+          x.privilege_type,
+          x.is_grantable
+        from pg_default_acl d
+        left join pg_namespace n on n.oid = d.defaclnamespace
+        cross join lateral aclexplode(d.defaclacl) x
+        join pg_roles grantee on grantee.oid = x.grantee
+        where grantee.rolname = $1
+      ),
+      default_groups as (
+        select
+          defaclrole,
+          schema_name,
+          defaclobjtype,
+          count(distinct privilege_type)::int as privilege_count,
+          count(distinct privilege_type) filter (
+            where defaclobjtype = 'r'
+              and privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
+          )::int as table_allowed_count,
+          count(distinct privilege_type) filter (
+            where defaclobjtype = 'S'
+              and privilege_type in ('USAGE', 'SELECT')
+          )::int as sequence_allowed_count,
+          count(distinct privilege_type) filter (
+            where defaclobjtype = 'f'
+              and privilege_type = 'EXECUTE'
+          )::int as function_allowed_count,
+          bool_or(is_grantable) as has_grant_option
+        from default_entries
+        group by defaclrole, schema_name, defaclobjtype
+      )
+      select
+        count(*)::int as default_acl_groups,
+        count(*) filter (where defaclobjtype = 'r')::int as default_table_acl_groups,
+        count(*) filter (where defaclobjtype = 'S')::int as default_sequence_acl_groups,
+        count(*) filter (where defaclobjtype = 'f')::int as default_function_acl_groups,
+        count(*) filter (
+          where schema_name <> 'public'
+            or has_grant_option
+            or case defaclobjtype
+              when 'r' then not (privilege_count = 4 and table_allowed_count = 4)
+              when 'S' then not (privilege_count = 2 and sequence_allowed_count = 2)
+              when 'f' then not (privilege_count = 1 and function_allowed_count = 1)
+              else true
+            end
+        )::int as default_acl_mismatched_groups,
+        count(*) filter (where has_grant_option)::int as default_acl_grant_option_groups,
+        count(*) filter (where schema_name <> 'public')::int as default_acl_outside_public_groups
+      from default_groups
+    `, [NEXA_RUNTIME_ROLE]);
+
+    const status = (
+      classifyNexaRuntimeRoleSecurity(result.rows[0]) === 'secure'
+      && classifyNexaRuntimeDefaultPrivileges(defaultPrivileges.rows[0]) === 'secure'
+    )
+      ? 'secure'
+      : 'insecure';
     const value = Object.freeze({
       status,
       reason: status === 'secure' ? null : 'least_privilege_violation',
