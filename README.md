@@ -1,3 +1,19 @@
+# NEXA 1.90.0 — Supabase Data API Remediation Planning
+
+NEXA 1.90.0 turns the Data API security blocker into a bounded, read-only operator remediation plan. The new `npm run ops:plan-data-api-remediation` command combines the existing Data API isolation attestation with PostgreSQL default-ACL ownership evidence so operators can tell whether the live risk is safely remediable through the connected database role or requires an account-owner platform action.
+
+The planner never runs `GRANT`, `REVOKE`, `ALTER DEFAULT PRIVILEGES`, or any Supabase platform mutation. Automatic remediation is permanently reported as `false`. It returns only bounded status, recommended action, SQL-remediation feasibility, isolation status, and aggregate owner counts. It does not return default-owner names, raw ACL rows, object names, credentials, API keys, prompts, responses, or user identities.
+
+When the Data API boundary is already isolated, the plan is `no-action`. A current exposure produces `security-review-required`. A future-default-only risk produces `owner-action-required` and recommends `disable-data-api-in-dashboard`, which matches NEXA's architecture because NEXA uses direct PostgreSQL through `nexa_runtime` and does not depend on Supabase REST or GraphQL Data API endpoints.
+
+The SQL-remediation feasibility check is intentionally conservative. If one or more risky default-ACL owners cannot be managed by the connected database role, the plan reports `blocked-by-default-owner`. Even when the current role could technically manage every risky owner, automatic remediation remains disabled and the supported platform action remains preferred.
+
+Live production evidence before this release shows `future-default-risk`, one risky default-ACL owner, zero alterable risky owners from the connected `postgres` role, and therefore the expected plan is `owner-action-required / disable-data-api-in-dashboard / blocked-by-default-owner`.
+
+No database migration is introduced; migrations 001–046 remain immutable. Runtime-role security, Data API fail-closed bridge admission, NEXA provider/fallback/bridge contracts, and Student OS deterministic academic authority remain unchanged.
+
+---
+
 # NEXA 1.89.0 — Data API–Aware Student OS Bridge Security Admission
 
 NEXA 1.89.0 extends the authenticated Student OS bridge security boundary from PostgreSQL runtime-role security to Supabase Data API isolation. Model-backed bridge execution now requires both a secure `nexa_runtime` role and a fully `isolated` Data API state before NEXA proceeds to AI Gateway admission, rate limits, idempotency claims, provider creation, or model execution.
