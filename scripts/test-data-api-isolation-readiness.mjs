@@ -43,8 +43,13 @@ assert.doesNotMatch(runtimeSource, /automaticRemediation|alter default privilege
 
 assert.match(healthSource, /dataApiIsolation: NexaDataApiIsolationReadinessStatus/);
 assert.match(healthSource, /dataApiIsolationReason: NexaDataApiIsolationReadinessReason/);
+assert.match(healthSource, /dataApiEffectiveSecurity: NexaDataApiEffectiveSecurityStatus/);
+assert.match(healthSource, /dataApiEffectiveSecurityReason: NexaDataApiEffectiveSecurityReason/);
 assert.match(healthSource, /getNexaDataApiIsolationReadiness\(\)/);
-assert.match(healthSource, /dataApiIsolation\.status === 'isolated'/);
+assert.match(healthSource, /classifyNexaDataApiEffectiveSecurity\(\{/);
+assert.match(healthSource, /isolationStatus: dataApiIsolation\.status/);
+assert.match(healthSource, /dataApiEffectiveSecurity\.status === 'secure'/);
+assert.doesNotMatch(healthSource, /dataApiIsolation\.status === 'isolated'/);
 assert.doesNotMatch(
   healthSource,
   /currentSchemaExposures|currentTableExposures|currentSequenceExposures|currentFunctionExposures|publicDefaultAclExposures|publicDefaultAclGrantOptions/,
