@@ -2,6 +2,11 @@ import { getNexaAiGatewayReadiness, type NexaAiGatewayReadiness } from '@/lib/ai
 import { query } from '@/lib/db';
 import { hasConfiguredRateLimitSecret } from '@/lib/rate-limit';
 import { getNexaDataApiPlatformReadiness } from '@/lib/supabase-data-api-platform';
+import {
+  classifyNexaDataApiEffectiveSecurity,
+  type NexaDataApiEffectiveSecurityReason,
+  type NexaDataApiEffectiveSecurityStatus,
+} from '@/lib/supabase-data-api-effective-security-core';
 import type {
   NexaDataApiPlatformReason,
   NexaDataApiPlatformStatus,
@@ -29,6 +34,8 @@ export type HealthStatus = {
   dataApiIsolationReason: NexaDataApiIsolationReadinessReason;
   dataApiPlatform: NexaDataApiPlatformStatus;
   dataApiPlatformReason: NexaDataApiPlatformReason;
+  dataApiEffectiveSecurity: NexaDataApiEffectiveSecurityStatus;
+  dataApiEffectiveSecurityReason: NexaDataApiEffectiveSecurityReason;
   aiGateway: 'configured' | 'missing';
   aiGatewayOperational: NexaAiGatewayReadiness['status'];
   aiGatewayReason: NexaAiGatewayReadiness['reason'];
@@ -54,11 +61,15 @@ export async function getReadiness(): Promise<HealthStatus> {
     getNexaAiGatewayReadiness(),
   ]);
 
+  const dataApiEffectiveSecurity = classifyNexaDataApiEffectiveSecurity({
+    platformStatus: dataApiPlatform.status,
+    isolationStatus: dataApiIsolation.status,
+  });
+
   const healthy = (
     databaseResult === 'ok'
     && runtimeRoleSecurity.status === 'secure'
-    && dataApiIsolation.status === 'isolated'
-    && dataApiPlatform.status !== 'unavailable'
+    && dataApiEffectiveSecurity.status === 'secure'
     && gateway.status === 'operational'
     && rateLimitSecretConfigured
   );
@@ -74,6 +85,8 @@ export async function getReadiness(): Promise<HealthStatus> {
     dataApiIsolationReason: dataApiIsolation.reason,
     dataApiPlatform: dataApiPlatform.status,
     dataApiPlatformReason: dataApiPlatform.reason,
+    dataApiEffectiveSecurity: dataApiEffectiveSecurity.status,
+    dataApiEffectiveSecurityReason: dataApiEffectiveSecurity.reason,
     aiGateway: gateway.configured ? 'configured' : 'missing',
     aiGatewayOperational: gateway.status,
     aiGatewayReason: gateway.reason,
