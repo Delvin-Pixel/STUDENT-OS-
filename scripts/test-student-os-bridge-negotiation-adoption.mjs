@@ -12,8 +12,8 @@ const [pkgText, migration043, runtimeSource, routeSource, readme] = await Promis
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-88');
-assert.equal(pkg.version, '1.88.0');
+assert.equal(pkg.name, 'nexa-1-89');
+assert.equal(pkg.version, '1.89.0');
 assert.equal(
   pkg.scripts['test:student-os-bridge-negotiation-adoption'],
   'node scripts/test-student-os-bridge-negotiation-adoption.mjs',
