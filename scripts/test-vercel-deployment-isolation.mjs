@@ -13,9 +13,9 @@ const [pkgText, vercelText, versionSource, readme] = await Promise.all([
 const pkg = JSON.parse(pkgText);
 const vercel = JSON.parse(vercelText);
 
-assert.equal(pkg.name, 'nexa-1-86');
-assert.equal(pkg.version, '1.86.0');
-assert.match(versionSource, /NEXA_VERSION = '1\.86\.0'/);
+assert.equal(pkg.name, 'nexa-1-87');
+assert.equal(pkg.version, '1.87.0');
+assert.match(versionSource, /NEXA_VERSION = '1\.87\.0'/);
 assert.equal(pkg.scripts['test:vercel-deployment-isolation'], 'node scripts/test-vercel-deployment-isolation.mjs');
 assert.match(pkg.scripts.test, /test:vercel-deployment-isolation/);
 assert.match(readme, /NEXA 1\.66\.0 — Branch-Local Vercel Deployment Isolation/);

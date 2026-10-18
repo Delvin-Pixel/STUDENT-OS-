@@ -14,8 +14,8 @@ const [pkgText, coreSource, runtimeSource, healthSource, operatorSource, readme]
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-86');
-assert.equal(pkg.version, '1.86.0');
+assert.equal(pkg.name, 'nexa-1-87');
+assert.equal(pkg.version, '1.87.0');
 assert.equal(
   pkg.scripts['test:runtime-role-security-readiness'],
   'node scripts/test-runtime-role-security-readiness.mjs',
