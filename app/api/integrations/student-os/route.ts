@@ -210,7 +210,7 @@ export async function POST(request: Request) {
       });
       return jsonResponse(
         {
-          error: 'Student OS bridge is unavailable because NEXA runtime security is not ready.',
+          error: 'Student OS bridge is unavailable because NEXA security is not ready.',
           code: securityAdmission.reason,
         },
         {
@@ -219,6 +219,7 @@ export async function POST(request: Request) {
           headers: {
             ...noStoreHeaders(envelope.request.requestId, bridgeContractVersion),
             'X-NEXA-Bridge-Security-Status': securityAdmission.status,
+            'X-NEXA-Bridge-Security-Source': securityAdmission.source,
             'X-NEXA-Bridge-Security-Reason': securityAdmission.reason,
             'X-NEXA-Bridge-Serving-Mode': 'unavailable',
             ...(securityAdmission.retryAfterSeconds === null
