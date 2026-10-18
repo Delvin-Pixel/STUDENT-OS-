@@ -1,3 +1,19 @@
+# NEXA 1.88.0 — Supabase Data API Runtime Readiness
+
+NEXA 1.88.0 promotes the v1.87 Supabase Data API isolation attestation into the public runtime readiness contract. The runtime executes the same read-only PostgreSQL evidence query as the operator attestation and caches the bounded result for 60 seconds so ordinary readiness can detect Data API exposure drift without repeatedly scanning ACL catalogs.
+
+The bounded readiness state is `isolated`, `future-default-risk`, `exposed`, or `unavailable`. `isolated` means current NEXA public objects are unreachable through the checked Data API principals and future public-schema defaults are also clean. `future-default-risk` means current objects remain isolated but future objects could inherit Data API access. `exposed` means at least one current public-schema exposure path exists or the evidence is malformed. `unavailable` means the attestation query could not be completed.
+
+Public readiness exposes only `dataApiIsolation` and a coarse `dataApiIsolationReason`: `future_default_privilege_risk`, `current_data_api_exposure`, or `attestation_unavailable`. It does not expose object names, role names, raw ACL rows, table counts, schema counts, credentials, prompts, API keys, or user identities.
+
+Global NEXA readiness now requires Data API state `isolated` in addition to database availability, secure runtime-role state, operational AI Gateway state, and the configured rate-limit secret. This release does not yet add a direct Student OS bridge admission rule for Data API state; bridge-specific enforcement remains a separate compatibility step.
+
+The live Supabase project currently has zero current schema/table/sequence/function exposures but non-zero future-object default ACL exposure, so the expected production state after this release is `future-default-risk` until supported Supabase/default-privilege remediation is performed. The release is intentionally read-only and performs no automatic platform remediation.
+
+No database migration is introduced; migrations 001–045 remain immutable. NEXA provider, fallback, and Student OS bridge transport contracts remain unchanged, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.87.0 — Supabase Data API Exposure Attestation
 
 NEXA 1.87.0 turns the v1.79 Supabase Data API hardening into a continuously measurable security boundary without pretending the connected runtime can manage Supabase's platform integration settings. The new read-only operator attestation distinguishes current effective exposure from future-object default-privilege risk for NEXA's `public` schema.
