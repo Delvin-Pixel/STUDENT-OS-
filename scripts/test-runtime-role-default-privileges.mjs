@@ -13,8 +13,8 @@ const [pkgText, coreSource, runtimeSource, operatorSource, readme] = await Promi
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-90');
-assert.equal(pkg.version, '1.90.0');
+assert.equal(pkg.name, 'nexa-1-91');
+assert.equal(pkg.version, '1.91.0');
 assert.equal(
   pkg.scripts['test:runtime-role-default-privileges'],
   'node scripts/test-runtime-role-default-privileges.mjs',
