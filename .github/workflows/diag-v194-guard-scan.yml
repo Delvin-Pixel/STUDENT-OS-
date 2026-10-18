@@ -1,0 +1,27 @@
+name: Diagnose NEXA 1.94 stale guards
+
+on:
+  push:
+    branches:
+      - stage/nexa-1.94.0-data-api-remediation-readiness
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: nexa-1.94.0-data-api-remediation-readiness
+      - name: Find remaining v1.93 script references
+        shell: bash
+        run: |
+          echo "=== nexa-1-93 references ==="
+          grep -RInF "nexa-1-93" scripts || true
+          echo "=== 1.93.0 references ==="
+          grep -RInF "1.93.0" scripts || true
+          echo "=== escaped 1.93.0 references ==="
+          grep -RInF "1\.93\.0" scripts || true
