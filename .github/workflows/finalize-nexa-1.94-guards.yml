@@ -1,0 +1,82 @@
+name: Finalize NEXA 1.94 active guards
+
+on:
+  push:
+    branches: [nexa-1.94.0-data-api-remediation-readiness]
+
+permissions:
+  contents: write
+
+jobs:
+  advance:
+    if: github.event.head_commit.message != 'chore(nexa): finalize 1.94 active release guards'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: nexa-1.94.0-data-api-remediation-readiness
+      - name: Advance active version guards only
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const files = fs.readdirSync('scripts')
+            .filter((name) => name.endsWith('.mjs'))
+            .map((name) => path.join('scripts', name));
+
+          for (const file of files) {
+            const original = fs.readFileSync(file, 'utf8');
+            const lines = original.split('\n').map((line) => {
+              let next = line;
+
+              if (
+                /\b(pkg|packageJson|manifest|release)\.(name|version)\b/.test(line)
+                || line.includes('NEXA_VERSION')
+                || line.includes('Expected 1.93.0')
+              ) {
+                next = next
+                  .replaceAll('nexa-1-93', 'nexa-1-94')
+                  .replaceAll('1.93.0', '1.94.0')
+                  .replaceAll('1\\.93\\.0', '1\\.94\\.0');
+              }
+
+              if (
+                line.includes('nexa-1\\.93\\.0-verified')
+                || line.includes('nexa-1\\.93\\.0-verification-evidence')
+              ) {
+                next = next
+                  .replaceAll('nexa-1\\.93\\.0-verified', 'nexa-1\\.94\\.0-verified')
+                  .replaceAll('nexa-1\\.93\\.0-verification-evidence', 'nexa-1\\.94\\.0-verification-evidence');
+              }
+
+              return next;
+            });
+
+            const updated = lines.join('\n');
+            if (updated !== original) fs.writeFileSync(file, updated);
+          }
+
+          const remaining = [];
+          for (const file of files) {
+            const lines = fs.readFileSync(file, 'utf8').split('\n');
+            lines.forEach((line, index) => {
+              if (line.includes('1.93.0') || line.includes('nexa-1-93') || line.includes('1\\.93\\.0')) {
+                remaining.push(`${file}:${index + 1}:${line.trim()}`);
+              }
+            });
+          }
+          console.log('Remaining v1.93 references after active-guard sweep:');
+          console.log(remaining.join('\n') || '(none)');
+          NODE
+      - name: Commit guard sweep
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(nexa): finalize 1.94 active release guards"
+          git push origin HEAD:nexa-1.94.0-data-api-remediation-readiness
