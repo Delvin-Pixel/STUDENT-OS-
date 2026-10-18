@@ -32,6 +32,18 @@ try {
   await pool.query('grant select, insert, update, delete on all tables in schema public to nexa_runtime');
   await pool.query('grant usage, select on all sequences in schema public to nexa_runtime');
   await pool.query('grant execute on all functions in schema public to nexa_runtime');
+  await pool.query('alter default privileges in schema public revoke all on tables from nexa_runtime');
+  await pool.query(
+    'alter default privileges in schema public grant select, insert, update, delete on tables to nexa_runtime',
+  );
+  await pool.query('alter default privileges in schema public revoke all on sequences from nexa_runtime');
+  await pool.query(
+    'alter default privileges in schema public grant usage, select on sequences to nexa_runtime',
+  );
+  await pool.query('alter default privileges in schema public revoke all on functions from nexa_runtime');
+  await pool.query(
+    'alter default privileges in schema public grant execute on functions to nexa_runtime',
+  );
 
   const memberships = await pool.query(`
     select granted.rolname
