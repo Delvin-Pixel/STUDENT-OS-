@@ -16,7 +16,7 @@ function count(value, field) {
   return parsed;
 }
 
-export function buildNexaRuntimeRoleAttestation(row = {}) {
+export function buildNexaRuntimeRoleAttestation(row = {}, defaultPrivileges = {}) {
   const roleExists = boolean(row.role_exists);
   const login = boolean(row.rolcanlogin);
   const superuser = boolean(row.rolsuper);
@@ -47,6 +47,13 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
   const runtimeOwnedRelations = count(row.runtime_owned_relations, 'runtime_owned_relations');
   const runtimeOwnedFunctions = count(row.runtime_owned_functions, 'runtime_owned_functions');
   const runtimeSecurityDefinerFunctions = count(row.runtime_security_definer_functions, 'runtime_security_definer_functions');
+  const defaultAclGroups = count(defaultPrivileges.default_acl_groups, 'default_acl_groups');
+  const defaultTableAclGroups = count(defaultPrivileges.default_table_acl_groups, 'default_table_acl_groups');
+  const defaultSequenceAclGroups = count(defaultPrivileges.default_sequence_acl_groups, 'default_sequence_acl_groups');
+  const defaultFunctionAclGroups = count(defaultPrivileges.default_function_acl_groups, 'default_function_acl_groups');
+  const defaultAclMismatchedGroups = count(defaultPrivileges.default_acl_mismatched_groups, 'default_acl_mismatched_groups');
+  const defaultAclGrantOptionGroups = count(defaultPrivileges.default_acl_grant_option_groups, 'default_acl_grant_option_groups');
+  const defaultAclOutsidePublicGroups = count(defaultPrivileges.default_acl_outside_public_groups, 'default_acl_outside_public_groups');
 
   const checks = Object.freeze({
     roleExists,
@@ -74,6 +81,12 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
     sequenceUsageCoverage: runtimeSequences === publicSequences,
     noSequenceUpdate: runtimeUpdateSequences === 0,
     functionExecuteCoverage: runtimeFunctions === publicFunctions,
+    defaultTablePrivilegesConfigured: defaultTableAclGroups >= 1,
+    defaultSequencePrivilegesConfigured: defaultSequenceAclGroups >= 1,
+    defaultFunctionPrivilegesConfigured: defaultFunctionAclGroups >= 1,
+    exactDefaultPrivileges: defaultAclMismatchedGroups === 0,
+    noDefaultGrantOptions: defaultAclGrantOptionGroups === 0,
+    noDefaultPrivilegesOutsidePublic: defaultAclOutsidePublicGroups === 0,
   });
 
   const failedChecks = Object.freeze(
@@ -106,6 +119,13 @@ export function buildNexaRuntimeRoleAttestation(row = {}) {
       runtimeOwnedRelations,
       runtimeOwnedFunctions,
       runtimeSecurityDefinerFunctions,
+      defaultAclGroups,
+      defaultTableAclGroups,
+      defaultSequenceAclGroups,
+      defaultFunctionAclGroups,
+      defaultAclMismatchedGroups,
+      defaultAclGrantOptionGroups,
+      defaultAclOutsidePublicGroups,
     }),
   });
 }
@@ -270,7 +290,66 @@ export async function queryNexaRuntimeRoleAttestation(options = {}) {
       left join role_state rs on true
     `, [NEXA_RUNTIME_ROLE]);
 
-    return buildNexaRuntimeRoleAttestation(result.rows[0] ?? {});
+    const defaultPrivilegeResult = await pool.query(`
+      with default_entries as (
+        select
+          d.defaclrole,
+          coalesce(n.nspname, '') as schema_name,
+          d.defaclobjtype,
+          x.privilege_type,
+          x.is_grantable
+        from pg_default_acl d
+        left join pg_namespace n on n.oid = d.defaclnamespace
+        cross join lateral aclexplode(d.defaclacl) x
+        join pg_roles grantee on grantee.oid = x.grantee
+        where grantee.rolname = $1
+      ),
+      default_groups as (
+        select
+          defaclrole,
+          schema_name,
+          defaclobjtype,
+          count(distinct privilege_type)::int as privilege_count,
+          count(distinct privilege_type) filter (
+            where defaclobjtype = 'r'
+              and privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
+          )::int as table_allowed_count,
+          count(distinct privilege_type) filter (
+            where defaclobjtype = 'S'
+              and privilege_type in ('USAGE', 'SELECT')
+          )::int as sequence_allowed_count,
+          count(distinct privilege_type) filter (
+            where defaclobjtype = 'f'
+              and privilege_type = 'EXECUTE'
+          )::int as function_allowed_count,
+          bool_or(is_grantable) as has_grant_option
+        from default_entries
+        group by defaclrole, schema_name, defaclobjtype
+      )
+      select
+        count(*)::int as default_acl_groups,
+        count(*) filter (where defaclobjtype = 'r')::int as default_table_acl_groups,
+        count(*) filter (where defaclobjtype = 'S')::int as default_sequence_acl_groups,
+        count(*) filter (where defaclobjtype = 'f')::int as default_function_acl_groups,
+        count(*) filter (
+          where schema_name <> 'public'
+            or has_grant_option
+            or case defaclobjtype
+              when 'r' then not (privilege_count = 4 and table_allowed_count = 4)
+              when 'S' then not (privilege_count = 2 and sequence_allowed_count = 2)
+              when 'f' then not (privilege_count = 1 and function_allowed_count = 1)
+              else true
+            end
+        )::int as default_acl_mismatched_groups,
+        count(*) filter (where has_grant_option)::int as default_acl_grant_option_groups,
+        count(*) filter (where schema_name <> 'public')::int as default_acl_outside_public_groups
+      from default_groups
+    `, [NEXA_RUNTIME_ROLE]);
+
+    return buildNexaRuntimeRoleAttestation(
+      result.rows[0] ?? {},
+      defaultPrivilegeResult.rows[0] ?? {},
+    );
   } finally {
     await pool.end();
   }
