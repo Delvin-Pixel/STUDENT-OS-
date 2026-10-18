@@ -1,3 +1,17 @@
+# NEXA 1.94.0 — Data API Remediation Readiness
+
+NEXA 1.94.0 makes the Supabase Data API security blocker operationally actionable without pretending the connected runtime can alter provider-owned defaults. General readiness and authenticated Student OS bridge readiness now expose a bounded remediation state alongside effective Data API security.
+
+The remediation state reports only four things: whether remediation is unnecessary, requires an account-owner action, requires security review, or is unavailable; the recommended bounded action; whether SQL remediation is feasible; and a coarse attestation reason when the plan cannot be determined. Raw ACL rows, role names, object names, privilege counts, credentials, API keys, prompts, response bodies, and user data are never returned by runtime readiness.
+
+When the Data API platform is disabled, remediation is `no-action`. When the platform is enabled and future-default risk exists, NEXA evaluates whether the current database identity is actually authorized to alter the owner of those risky defaults. A protected owner yields `owner-action-required` with the recommended action `disable-data-api-in-dashboard` and SQL feasibility `blocked-by-default-owner`. NEXA does not attempt `ALTER DEFAULT PRIVILEGES`, `GRANT`, or `REVOKE` automatically.
+
+Authenticated Student OS bridge health mirrors the same bounded state through JSON plus remediation status/action/SQL-feasibility headers. The existing effective-security gate is unchanged: insecure Data API state still blocks model-backed bridge admission. This release only makes the correct remediation path explicit.
+
+No database migration is introduced; migrations 001–047 remain immutable. NEXA provider, fallback, and bridge transport contracts remain unchanged, and Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.93.0 — Effective Data API Security Reconciliation
 
 NEXA 1.93.0 reconciles Supabase Data API platform state with the existing PostgreSQL isolation attestation so security readiness reflects the effective attack surface instead of treating dormant ACL risk as active exposure after the Data API is disabled.
