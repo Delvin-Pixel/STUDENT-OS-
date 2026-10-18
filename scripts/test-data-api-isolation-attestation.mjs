@@ -31,7 +31,7 @@ assert.match(readme, /NEXA 1\.87\.0 — Supabase Data API Exposure Attestation/)
 for (const token of [
   'pg_default_acl',
   'aclexplode',
-  "'PUBLIC'",
+  'x.grantee = 0',
   "'anon'",
   "'authenticated'",
   "n.nspname = 'public'",
@@ -43,7 +43,7 @@ for (const token of [
   assert.ok(operatorSource.includes(token), token);
 }
 
-assert.doesNotMatch(operatorSource, /service_role/);
+assert.doesNotMatch(operatorSource, /has_schema_privilege\('PUBLIC'|has_table_privilege\('PUBLIC'|has_sequence_privilege\('PUBLIC'|has_function_privilege\('PUBLIC'/);
 assert.doesNotMatch(operatorSource, /graphql_public|storage/);
 
 const transpiled = ts.transpileModule(coreSource, {
