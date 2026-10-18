@@ -1,3 +1,17 @@
+# NEXA 1.92.0 — Supabase Data API Probe Semantics
+
+NEXA 1.92.0 corrects the Data API platform-state probe introduced in 1.91. The previous probe targeted Supabase's exact `/rest/v1/` OpenAPI root with a publishable key. Supabase intentionally restricts that root to elevated API keys, so a valid publishable key can receive HTTP 403 even while the Data API is enabled. Treating that response as rejected credentials created a false-negative readiness state.
+
+The runtime now uses a fixed, intentionally non-existent relation path with `limit=0` and a fixed non-existent column. This canary never requests application rows. When PostgREST is active, the probe recognizes bounded PostgREST schema-cache responses such as `PGRST205` (missing relation) or `PGRST204` (missing column) as evidence that the Data API is enabled. A disabled or non-exposed schema state is distinguished through bounded disabled-path responses such as `PGRST106` or an unhandled 404/410 without a PostgREST object code.
+
+The probe reads at most 2 KiB from the response and extracts only a `PGRST###` code. It never records response messages, table data, row data, object names from the server, credentials, API keys, prompts, user identities, or arbitrary response bodies. The existing project URL validation, publishable-key boundary, five-second timeout, and 60-second cache remain unchanged.
+
+An invalid opaque publishable key still fails as HTTP 401 and remains `credential_rejected`. Unexpected 403/5xx responses remain unavailable rather than being guessed as enabled. This preserves fail-closed behavior while removing the known false-negative caused by the admin-only OpenAPI root.
+
+No database migration is introduced; migrations 001–046 remain immutable. Runtime-role security, Data API isolation attestation, Data API security admission, NEXA provider/fallback/bridge contracts, and Student OS deterministic academic authority remain unchanged.
+
+---
+
 # NEXA 1.91.0 — Supabase Data API Platform-State Readiness
 
 NEXA 1.91.0 adds a read-only runtime probe for the Supabase Data API platform edge so NEXA can distinguish a reachable/enabled Data API from a disabled integration or an unverifiable platform state. The probe requests only the project Data API root, uses the project publishable client key, never names a table, never reads rows, and cancels the response body immediately after receiving the HTTP status.
