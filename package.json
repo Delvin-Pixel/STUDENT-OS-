@@ -1,6 +1,6 @@
 {
-  "name": "nexa-1-88",
-  "version": "1.88.0",
+  "name": "nexa-1-89",
+  "version": "1.89.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
