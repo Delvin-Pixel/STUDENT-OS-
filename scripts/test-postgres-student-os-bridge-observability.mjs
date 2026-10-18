@@ -18,6 +18,7 @@ const rawUserId = `student-${randomUUID()}`;
 const bridgeRequestId = `req-${randomUUID()}`;
 const operationalRequestId = `op-${randomUUID()}`;
 const securityRequestId = `sec-${randomUUID()}`;
+const dataApiRequestId = `data-api-${randomUUID()}`;
 const fingerprint = createHmac('sha256', 'test-observability-secret-0123456789abcdef')
   .update(rawUserId)
   .digest('hex');
@@ -28,7 +29,8 @@ try {
      where version in (
        '041_student_os_bridge_observability.sql',
        '042_student_os_bridge_operational_observability.sql',
-       '045_student_os_bridge_security_admission.sql'
+       '045_student_os_bridge_security_admission.sql',
+       '046_student_os_bridge_data_api_security_admission.sql'
      )
      order by version`,
   );
@@ -38,8 +40,9 @@ try {
       '041_student_os_bridge_observability.sql',
       '042_student_os_bridge_operational_observability.sql',
       '045_student_os_bridge_security_admission.sql',
+      '046_student_os_bridge_data_api_security_admission.sql',
     ],
-    'Migrations 041, 042 and 045 must be applied before bridge observability tests.',
+    'Migrations 041, 042, 045 and 046 must be applied before bridge observability tests.',
   );
 
   const columns = await pool.query(
@@ -79,16 +82,24 @@ try {
     [fingerprint, securityRequestId, `srv-${randomUUID()}`],
   );
 
+  await pool.query(
+    `insert into student_os_bridge_events (
+       user_fingerprint, bridge_request_id, server_request_id, capability,
+       event_type, http_status, duration_ms, provider_ok, operational_reason
+     ) values ($1, $2, $3, 'chat', 'operational_rejected', 503, 8, false, 'data_api_future_default_risk')`,
+    [fingerprint, dataApiRequestId, `srv-${randomUUID()}`],
+  );
+
   const events = await pool.query(
     `select user_fingerprint, bridge_request_id, event_type, http_status,
             duration_ms, provider_ok, operational_reason
      from student_os_bridge_events
      where user_fingerprint = $1
-       and bridge_request_id in ($2, $3, $4)
+       and bridge_request_id in ($2, $3, $4, $5)
      order by created_at asc, event_type asc`,
-    [fingerprint, bridgeRequestId, operationalRequestId, securityRequestId],
+    [fingerprint, bridgeRequestId, operationalRequestId, securityRequestId, dataApiRequestId],
   );
-  assert.equal(events.rows.length, 4);
+  assert.equal(events.rows.length, 5);
   assert.ok(events.rows.every((row) => row.user_fingerprint === fingerprint));
   assert.ok(events.rows.every((row) => row.user_fingerprint !== rawUserId));
   assert.ok(events.rows.some((row) => (
@@ -108,6 +119,13 @@ try {
     && Number(row.http_status) === 503
     && row.provider_ok === false
     && row.operational_reason === 'runtime_role_security_violation'
+  )));
+
+  assert.ok(events.rows.some((row) => (
+    row.event_type === 'operational_rejected'
+    && Number(row.http_status) === 503
+    && row.provider_ok === false
+    && row.operational_reason === 'data_api_future_default_risk'
   )));
 
   await assert.rejects(
