@@ -1,11 +1,11 @@
 import { getNexaAiGatewayReadiness, type NexaAiGatewayReadiness } from '@/lib/ai-gateway-readiness';
 import { query } from '@/lib/db';
 import { hasConfiguredRateLimitSecret } from '@/lib/rate-limit';
-import {
-  getNexaDataApiPlatformReadiness,
-  type NexaDataApiPlatformReason,
-  type NexaDataApiPlatformStatus,
-} from '@/lib/supabase-data-api-platform';
+import { getNexaDataApiPlatformReadiness } from '@/lib/supabase-data-api-platform';
+import type {
+  NexaDataApiPlatformReason,
+  NexaDataApiPlatformStatus,
+} from '@/lib/supabase-data-api-platform-core';
 import {
   getNexaDataApiIsolationReadiness,
   type NexaDataApiIsolationReadinessReason,
