@@ -38,7 +38,7 @@ for (const token of [
   "'authenticated'",
   "n.nspname = 'public'",
   "recommendedAction: 'disable-data-api-in-dashboard'",
-  "recommendedAction: 'verify-data-api-platform-state'",
+  "'verify-data-api-platform-state'",
   'automaticRemediation: false',
   'probeDataApiPlatform',
   'PGRST205',
