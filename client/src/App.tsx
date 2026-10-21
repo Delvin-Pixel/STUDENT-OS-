@@ -12,6 +12,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import PushReminderSync from "./components/PushReminderSync";
 import { Button } from "./components/ui/button";
 import { startLogin } from "./const";
+import { EntitlementProvider } from "./contexts/EntitlementContext";
 import { StoreProvider, useStore } from "./contexts/StoreContext";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { getAuthenticatedLocationWithoutOAuthError } from "./lib/oauthLocation";
@@ -183,7 +184,9 @@ function AuthenticatedStudentOS() {
   }
   return (
     <StoreProvider key={user.openId} openId={user.openId}>
-      <Router />
+      <EntitlementProvider accountId={user.openId}>
+        <Router />
+      </EntitlementProvider>
     </StoreProvider>
   );
 }
