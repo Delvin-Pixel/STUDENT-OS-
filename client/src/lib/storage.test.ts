@@ -8,6 +8,10 @@ import {
   loadWorkspaceRecovery,
   parseImportData,
   saveState,
+  loadWorkspaceMeta,
+  saveWorkspaceMeta,
+  loadWorkspaceConflict,
+  saveWorkspaceConflict,
 } from "./storage";
 
 function makeStorage() {
@@ -285,6 +289,27 @@ describe("Student OS backup data", () => {
     expect(loadState("openid:amina").profile?.name).toBe("Amina");
     expect(loadState("openid:kojo").profile?.name).toBe("Kojo");
     expect(loadState("openid:new-student").profile).toBeNull();
+  });
+
+  it("keeps pending writes and conflict recovery with their originating account across switching and clearing", () => {
+    const a = "account/a";
+    const b = "account_a";
+    saveState(emptyState(), a);
+    saveWorkspaceMeta(a, {
+      revision: 7,
+      pending: true,
+      updatedAt: "2026-10-22T00:00:00Z",
+    });
+    saveWorkspaceConflict(a, {
+      remoteRevision: 8,
+      detectedAt: "2026-10-22T00:00:00Z",
+      localWorkspace: JSON.stringify(emptyState()),
+    });
+    expect(loadWorkspaceMeta(b).pending).toBe(false);
+    expect(loadWorkspaceConflict(b)).toBeNull();
+    clearState(b);
+    expect(loadWorkspaceMeta(a)).toMatchObject({ pending: true, revision: 7 });
+    expect(loadWorkspaceConflict(a)?.remoteRevision).toBe(8);
   });
 
   it("reports a safe failure instead of throwing when cache clearing is blocked by the browser", () => {

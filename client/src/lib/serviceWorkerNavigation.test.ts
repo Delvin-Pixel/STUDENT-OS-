@@ -43,6 +43,36 @@ async function notificationTarget(targetUrl: string) {
 }
 
 describe("service worker notification navigation", () => {
+  it.each(["/api/trpc/workspace.load", "/storage/private.pdf"])(
+    "never intercepts account data at %s",
+    path => {
+      const handlers: Record<string, (event: any) => void> = {};
+      const origin = "https://studentos.example.test";
+      vm.runInNewContext(
+        readFileSync(
+          fileURLToPath(new URL("../../public/sw.js", import.meta.url)),
+          "utf8"
+        ),
+        {
+          URL,
+          location: { origin },
+          self: {
+            addEventListener: (name: string, handler: (event: any) => void) => {
+              handlers[name] = handler;
+            },
+          },
+        }
+      );
+      let intercepted = false;
+      handlers.fetch({
+        request: { method: "GET", url: origin + path, mode: "navigate" },
+        respondWith: () => {
+          intercepted = true;
+        },
+      });
+      expect(intercepted).toBe(false);
+    }
+  );
   it("keeps protected storage routes outside the device-wide cache path", () => {
     const source = readFileSync(
       fileURLToPath(new URL("../../public/sw.js", import.meta.url)),

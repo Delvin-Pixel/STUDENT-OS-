@@ -8,12 +8,12 @@ describe("trusted assessment resume storage", () => {
     );
   });
 
-  it("sanitizes account scope without changing quiz identity", () => {
+  it("encodes account scope without conflating distinct identities", () => {
     expect(trustedAssessmentStorageKey("quiz-1", "acct/with spaces")).toBe(
-      "student-os:trusted-assessment:acct_with_spaces:quiz-1"
+      "student-os:trusted-assessment:acct%2Fwith%20spaces:quiz-1"
     );
     expect(trustedAssessmentStorageKey("quiz-1", "   ")).toBe(
-      "student-os:trusted-assessment:anonymous:quiz-1"
+      "student-os:trusted-assessment:%20%20%20:quiz-1"
     );
   });
 });

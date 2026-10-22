@@ -55,9 +55,8 @@ export function trustedAssessmentStorageKey(
   quizId: string,
   accountScope = "anonymous"
 ) {
-  const safeScope =
-    accountScope.trim().replace(/[^a-zA-Z0-9._:-]/g, "_") || "anonymous";
-  return `student-os:trusted-assessment:${safeScope}:${quizId}`;
+  const safeScope = encodeURIComponent(accountScope || "anonymous");
+  return `student-os:trusted-assessment:${safeScope}:${encodeURIComponent(quizId)}`;
 }
 
 export default function Quizzes() {

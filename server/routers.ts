@@ -74,9 +74,16 @@ import {
   validateWorkspacePayload,
 } from "./workspace";
 
-const cacheScopeInput = z
-  .object({ cacheScope: z.string().min(1).max(128) })
-  .optional();
+const cacheScopeInput = z.object({ cacheScope: z.string().min(1).max(128) });
+
+function assertWorkspaceAccount(expected: string, actual: string) {
+  if (expected !== actual)
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        "Workspace account changed. Sign in to the original account before retrying.",
+    });
+}
 
 const pushEndpointSchema = z
   .string()
@@ -429,34 +436,42 @@ export const appRouter = router({
 
   workspace: router({
     /** Loads the signed-in account's server workspace. Empty/null means a fresh onboarding. */
-    // cacheScope partitions browser cache entries; ctx.user remains the only
-    // authorization source, so a forged scope cannot change workspace owner.
-    load: protectedProcedure.input(cacheScopeInput).query(async ({ ctx }) => {
-      const record = await getWorkspace(ctx.user.openId);
-      let parsed: unknown = null;
-      if (record.workspace) {
-        try {
-          parsed = JSON.parse(record.workspace);
-        } catch {
-          console.warn(
-            "[Workspace] Corrupt server copy ignored; client keeps its own data."
-          );
-          parsed = null;
+    // Scope binds a delayed request to its originating account. The session
+    // remains authoritative; a mismatch rejects before reading any workspace.
+    load: protectedProcedure
+      .input(cacheScopeInput)
+      .query(async ({ ctx, input }) => {
+        assertWorkspaceAccount(input.cacheScope, ctx.user.openId);
+        const record = await getWorkspace(ctx.user.openId);
+        let parsed: unknown = null;
+        if (record.workspace) {
+          try {
+            parsed = JSON.parse(record.workspace);
+          } catch {
+            console.warn(
+              "[Workspace] Corrupt server copy ignored; client keeps its own data."
+            );
+            parsed = null;
+          }
         }
-      }
-      return {
-        workspace: parsed as Record<string, unknown> | null,
-        revision: record.revision,
-        schemaVersion: record.schemaVersion,
-        updatedAt: record.updatedAt,
-      } as const;
-    }),
-    /** Saves the signed-in account's workspace. Replaces the previous copy (last-write-wins, per device merge on the client). */
+        return {
+          workspace: parsed as Record<string, unknown> | null,
+          revision: record.revision,
+          schemaVersion: record.schemaVersion,
+          updatedAt: record.updatedAt,
+        } as const;
+      }),
+    /** Saves the originating account workspace with authenticated ownership and revision conflict checks. */
     save: protectedProcedure
       .input(
-        z.object({ workspace: z.unknown(), revision: z.number().int().min(0) })
+        z.object({
+          expectedAccountId: z.string().min(1).max(128),
+          workspace: z.unknown(),
+          revision: z.number().int().min(0),
+        })
       )
       .mutation(async ({ ctx, input }) => {
+        assertWorkspaceAccount(input.expectedAccountId, ctx.user.openId);
         const validation = validateWorkspacePayload(input.workspace);
         if (!validation.ok)
           return { success: false as const, reason: validation.reason };
@@ -489,24 +504,27 @@ export const appRouter = router({
         };
       }),
     /** Erases the signed-in account's server workspace (e.g. after a fresh restart). */
-    clear: protectedProcedure.mutation(async ({ ctx }) => {
-      const result = await clearWorkspace(ctx.user.openId);
-      if (!result.ok) {
-        throw new TRPCError({
-          code:
-            result.reason === "conflict" ? "CONFLICT" : "SERVICE_UNAVAILABLE",
-          message:
-            result.reason === "conflict"
-              ? "Your workspace changed while deletion was being prepared. Please try again."
-              : "Student OS could not reach the cloud workspace service.",
-        });
-      }
-      return {
-        success: true as const,
-        revision: result.revision,
-        updatedAt: result.updatedAt,
-      };
-    }),
+    clear: protectedProcedure
+      .input(z.object({ expectedAccountId: z.string().min(1).max(128) }))
+      .mutation(async ({ ctx, input }) => {
+        assertWorkspaceAccount(input.expectedAccountId, ctx.user.openId);
+        const result = await clearWorkspace(ctx.user.openId);
+        if (!result.ok) {
+          throw new TRPCError({
+            code:
+              result.reason === "conflict" ? "CONFLICT" : "SERVICE_UNAVAILABLE",
+            message:
+              result.reason === "conflict"
+                ? "Your workspace changed while deletion was being prepared. Please try again."
+                : "Student OS could not reach the cloud workspace service.",
+          });
+        }
+        return {
+          success: true as const,
+          revision: result.revision,
+          updatedAt: result.updatedAt,
+        };
+      }),
   }),
 
   // TODO: add feature routers here, e.g.
