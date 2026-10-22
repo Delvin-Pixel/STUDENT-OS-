@@ -44,7 +44,8 @@ not certified complete by these implementation checks.
 
 1. Complete B59 capability-surface inventory before gating any additional existing
    UI. Preserve Free core education; verify server authorization independently.
-2. B62: specify an Academic Knowledge Pack manifest with version, provenance,
+2. B62: the [preparation contract](B62-academic-pack-preparation.md) now specifies
+   an Academic Knowledge Pack manifest with version, provenance,
    curriculum scope, coverage, and bounded content; never infer official authority
    from learner-provided provenance. Existing learningIntelligence remains the
    sole academic authority; lesson/chat opens are not mastery evidence. No
