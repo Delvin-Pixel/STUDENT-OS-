@@ -54,3 +54,13 @@ lifecycle tests. No real device notification or live session test is claimed.
 **BLOCKED BY B58.1 EXTERNAL GATE:** live database connectivity and schema, OAuth
 callback authorization, persisted accounts, sessions, deployed protected APIs,
 and runtime log verification. B59/B64/B65/B67 are not release-complete.
+
+## Subsequent dependency correction
+
+The October 23 runs for f6a5390 (PR 40010274606, push 40010265591) passed all
+steps through build, bundle and clean MySQL/schema verification, then failed the
+full dependency audit on newly reported DOMPurify advisories GHSA-cg2g-xh64-v4q7
+(critical) and GHSA-mrv2-3pqr-j5jr (high). The jsPDF transitive dependency is now
+locked to patched DOMPurify 3.4.17. No other dependency version or audit threshold
+is changed. The corrected graph passes the high-severity audit; the production
+audit reports no known vulnerabilities. Three moderate development findings remain.
