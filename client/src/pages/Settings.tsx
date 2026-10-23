@@ -1,6 +1,7 @@
 /* STUDENT OS — Settings. Profile, data export/import, theme, reset. All
    data is local-only; no accounts, no cloud. */
 
+import { FeatureGate } from "@/components/FeatureGate";
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
   AlertDialog,
@@ -78,6 +79,15 @@ export default function Settings() {
         <h1 className="font-display text-3xl font-bold tracking-tight">
           Settings
         </h1>
+        <section aria-label="Optional capabilities" className="mt-5">
+          <FeatureGate feature="advanced_reports">
+            <p className="text-sm text-muted-foreground">
+              Your account includes advanced reports. Availability of individual
+              tools is shown where they are offered.
+            </p>
+          </FeatureGate>
+        </section>
+
         <section className="mt-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <User className="h-5 w-5" />

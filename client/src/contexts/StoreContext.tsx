@@ -1,5 +1,6 @@
+import { TRPCClientError } from "@trpc/client";
 /* STUDENT OS — global state store.
-   One React context holds the whole app state, persisted to localStorage on
+   One account-keyed React context holds app state, persisted to scoped localStorage on
    every change. Components mutate via the typed action helpers below. */
 
 import {
@@ -625,8 +626,8 @@ export function StoreProvider({
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncGenerationRef = useRef(0);
   const hydratedAccountRef = useRef<string | null>(null);
-  // The server ignores cacheScope for authorization, but the stable identity
-  // input prevents React Query from serving Account A's load result to Account B.
+  // Account scope partitions queries and rejects requests whose cookie identity
+  // changed after this workspace mounted.
   const workspaceQueryInput = useMemo(() => ({ cacheScope: openId }), [openId]);
   const workspaceQuery = trpc.workspace.load.useQuery(workspaceQueryInput, {
     retry: 1,
@@ -635,6 +636,16 @@ export function StoreProvider({
   const saveWorkspace = trpc.workspace.save.useMutation();
   const clearWorkspace = trpc.workspace.clear.useMutation();
   stateRef.current = state;
+
+  useEffect(
+    () => () => {
+      // Invalidate asynchronous replies on logout/account-keyed unmount.
+      syncGenerationRef.current += 1;
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    },
+    []
+  );
 
   useEffect(() => {
     if (
@@ -808,6 +819,7 @@ export function StoreProvider({
       setSyncStatus("syncing");
       try {
         const result = await saveWorkspace.mutateAsync({
+          expectedAccountId: openId,
           workspace: projectWorkspaceForCloud(stateRef.current),
           revision: revisionRef.current,
         });
@@ -852,8 +864,16 @@ export function StoreProvider({
         } else {
           setSyncStatus("failed");
         }
-      } catch {
+      } catch (error) {
         if (syncGeneration !== syncGenerationRef.current) return;
+        if (
+          error instanceof TRPCClientError &&
+          (error.data?.code === "FORBIDDEN" ||
+            error.data?.code === "UNAUTHORIZED")
+        ) {
+          setSyncStatus("failed");
+          return;
+        }
         setSyncStatus(navigator.onLine ? "failed" : "offline");
         if (navigator.onLine) {
           if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
@@ -3772,6 +3792,7 @@ export function StoreProvider({
             ? localState
             : mergeWorkspaceStates(remoteState, localState);
         const write = await saveWorkspace.mutateAsync({
+          expectedAccountId: openId,
           workspace: projectWorkspaceForCloud(nextState),
           revision: refreshed.data?.revision ?? conflict.remoteRevision,
         });
@@ -3881,7 +3902,9 @@ export function StoreProvider({
     // merge old state back into memory or local persistence.
     syncGenerationRef.current += 1;
     try {
-      const result = await clearWorkspace.mutateAsync();
+      const result = await clearWorkspace.mutateAsync({
+        expectedAccountId: openId,
+      });
       const cleared = emptyState();
       revisionRef.current = result.revision;
       stateRef.current = cleared;

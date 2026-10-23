@@ -46,7 +46,9 @@ describe("workspace router authentication and ownership", () => {
 
   it("rejects a workspace load before reaching storage when no session exists", async () => {
     const caller = appRouter.createCaller(contextFor(null));
-    await expect(caller.workspace.load()).rejects.toMatchObject({
+    await expect(
+      caller.workspace.load({ cacheScope: "account-aminah" })
+    ).rejects.toMatchObject({
       code: "UNAUTHORIZED",
     });
     expect(getWorkspace).not.toHaveBeenCalled();
@@ -106,7 +108,11 @@ describe("workspace router authentication and ownership", () => {
       }),
       caller.push.config(),
       caller.push.register(subscription),
-      caller.push.syncReminders({ subscription, reminders: [] }),
+      caller.push.syncReminders({
+        expectedAccountId: "account-a",
+        subscription,
+        reminders: [],
+      }),
       caller.push.disable({ endpoint }),
       caller.push.deliveryHistory({ endpoint, cacheScope: "forged-account-a" }),
       caller.push.testDelivery({ endpoint }),
@@ -124,14 +130,18 @@ describe("workspace router authentication and ownership", () => {
       updatedAt: null,
     });
     const caller = appRouter.createCaller(contextFor("account-aminah"));
-    await caller.workspace.load({ cacheScope: "forged-other-account" });
+    await caller.workspace.load({ cacheScope: "account-aminah" });
     expect(getWorkspace).toHaveBeenCalledWith("account-aminah");
   });
 
   it("rejects a workspace save before validation or storage when no session exists", async () => {
     const caller = appRouter.createCaller(contextFor(null));
     await expect(
-      caller.workspace.save({ workspace: emptyState(), revision: 0 })
+      caller.workspace.save({
+        expectedAccountId: "account-aminah",
+        workspace: emptyState(),
+        revision: 0,
+      })
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     expect(validateWorkspacePayload).not.toHaveBeenCalled();
     expect(setWorkspace).not.toHaveBeenCalled();
@@ -149,7 +159,11 @@ describe("workspace router authentication and ownership", () => {
     });
     const result = await appRouter
       .createCaller(contextFor("account-aminah"))
-      .workspace.save({ workspace: emptyState(), revision: 3 });
+      .workspace.save({
+        expectedAccountId: "account-aminah",
+        workspace: emptyState(),
+        revision: 3,
+      });
     expect(setWorkspace).toHaveBeenCalledWith(
       "account-aminah",
       '{"canonical":true}',
@@ -166,7 +180,11 @@ describe("workspace router authentication and ownership", () => {
     });
     const result = await appRouter
       .createCaller(contextFor("account-aminah"))
-      .workspace.save({ workspace: { forged: true }, revision: 3 });
+      .workspace.save({
+        expectedAccountId: "account-aminah",
+        workspace: { forged: true },
+        revision: 3,
+      });
     expect(result).toMatchObject({
       success: false,
       reason: expect.stringContaining("workspace does not match"),
@@ -187,7 +205,11 @@ describe("workspace router authentication and ownership", () => {
     });
     const result = await appRouter
       .createCaller(contextFor("account-aminah"))
-      .workspace.save({ workspace: emptyState(), revision: 3 });
+      .workspace.save({
+        expectedAccountId: "account-aminah",
+        workspace: emptyState(),
+        revision: 3,
+      });
     expect(result).toEqual({
       success: false,
       reason: "conflict",
@@ -198,7 +220,9 @@ describe("workspace router authentication and ownership", () => {
 
   it("rejects remote workspace deletion before storage when no session exists", async () => {
     const caller = appRouter.createCaller(contextFor(null));
-    await expect(caller.workspace.clear()).rejects.toMatchObject({
+    await expect(
+      caller.workspace.clear({ expectedAccountId: "account-aminah" })
+    ).rejects.toMatchObject({
       code: "UNAUTHORIZED",
     });
     expect(clearWorkspace).not.toHaveBeenCalled();
@@ -212,8 +236,28 @@ describe("workspace router authentication and ownership", () => {
     });
     const result = await appRouter
       .createCaller(contextFor("account-aminah"))
-      .workspace.clear();
+      .workspace.clear({ expectedAccountId: "account-aminah" });
     expect(clearWorkspace).toHaveBeenCalledWith("account-aminah");
     expect(result).toMatchObject({ success: true, revision: 8 });
+  });
+  it("rejects Account A reads, queued saves and deletion under Account B before persistence", async () => {
+    const caller = appRouter.createCaller(contextFor("account-b"));
+    await expect(
+      caller.workspace.load({ cacheScope: "account-a" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      caller.workspace.save({
+        expectedAccountId: "account-a",
+        workspace: emptyState(),
+        revision: 0,
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      caller.workspace.clear({ expectedAccountId: "account-a" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(getWorkspace).not.toHaveBeenCalled();
+    expect(validateWorkspacePayload).not.toHaveBeenCalled();
+    expect(setWorkspace).not.toHaveBeenCalled();
+    expect(clearWorkspace).not.toHaveBeenCalled();
   });
 });

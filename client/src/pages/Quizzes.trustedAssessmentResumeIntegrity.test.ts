@@ -13,12 +13,20 @@ const assessmentSource = readFileSync(
 );
 
 describe("trusted assessment refresh resume integrity", () => {
+  it("keeps distinct account identities and delimiter-containing quiz IDs isolated", () => {
+    expect(trustedAssessmentStorageKey("q", "owner/a")).not.toBe(
+      trustedAssessmentStorageKey("q", "owner_a")
+    );
+    expect(trustedAssessmentStorageKey("b:c", "a")).not.toBe(
+      trustedAssessmentStorageKey("c", "a:b")
+    );
+  });
   it("persists only a namespaced opaque session reference and resumes answers/result through the protected read route", () => {
     expect(trustedAssessmentStorageKey("quiz-42", "owner-1")).toBe(
       "student-os:trusted-assessment:owner-1:quiz-42"
     );
     expect(trustedAssessmentStorageKey("quiz-42", "owner/with spaces")).toBe(
-      "student-os:trusted-assessment:owner_with_spaces:quiz-42"
+      "student-os:trusted-assessment:owner%2Fwith%20spaces:quiz-42"
     );
     expect(source).toContain(
       "window.sessionStorage.setItem(storageKey, String(started.sessionId))"

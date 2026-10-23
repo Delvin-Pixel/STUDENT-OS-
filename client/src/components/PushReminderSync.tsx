@@ -28,6 +28,16 @@ export default function PushReminderSync() {
   const requestedSyncVersionRef = useRef(0);
   const completedSyncVersionRef = useRef(0);
   const syncRunningRef = useRef(false);
+  const lifetimeRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const lifetime = new AbortController();
+    lifetimeRef.current = lifetime;
+    return () => {
+      lifetime.abort();
+      latestSyncJobRef.current = null;
+      completedSyncVersionRef.current = requestedSyncVersionRef.current;
+    };
+  }, []);
   const runPendingSyncRef = useRef<() => void>(() => {});
   const [onlineEpoch, setOnlineEpoch] = useState(0);
 
@@ -128,12 +138,15 @@ export default function PushReminderSync() {
       return;
     }
     latestSyncJobRef.current = async () => {
+      const signal = lifetimeRef.current?.signal;
+      if (!signal || signal.aborted) return;
       // The opaque browser endpoint identifies this installed Student OS copy.
       // Only synchronize once per meaningful local-plan change; mutation-state
       // renders must never cause an unbounded register/sync request loop.
       const subscription = await subscribeDevicePush(
         pushConfig.data.vapidPublicKey
       );
+      if (signal.aborted) return;
       const syncKey = devicePushSyncKey(
         subscription.endpoint,
         reminderFingerprint,
@@ -156,6 +169,7 @@ export default function PushReminderSync() {
         state
       );
       await syncDeviceReminders({
+        expectedAccountId: accountCacheScope,
         subscription,
         previousEndpoint:
           previousEndpoint && previousEndpoint !== subscription.endpoint
@@ -163,6 +177,7 @@ export default function PushReminderSync() {
             : undefined,
         reminders,
       });
+      if (signal.aborted) return;
       rememberRegisteredPushEndpoint(accountCacheScope, subscription.endpoint);
       completedSyncKey.current = syncKey;
     };

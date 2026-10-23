@@ -41,6 +41,43 @@ function topicState() {
 }
 
 describe("learning intelligence", () => {
+  it("does not promote saved or completed lesson activity to mastery or readiness", () => {
+    const state = topicState();
+    state.exams = [
+      {
+        id: "exam",
+        subject: "Physics",
+        name: "Mock",
+        date: "2026-08-25",
+        time: "",
+        location: "",
+        notes: "",
+        topics: [{ id: "waves", name: "Waves", status: "not_started" }],
+      },
+    ];
+    const mastery = getTopicMastery(state);
+    const readiness = getExamReadiness(state, "exam", "2026-08-22");
+    state.dailyLessonCompletions = ["2026-08-22:physics"];
+    state.savedLessons = [
+      {
+        id: "saved-waves",
+        selectionKey: "2026-08-22:physics",
+        dateStr: "2026-08-22",
+        subject: "Physics",
+        branch: "Physics",
+        topic: "Waves",
+        title: "Waves",
+        strapline: "Review waves",
+        learningGoals: ["Explain waves"],
+        recap: "Lesson activity is not assessment evidence.",
+        savedAt: "2026-08-22T12:00:00Z",
+      },
+    ];
+    expect(getTopicMastery(state)).toEqual(mastery);
+    expect(getExamReadiness(state, "exam", "2026-08-22")).toEqual(readiness);
+    expect(state.learningEvidence).toEqual([]);
+  });
+
   it("uses the learner-local calendar date of timestamped evidence for recency thresholds", () => {
     expect(
       masteryRecencyWeight(

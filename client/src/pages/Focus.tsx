@@ -111,6 +111,16 @@ export default function Focus() {
   const requestedFocusReminderSyncRef = useRef(0);
   const completedFocusReminderSyncRef = useRef(0);
   const focusReminderSyncRunningRef = useRef(false);
+  const reminderLifetimeRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const lifetime = new AbortController();
+    reminderLifetimeRef.current = lifetime;
+    return () => {
+      lifetime.abort();
+      completedFocusReminderSyncRef.current =
+        requestedFocusReminderSyncRef.current;
+    };
+  }, []);
   const appliedRoutedTaskRef = useRef<string | null>(null);
   const syncDeviceReminders = trpc.push.syncReminders.useMutation();
 
@@ -151,6 +161,8 @@ export default function Focus() {
     latestFocusReminderRef.current = focusReminder;
     requestedFocusReminderSyncRef.current += 1;
     if (focusReminderSyncRunningRef.current) return;
+    const signal = reminderLifetimeRef.current?.signal;
+    if (!signal || signal.aborted) return;
     focusReminderSyncRunningRef.current = true;
     void (async () => {
       try {
@@ -163,8 +175,10 @@ export default function Focus() {
           try {
             if (state.settings.notifications) {
               const subscription = await currentDevicePushSubscription();
+              if (signal.aborted) return;
               if (subscription)
                 await syncDeviceReminders.mutateAsync({
+                  expectedAccountId: accountCacheScope,
                   subscription,
                   reminders: limitPlannedPushReminders(
                     [
