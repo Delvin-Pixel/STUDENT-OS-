@@ -108,7 +108,11 @@ describe("workspace router authentication and ownership", () => {
       }),
       caller.push.config(),
       caller.push.register(subscription),
-      caller.push.syncReminders({ subscription, reminders: [] }),
+      caller.push.syncReminders({
+        expectedAccountId: "account-a",
+        subscription,
+        reminders: [],
+      }),
       caller.push.disable({ endpoint }),
       caller.push.deliveryHistory({ endpoint, cacheScope: "forged-account-a" }),
       caller.push.testDelivery({ endpoint }),

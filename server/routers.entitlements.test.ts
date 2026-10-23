@@ -66,8 +66,18 @@ describe("entitlements.me", () => {
       },
     });
 
-    const result = await appRouter.createCaller(context()).entitlements.me();
+    const result = await appRouter
+      .createCaller(context())
+      .entitlements.me({ expectedAccountId: "account-7" });
     expect(getAccountEntitlements).toHaveBeenCalledWith("account-7");
     expect(result.plan).toBe("premium");
+  });
+  it("rejects a stale account-scoped capability query before looking up a different account", async () => {
+    await expect(
+      appRouter
+        .createCaller(context())
+        .entitlements.me({ expectedAccountId: "account-a" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(getAccountEntitlements).not.toHaveBeenCalled();
   });
 });

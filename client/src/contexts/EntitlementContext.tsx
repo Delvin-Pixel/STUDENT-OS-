@@ -33,7 +33,9 @@ export function EntitlementProvider({
     queryKey: ["account-capabilities", accountId],
     queryFn: async () => ({
       accountId,
-      snapshot: await utils.client.entitlements.me.query(),
+      snapshot: await utils.client.entitlements.me.query({
+        expectedAccountId: accountId,
+      }),
     }),
     enabled: online,
     retry: false,

@@ -138,9 +138,11 @@ describe("push router ownership", () => {
     await appRouter
       .createCaller(contextFor("account-a"))
       .push.register(subscription);
-    await appRouter
-      .createCaller(contextFor("account-a"))
-      .push.syncReminders({ subscription, reminders: [] });
+    await appRouter.createCaller(contextFor("account-a")).push.syncReminders({
+      expectedAccountId: "account-a",
+      subscription,
+      reminders: [],
+    });
     await appRouter
       .createCaller(contextFor("account-a"))
       .push.deliveryHistory({ endpoint, cacheScope: "forged-account-b" });
@@ -175,12 +177,20 @@ describe("push router ownership", () => {
     const accountA = appRouter.createCaller(contextFor("account-a"));
     const accountB = appRouter.createCaller(contextFor("account-b"));
     await accountA.push.register(subscription);
-    await accountA.push.syncReminders({ subscription, reminders: [] });
+    await accountA.push.syncReminders({
+      expectedAccountId: "account-a",
+      subscription,
+      reminders: [],
+    });
     await expect(accountB.push.register(subscription)).rejects.toThrow(
       "already registered"
     );
     await expect(
-      accountB.push.syncReminders({ subscription, reminders: [] })
+      accountB.push.syncReminders({
+        expectedAccountId: "account-b",
+        subscription,
+        reminders: [],
+      })
     ).rejects.toThrow("already registered");
     await expect(
       accountB.push.deliveryHistory({ endpoint, cacheScope: "account-a" })
@@ -202,5 +212,16 @@ describe("push router ownership", () => {
     );
     expect(getPushDeliveryHistory).toHaveBeenCalledWith(endpoint, "account-b");
     expect(disablePushDevice).toHaveBeenCalledWith(endpoint, "account-b");
+  });
+  it("rejects Account A's queued plan under Account B even before endpoint ownership is established", async () => {
+    await expect(
+      appRouter.createCaller(contextFor("account-b")).push.syncReminders({
+        expectedAccountId: "account-a",
+        subscription,
+        reminders: [],
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(reconcilePushDevice).not.toHaveBeenCalled();
+    expect(ownedDevices.owners.size).toBe(0);
   });
 });

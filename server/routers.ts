@@ -76,12 +76,12 @@ import {
 
 const cacheScopeInput = z.object({ cacheScope: z.string().min(1).max(128) });
 
-function assertWorkspaceAccount(expected: string, actual: string) {
+function assertRequestAccount(expected: string, actual: string) {
   if (expected !== actual)
     throw new TRPCError({
       code: "FORBIDDEN",
       message:
-        "Workspace account changed. Sign in to the original account before retrying.",
+        "Account changed. Sign in to the original account before retrying.",
     });
 }
 
@@ -168,9 +168,12 @@ export const appRouter = router({
      * Returns the server-authoritative plan/capability snapshot for this account.
      * No plan value is read from local storage or the synchronized workspace.
      */
-    me: protectedProcedure.query(({ ctx }) =>
-      getAccountEntitlements(ctx.user.openId)
-    ),
+    me: protectedProcedure
+      .input(z.object({ expectedAccountId: z.string().min(1).max(128) }))
+      .query(({ ctx, input }) => {
+        assertRequestAccount(input.expectedAccountId, ctx.user.openId);
+        return getAccountEntitlements(ctx.user.openId);
+      }),
   }),
 
   dailyLessons: router({
@@ -328,19 +331,21 @@ export const appRouter = router({
     syncReminders: protectedProcedure
       .input(
         z.object({
+          expectedAccountId: z.string().min(1).max(128),
           subscription: pushSubscriptionSchema,
           previousEndpoint: pushEndpointSchema.nullish(),
           reminders: z.array(plannedReminderSchema).max(40),
         })
       )
-      .mutation(async ({ ctx, input }) =>
-        reconcilePushDevice(
+      .mutation(async ({ ctx, input }) => {
+        assertRequestAccount(input.expectedAccountId, ctx.user.openId);
+        return reconcilePushDevice(
           input.subscription,
           input.reminders,
           ctx.user.openId,
           input.previousEndpoint
-        )
-      ),
+        );
+      }),
     disable: protectedProcedure
       .input(z.object({ endpoint: pushEndpointSchema }))
       .mutation(async ({ ctx, input }) => {
@@ -441,7 +446,7 @@ export const appRouter = router({
     load: protectedProcedure
       .input(cacheScopeInput)
       .query(async ({ ctx, input }) => {
-        assertWorkspaceAccount(input.cacheScope, ctx.user.openId);
+        assertRequestAccount(input.cacheScope, ctx.user.openId);
         const record = await getWorkspace(ctx.user.openId);
         let parsed: unknown = null;
         if (record.workspace) {
@@ -471,7 +476,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        assertWorkspaceAccount(input.expectedAccountId, ctx.user.openId);
+        assertRequestAccount(input.expectedAccountId, ctx.user.openId);
         const validation = validateWorkspacePayload(input.workspace);
         if (!validation.ok)
           return { success: false as const, reason: validation.reason };
@@ -507,7 +512,7 @@ export const appRouter = router({
     clear: protectedProcedure
       .input(z.object({ expectedAccountId: z.string().min(1).max(128) }))
       .mutation(async ({ ctx, input }) => {
-        assertWorkspaceAccount(input.expectedAccountId, ctx.user.openId);
+        assertRequestAccount(input.expectedAccountId, ctx.user.openId);
         const result = await clearWorkspace(ctx.user.openId);
         if (!result.ok) {
           throw new TRPCError({
