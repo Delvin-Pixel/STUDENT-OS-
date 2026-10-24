@@ -1,0 +1,36 @@
+name: B62 Security Lockfile Resolution (temporary)
+
+on:
+  push:
+    branches:
+      - security/b62-1-dependency-patches
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+
+      - name: Generate lockfile delta with official pnpm resolver
+        run: |
+          pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile --strict-peer-dependencies
+          echo '===== BEGIN RESOLVED LOCKFILE DIFF ====='
+          git --no-pager diff -- pnpm-lock.yaml
+          echo '===== END RESOLVED LOCKFILE DIFF ====='
