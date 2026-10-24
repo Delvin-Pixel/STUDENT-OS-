@@ -1,0 +1,74 @@
+name: NEXA 1.96 source staging
+
+on:
+  push:
+    branches: [nexa-1.96.0-remediation-handoff]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout staged branch
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect staged payload
+        id: payload
+        shell: bash
+        run: |
+          if test -f .nexa-build/1.96.0-remediation-handoff-part-00; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify and apply exact NEXA 1.96 source patch
+        if: steps.payload.outputs.present == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat \
+            .nexa-build/1.96.0-remediation-handoff-part-00 \
+            .nexa-build/1.96.0-remediation-handoff-part-01 \
+            .nexa-build/1.96.0-remediation-handoff-part-02 \
+            | tr -d '\r\n\t ' | base64 --decode > "$RUNNER_TEMP/nexa-1.96.0-remediation-handoff.patch.xz"
+
+          echo "76fd91140c92df6823a6166807cdf1a24592306b7efc7b3cb7b09c22e45c091b  $RUNNER_TEMP/nexa-1.96.0-remediation-handoff.patch.xz" | sha256sum -c -
+          xz -t "$RUNNER_TEMP/nexa-1.96.0-remediation-handoff.patch.xz"
+          xz -dc "$RUNNER_TEMP/nexa-1.96.0-remediation-handoff.patch.xz" > "$RUNNER_TEMP/nexa-1.96.0-remediation-handoff.patch"
+          echo "82bf7875e8ad8020f5d7d36640318c6cba503a5577062c6b3c7df4eb88c99768  $RUNNER_TEMP/nexa-1.96.0-remediation-handoff.patch" | sha256sum -c -
+
+          git apply --check --exclude=.github/workflows/verify.yml "$RUNNER_TEMP/nexa-1.96.0-remediation-handoff.patch"
+          git apply --exclude=.github/workflows/verify.yml "$RUNNER_TEMP/nexa-1.96.0-remediation-handoff.patch"
+
+          echo "97e2a118b9725d0266de22e7c302f22ab5f3bc70279bfc9350f2dd313c915ab1  package-lock.json" | sha256sum -c -
+          test "$(node -p "require('./package.json').version")" = "1.96.0"
+          test "$(node -p "require('./package.json').name")" = "nexa-1-96"
+          grep -q "export const NEXA_VERSION = '1.96.0'" lib/version.ts
+          test -f lib/supabase-data-api-remediation-handoff-core.ts
+          test -f scripts/test-data-api-remediation-handoff.mjs
+          node scripts/test-canonical-source.mjs
+          node scripts/test-release-verification.mjs
+          node scripts/validate.mjs
+          node scripts/test-data-api-remediation-handoff.mjs
+
+      - name: Commit ordinary NEXA 1.96 source
+        if: steps.payload.outputs.present == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .nexa-build
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet -- .github/workflows/verify.yml; then
+            echo "verify.yml unexpectedly changed during payload application" >&2
+            exit 1
+          fi
+          git commit -m "feat(nexa): add Data API remediation handoff"
+          git push origin HEAD:nexa-1.96.0-remediation-handoff
