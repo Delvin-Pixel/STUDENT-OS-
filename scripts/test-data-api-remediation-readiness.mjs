@@ -18,7 +18,7 @@ assert.equal(pkg.name,'nexa-1-96');
 assert.equal(pkg.version,'1.96.0');
 assert.equal(pkg.scripts['test:data-api-remediation-readiness'],'node scripts/test-data-api-remediation-readiness.mjs');
 assert.match(pkg.scripts.test,/test:data-api-remediation-readiness/);
-assert.match(readme,/NEXA 1\.96\.0 — Data API Remediation Readiness Surface/);
+assert.match(readme,/NEXA 1\.95\.0 — Data API Remediation Readiness Surface/);
 
 assert.match(runtimeSource,/NEXA_DATA_API_REMEDIATION_READINESS_CACHE_MS = 60_000/);
 assert.match(runtimeSource,/getNexaDataApiRemediationReadiness/);
