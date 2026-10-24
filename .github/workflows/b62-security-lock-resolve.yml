@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - security/b62-1-dependency-patches
+  pull_request:
 
 permissions:
   contents: read
