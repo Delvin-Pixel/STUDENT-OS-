@@ -23,6 +23,12 @@ function headers(input?: Readonly<{
   dataApiRemediationStatus?: string;
   dataApiRemediationAction?: string;
   dataApiRemediationSqlFeasibility?: string;
+  dataApiRemediationHandoffOwner?: string;
+  dataApiRemediationHandoffSurface?: string;
+  dataApiRemediationHandoffNextStep?: string;
+  dataApiRemediationHandoffVerification?: string;
+  dataApiRemediationHandoffRequiresHumanAction?: boolean;
+  dataApiRemediationHandoffRequiresWorkBrowser?: boolean;
 }>) {
   return {
     'Cache-Control': 'no-store',
@@ -74,6 +80,24 @@ function headers(input?: Readonly<{
     ...(input?.dataApiRemediationSqlFeasibility
       ? { 'X-NEXA-Bridge-Data-API-Remediation-SQL-Feasibility': input.dataApiRemediationSqlFeasibility }
       : {}),
+    ...(input?.dataApiRemediationHandoffOwner
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-Handoff-Owner': input.dataApiRemediationHandoffOwner }
+      : {}),
+    ...(input?.dataApiRemediationHandoffSurface
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-Handoff-Surface': input.dataApiRemediationHandoffSurface }
+      : {}),
+    ...(input?.dataApiRemediationHandoffNextStep
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-Handoff-Next-Step': input.dataApiRemediationHandoffNextStep }
+      : {}),
+    ...(input?.dataApiRemediationHandoffVerification
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-Handoff-Verification': input.dataApiRemediationHandoffVerification }
+      : {}),
+    ...(typeof input?.dataApiRemediationHandoffRequiresHumanAction === 'boolean'
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-Handoff-Requires-Human': String(input.dataApiRemediationHandoffRequiresHumanAction) }
+      : {}),
+    ...(typeof input?.dataApiRemediationHandoffRequiresWorkBrowser === 'boolean'
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-Handoff-Requires-Work-Browser': String(input.dataApiRemediationHandoffRequiresWorkBrowser) }
+      : {}),
   };
 }
 
@@ -116,6 +140,12 @@ export async function GET(request: Request) {
       dataApiRemediationStatus: readiness.dataApiRemediation.status,
       dataApiRemediationAction: readiness.dataApiRemediation.recommendedAction,
       dataApiRemediationSqlFeasibility: readiness.dataApiRemediation.sqlRemediationFeasibility,
+      dataApiRemediationHandoffOwner: readiness.dataApiRemediationHandoff.owner,
+      dataApiRemediationHandoffSurface: readiness.dataApiRemediationHandoff.surface,
+      dataApiRemediationHandoffNextStep: readiness.dataApiRemediationHandoff.nextStep,
+      dataApiRemediationHandoffVerification: readiness.dataApiRemediationHandoff.verification,
+      dataApiRemediationHandoffRequiresHumanAction: readiness.dataApiRemediationHandoff.requiresHumanAction,
+      dataApiRemediationHandoffRequiresWorkBrowser: readiness.dataApiRemediationHandoff.requiresWorkBrowser,
     }),
   });
 }

@@ -22,8 +22,8 @@ const [
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-95');
-assert.equal(pkg.version, '1.95.0');
+assert.equal(pkg.name, 'nexa-1-96');
+assert.equal(pkg.version, '1.96.0');
 assert.equal(
   pkg.scripts['test:student-os-bridge-contract-bound-idempotency'],
   'node scripts/test-student-os-bridge-contract-bound-idempotency.mjs',

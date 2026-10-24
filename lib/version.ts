@@ -1,1 +1,1 @@
-export const NEXA_VERSION = '1.95.0';
+export const NEXA_VERSION = '1.96.0';

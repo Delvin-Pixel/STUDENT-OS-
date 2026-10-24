@@ -27,6 +27,13 @@ import {
   type NexaDataApiRemediationReadinessSqlFeasibility,
   type NexaDataApiRemediationReadinessStatus,
 } from '@/lib/supabase-data-api-remediation-readiness';
+import {
+  classifyNexaDataApiRemediationHandoff,
+  type NexaDataApiRemediationHandoffNextStep,
+  type NexaDataApiRemediationHandoffOwner,
+  type NexaDataApiRemediationHandoffSurface,
+  type NexaDataApiRemediationHandoffVerification,
+} from '@/lib/supabase-data-api-remediation-handoff-core';
 import { NEXA_VERSION } from '@/lib/version';
 
 export type HealthStatus = {
@@ -45,6 +52,12 @@ export type HealthStatus = {
   dataApiRemediationStatus: NexaDataApiRemediationReadinessStatus;
   dataApiRemediationAction: NexaDataApiRemediationReadinessAction;
   dataApiRemediationSqlFeasibility: NexaDataApiRemediationReadinessSqlFeasibility;
+  dataApiRemediationHandoffOwner: NexaDataApiRemediationHandoffOwner;
+  dataApiRemediationHandoffSurface: NexaDataApiRemediationHandoffSurface;
+  dataApiRemediationHandoffNextStep: NexaDataApiRemediationHandoffNextStep;
+  dataApiRemediationHandoffVerification: NexaDataApiRemediationHandoffVerification;
+  dataApiRemediationHandoffRequiresHumanAction: boolean;
+  dataApiRemediationHandoffRequiresWorkBrowser: boolean;
   aiGateway: 'configured' | 'missing';
   aiGatewayOperational: NexaAiGatewayReadiness['status'];
   aiGatewayReason: NexaAiGatewayReadiness['reason'];
@@ -80,6 +93,11 @@ export async function getReadiness(): Promise<HealthStatus> {
     isolationStatus: dataApiIsolation.status,
   });
 
+  const dataApiRemediationHandoff = classifyNexaDataApiRemediationHandoff({
+    status: dataApiRemediation.status,
+    recommendedAction: dataApiRemediation.recommendedAction,
+  });
+
   const healthy = (
     databaseResult === 'ok'
     && runtimeRoleSecurity.status === 'secure'
@@ -104,6 +122,12 @@ export async function getReadiness(): Promise<HealthStatus> {
     dataApiRemediationStatus: dataApiRemediation.status,
     dataApiRemediationAction: dataApiRemediation.recommendedAction,
     dataApiRemediationSqlFeasibility: dataApiRemediation.sqlRemediationFeasibility,
+    dataApiRemediationHandoffOwner: dataApiRemediationHandoff.owner,
+    dataApiRemediationHandoffSurface: dataApiRemediationHandoff.surface,
+    dataApiRemediationHandoffNextStep: dataApiRemediationHandoff.nextStep,
+    dataApiRemediationHandoffVerification: dataApiRemediationHandoff.verification,
+    dataApiRemediationHandoffRequiresHumanAction: dataApiRemediationHandoff.requiresHumanAction,
+    dataApiRemediationHandoffRequiresWorkBrowser: dataApiRemediationHandoff.requiresWorkBrowser,
     aiGateway: gateway.configured ? 'configured' : 'missing',
     aiGatewayOperational: gateway.status,
     aiGatewayReason: gateway.reason,

@@ -1,3 +1,17 @@
+# NEXA 1.96.0 — Data API Remediation Handoff
+
+NEXA 1.96.0 turns the bounded remediation status introduced in 1.95 into an explicit operator handoff contract. Readiness can now state who must act, where the action belongs, the next bounded step, whether a browser/Work-style dashboard handoff is required, and what must be re-verified afterward.
+
+The handoff remains deliberately non-mutating. NEXA never disables the Supabase Data API, changes grants, alters default privileges, rotates credentials, or performs account-owner actions automatically. A future-default risk that is blocked by a protected owner maps to `project-owner / supabase-dashboard / disable-data-api / recheck-platform-and-isolation`, making the existing manual security requirement actionable without weakening the security boundary.
+
+Current exposure maps to a bounded security-review handoff. Unavailable platform/isolation/remediation evidence maps to runtime diagnostics and an explicit recheck requirement rather than guessing. The public readiness surface exposes only bounded codes and booleans; role names, object names, ACL rows, credentials, API keys, prompts, response bodies, and user data remain excluded.
+
+Authenticated Student OS bridge readiness mirrors the same handoff object and bounded response headers so orchestration can distinguish ordinary degradation from a project-owner browser action. Student OS deterministic `learningIntelligence` remains the sole academic decision authority, and NEXA model-backed bridge admission remains fail-closed while effective Data API security is insecure.
+
+No database migration is introduced; migrations 001–047 remain immutable. NEXA provider, fallback, transport, negotiation, runtime-role security, and existing remediation planning contracts remain unchanged.
+
+---
+
 # NEXA 1.95.0 — Data API Remediation Readiness Surface
 
 NEXA 1.95.0 promotes the platform-aware Data API remediation planner from an operator-only command into bounded runtime readiness. General NEXA readiness and authenticated Student OS bridge readiness can now state not only that effective Data API security is degraded, but also what class of remediation is required.

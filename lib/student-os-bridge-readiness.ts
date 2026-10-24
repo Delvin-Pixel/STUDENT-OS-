@@ -4,6 +4,10 @@ import { getNexaDataApiIsolationReadiness, type NexaDataApiIsolationReadiness } 
 import { getNexaDataApiPlatformReadiness, type NexaDataApiPlatformReadiness } from '@/lib/supabase-data-api-platform';
 import { getNexaDataApiRemediationReadiness, type NexaDataApiRemediationReadiness } from '@/lib/supabase-data-api-remediation-readiness';
 import {
+  classifyNexaDataApiRemediationHandoff,
+  type NexaDataApiRemediationHandoff,
+} from '@/lib/supabase-data-api-remediation-handoff-core';
+import {
   classifyNexaDataApiEffectiveSecurity,
   type NexaDataApiEffectiveSecurity,
 } from '@/lib/supabase-data-api-effective-security-core';
@@ -91,6 +95,7 @@ export type StudentOsBridgeOperationalReadiness = StudentOsBridgeReadiness & Rea
     recommendedAction: NexaDataApiRemediationReadiness['recommendedAction'];
     sqlRemediationFeasibility: NexaDataApiRemediationReadiness['sqlRemediationFeasibility'];
   }>;
+  dataApiRemediationHandoff: NexaDataApiRemediationHandoff;
   aiGatewayOperational: Readonly<{
     status: NexaAiGatewayReadiness['status'];
     reason: NexaAiGatewayReadiness['reason'];
@@ -202,6 +207,11 @@ export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentO
     isolationStatus: dataApiIsolation.status,
   });
 
+  const dataApiRemediationHandoff = classifyNexaDataApiRemediationHandoff({
+    status: dataApiRemediation.status,
+    recommendedAction: dataApiRemediation.recommendedAction,
+  });
+
   if (dataApiEffectiveSecurity.status !== 'secure') {
     const reason = dataApiEffectiveSecurity.reason ?? 'data_api_isolation_unavailable';
     if (!reasons.includes(reason)) reasons.push(reason);
@@ -270,6 +280,7 @@ export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentO
       recommendedAction: dataApiRemediation.recommendedAction,
       sqlRemediationFeasibility: dataApiRemediation.sqlRemediationFeasibility,
     }),
+    dataApiRemediationHandoff,
     aiGatewayOperational: Object.freeze({
       status: gateway.status,
       reason: gateway.reason,
