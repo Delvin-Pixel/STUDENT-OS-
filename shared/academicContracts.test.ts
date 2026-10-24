@@ -124,10 +124,7 @@ describe("B62.1 shared academic contracts", () => {
     const parsed = AcademicPolicyBundleSchema.parse(policy);
     expect(isCompatiblePolicy(context, parsed)).toBe(true);
     expect(
-      isCompatiblePolicy(
-        { ...context, curriculumVersion: "2" },
-        parsed
-      )
+      isCompatiblePolicy({ ...context, curriculumVersion: "2" }, parsed)
     ).toBe(false);
     expect(
       AcademicPolicyBundleSchema.safeParse({
