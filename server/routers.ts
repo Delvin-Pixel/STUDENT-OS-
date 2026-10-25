@@ -8,6 +8,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { buildLearningStateSnapshot } from "./aiLearningState";
 import { enforceAiRateLimit } from "./aiRateLimit";
+import { readAssessmentEvidenceReview } from "./assessmentEvidenceReview";
 import {
   assessmentReadInput,
   assessmentSaveResponseInput,
@@ -278,6 +279,11 @@ export const appRouter = router({
     read: protectedProcedure
       .input(assessmentReadInput)
       .query(({ ctx, input }) => readAssessment(ctx.user.openId, input)),
+    evidenceReview: protectedProcedure
+      .input(assessmentReadInput)
+      .query(({ ctx, input }) =>
+        readAssessmentEvidenceReview(ctx.user.openId, input.sessionId)
+      ),
     saveResponse: protectedProcedure
       .input(assessmentSaveResponseInput)
       .mutation(({ ctx, input }) =>

@@ -61,7 +61,10 @@ export function assessmentGradeForScore(score: number): AssessmentGrade {
       "Assessment score must be an integer from 0 through 100."
     );
   if (score >= 90)
-    return { grade: "A+ / A", performance: "Excellent — mastery demonstrated" };
+    return {
+      grade: "A+ / A",
+      performance: "Excellent assessment performance — not verified mastery",
+    };
   if (score >= 80)
     return {
       grade: "A- / B+",

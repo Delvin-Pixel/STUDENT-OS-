@@ -69,10 +69,10 @@ describe("trusted assessment contract", () => {
     );
   });
 
-  it("maps only server-finalized integer scores to the directive's grade and performance semantics", () => {
+  it("maps integer assessment scores to feedback without claiming verified mastery", () => {
     expect(assessmentGradeForScore(90)).toEqual({
       grade: "A+ / A",
-      performance: "Excellent — mastery demonstrated",
+      performance: "Excellent assessment performance — not verified mastery",
     });
     expect(assessmentGradeForScore(80)).toEqual({
       grade: "A- / B+",
