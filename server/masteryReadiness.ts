@@ -155,7 +155,9 @@ export function evaluateMasteryReadiness(
     policyBundleId: context.policyBundleId,
     outcomeId: facts.outcomeId,
     state,
-    assessmentSessionIds: [...seen].sort((a, b) => a - b),
+    assessmentSessionIds: ownerMatches
+      ? [...seen].sort((a, b) => a - b)
+      : [],
     scoreEstimate:
       state === "estimated" ? Math.round(scoreSum / validSignals) : null,
     evaluatedAt: facts.evaluatedAt,
