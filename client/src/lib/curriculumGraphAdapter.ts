@@ -47,19 +47,13 @@ export function getCurriculumAwareLearningPath(
   today?: string
 ): CurriculumAwareLearningPath {
   const parsedGraph = CurriculumGraphSchema.safeParse(graph);
-  if (
-    !parsedGraph.success ||
-    !AcademicContextSchema.safeParse(context).success
-  )
+  if (!parsedGraph.success || !AcademicContextSchema.safeParse(context).success)
     return { ok: false, reason: "invalid_graph_or_context" };
   const validated = parsedGraph.data;
   if (!isCurriculumGraphCompatible(context, validated))
     return { ok: false, reason: "context_mismatch" };
 
-  const prerequisites = getCurriculumPrerequisiteOrder(
-    validated,
-    graphTopicId
-  );
+  const prerequisites = getCurriculumPrerequisiteOrder(validated, graphTopicId);
   if (prerequisites === null)
     return { ok: false, reason: "unknown_graph_topic" };
   const closure = [...prerequisites, graphTopicId];
@@ -85,8 +79,8 @@ export function getCurriculumAwareLearningPath(
   const prerequisitesByLocalId = new Map<string, string[]>();
   for (const id of closure) {
     const localId = mapping.get(id)!;
-    const links = (nodes.get(id)?.prerequisiteIds ?? []).map(
-      prerequisiteId => mapping.get(prerequisiteId)!
+    const links = (nodes.get(id)?.prerequisiteIds ?? []).map(prerequisiteId =>
+      mapping.get(prerequisiteId)!
     );
     prerequisitesByLocalId.set(localId, links);
   }
@@ -103,11 +97,7 @@ export function getCurriculumAwareLearningPath(
       };
     }),
   };
-  const path = getLearningPath(
-    projected,
-    mapping.get(graphTopicId)!,
-    today
-  );
+  const path = getLearningPath(projected, mapping.get(graphTopicId)!, today);
   // Explicit mapping already guaranteed the target exists in state.topics.
   if (!path) return { ok: false, reason: "missing_local_topic" };
   return {
