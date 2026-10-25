@@ -5,7 +5,7 @@ const originalDatabaseUrl = process.env.DATABASE_URL;
 
 afterEach(() => {
   if (originalDatabaseUrl === undefined) delete process.env.DATABASE_URL;
-  else process.env.DATABASE_URL = originalDatabaseUrl;
+  else process.env["DATABASE_URL"] = originalDatabaseUrl;
 });
 
 describe("B58.1 account persistence fail-closed behavior", () => {
