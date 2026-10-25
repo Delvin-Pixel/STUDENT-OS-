@@ -1,0 +1,36 @@
+name: B62.4 Source Formatting Delta (temporary)
+
+on:
+  push:
+    branches:
+      - parallel/b62-4-mastery-governance
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          run_install: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Generate formatting-only diff
+        run: |
+          pnpm exec prettier --write docs/parallel/B62.4-mastery-governance.md server/masteryReadiness.ts server/masteryReadiness.test.ts
+          echo '===== BEGIN B62 FORMAT DIFF ====='
+          git --no-pager diff -- docs/parallel/B62.4-mastery-governance.md server/masteryReadiness.ts server/masteryReadiness.test.ts
+          echo '===== END B62 FORMAT DIFF ====='
