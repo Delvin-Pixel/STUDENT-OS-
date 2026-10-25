@@ -204,6 +204,13 @@ export function registerOAuthRoutes(app: Express) {
         loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
         lastSignedIn: new Date(),
       });
+      // A successful write alone is not enough to claim login succeeded.
+      // Confirm that the account is readable under exactly the verified OAuth
+      // subject before signing a long-lived Student OS session cookie.
+      const persistedUser = await db.getUserByOpenId(userInfo.subject);
+      if (!persistedUser || persistedUser.openId !== userInfo.subject) {
+        throw new Error("OAuth account persistence could not be confirmed.");
+      }
       logOAuthLifecycle("user_persisted");
 
       const sessionToken = await sdk.createSessionToken(userInfo.subject, {
