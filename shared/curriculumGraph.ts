@@ -64,7 +64,9 @@ export const CurriculumGraphSchema = z
             learningObjective: z.string().trim().min(1).max(1200),
             strandId: id.optional(),
             sourceIds: z.array(id).min(1).max(16),
-            prerequisiteIds: z.array(id).max(CURRICULUM_GRAPH_LIMITS.prerequisitesPerNode),
+            prerequisiteIds: z
+              .array(id)
+              .max(CURRICULUM_GRAPH_LIMITS.prerequisitesPerNode),
           })
           .strict()
       )
