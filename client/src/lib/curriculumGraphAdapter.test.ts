@@ -141,7 +141,9 @@ describe("B62.2 curriculum graph → deterministic learning path adapter", () =>
     expect(JSON.stringify(state)).toBe(before);
     expect(JSON.stringify(graph())).toBe(graphBefore);
     expect(state.learningEvidence).toEqual([]);
-    expect(getLearningPath(state, "local-motion", "2026-10-24")).toEqual(legacy);
+    expect(getLearningPath(state, "local-motion", "2026-10-24")).toEqual(
+      legacy
+    );
   });
 
   it("rejects mismatched curriculum versions and levels without guessing topics", () => {
@@ -179,40 +181,25 @@ describe("B62.2 curriculum graph → deterministic learning path adapter", () =>
     const state = workspace();
     const g = graph();
     expect(
-      getCurriculumAwareLearningPath(
-        state,
-        context,
-        g,
-        "missing",
-        mapping
-      )
+      getCurriculumAwareLearningPath(state, context, g, "missing", mapping)
     ).toEqual({ ok: false, reason: "unknown_graph_topic" });
     expect(
-      getCurriculumAwareLearningPath(
-        state,
-        context,
-        g,
-        "motion",
-        { motion: "local-motion", algebra: "local-algebra" }
-      )
+      getCurriculumAwareLearningPath(state, context, g, "motion", {
+        motion: "local-motion",
+        algebra: "local-algebra",
+      })
     ).toEqual({ ok: false, reason: "missing_topic_mapping" });
     expect(
-      getCurriculumAwareLearningPath(
-        state,
-        context,
-        g,
-        "motion",
-        { ...mapping, numbers: "local-algebra" }
-      )
+      getCurriculumAwareLearningPath(state, context, g, "motion", {
+        ...mapping,
+        numbers: "local-algebra",
+      })
     ).toEqual({ ok: false, reason: "mapping_collision" });
     expect(
-      getCurriculumAwareLearningPath(
-        state,
-        context,
-        g,
-        "motion",
-        { ...mapping, numbers: "does-not-exist" }
-      )
+      getCurriculumAwareLearningPath(state, context, g, "motion", {
+        ...mapping,
+        numbers: "does-not-exist",
+      })
     ).toEqual({ ok: false, reason: "missing_local_topic" });
   });
 
