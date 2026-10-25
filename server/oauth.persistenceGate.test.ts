@@ -99,9 +99,7 @@ describe("B58.1 OAuth persistence gate", () => {
   it("refuses a login if a claimed successful write cannot be read back", async () => {
     const issueCookie = providerResponse();
     vi.spyOn(db, "upsertUser").mockResolvedValue(undefined);
-    const read = vi
-      .spyOn(db, "getUserByOpenId")
-      .mockResolvedValue(undefined);
+    const read = vi.spyOn(db, "getUserByOpenId").mockResolvedValue(undefined);
     const response = await callbackWithValidTransaction();
 
     expect(response.status).toBe(500);
