@@ -50,6 +50,14 @@ API responses and actual generation remain independently unverified.
 
 ## Stage matrix
 
+Follow-up development-tool patch: Vitest/mocker 4.1.12 and the narrowly scoped
+Typography selector-parser override 7.1.6 resolve the three remaining moderate
+advisories. Full and production audits now report zero known vulnerabilities.
+The selector compatibility cases are unchanged; the rebuilt production CSS is
+byte-identical (SHA-256 `611c02f0cc9ec54e55ca9b0449f8144d6d5ffc325f0084db678e67fd3153aad0`).
+All 747 tests/245 files and the 18 critical tests still pass, together with the
+complete local pipeline. Audit thresholds and all tests remain intact.
+
 Local verification for this hardening change: 747 Vitest tests in 245 files,
 18 critical entitlement/tombstone tests, TypeScript app/tests/config, lint,
 formatting, 17 migration metadata checks, credential scan (696 source files),
@@ -57,6 +65,28 @@ production build and bundle passed. Frozen strict install passed with Node
 22.23.3 and pnpm 10.4.1. The full audit retains three moderate development-only
 findings; the high severity gate is unchanged. Production audit is clean.
 Clean-MySQL migration execution and exact-head release gates require remote CI.
+
+Remote verification of `7c893362ea426d1d9d73bc6cacb42879385888f8` passed every
+step in run 40150232933, including clean MySQL/schema checks and source artifacts.
+Draft PR #7 targets PR #5's branch. Its automatic Vercel Preview is READY; that
+status does not verify live authenticated behavior.
+
+NEXA draft PR #6's automatic isolated-branch Preview failed with
+`DATABASE_URL is not configured`. Its passing disposable-PostgreSQL CI does not
+close that deployment gap. Existing nexa-main configuration was not copied or
+broadened. Patched NEXA runtime verification requires approved branch-specific
+configuration or a separately authorized reconciliation/deployment procedure.
+
+## Defects and dependencies by priority
+
+| Priority                 | Item                                                                     | Required evidence/action                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Critical dependency risk | Existing NEXA runtime has not adopted the verified dependency patch      | Review draft PR #6; authorize the appropriate Preview deployment procedure without merging main                 |
+| High security gate       | NEXA Data API future-default privilege risk                              | Approve the proposed Dashboard change after integration impact review, then re-attest                           |
+| Release blocker          | B58.1 credential transfer and live account gates                         | Owner performs direct browser-to-browser copy/paste in one desktop session; Work resumes verification afterward |
+| External service blocker | NEXA Gateway credits exhausted                                           | Owner controls billing; no charge authorized                                                                    |
+| Verification gap         | Cross-tab account switching, live quiz generation, notification delivery | Browser lifecycle tests and dependency-appropriate runtime checks                                               |
+| Moderate dependency risk | Three development-tool advisories at the first PR #7 revision            | Patch Vitest/mocker and validate selector-parser compatibility                                                  |
 
 | Stage                      | State        | Remaining evidence/work                                                                                        |
 | -------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------- |
