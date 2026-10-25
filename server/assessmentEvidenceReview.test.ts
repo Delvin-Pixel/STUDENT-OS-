@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { AssessmentEvidenceReviewSchema } from "../shared/assessmentEvidenceReview";
+import { assessmentGradeForScore } from "./assessments";
 import {
   evaluateAssessmentEvidenceReview,
   type AssessmentReviewFacts,
@@ -207,6 +208,12 @@ describe("B62.3 server-owned assessment evidence review", () => {
     const result = evaluateAssessmentEvidenceReview(facts);
     expect(result.disposition).toBe("held_integrity");
     expect(result.reasonCodes).toContain("finalization_invalid");
+  });
+
+  it("does not describe a high quiz score as verified mastery", () => {
+    expect(assessmentGradeForScore(100).performance).toContain(
+      "not verified mastery"
+    );
   });
 
   it("rejects injected authority claims at the shared response boundary", () => {
