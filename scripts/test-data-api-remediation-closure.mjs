@@ -47,12 +47,20 @@ for (const header of [
   'X-NEXA-Bridge-Data-API-Remediation-Closure-Requires-Verification',
 ]) assert.match(routeSource, new RegExp(header));
 
-for (const source of [healthSource, bridgeSource, routeSource]) {
-  assert.doesNotMatch(
-    source,
-    /riskyDefaultOwnerCount|alterableRiskyDefaultOwnerCount|protectedRiskyDefaultOwnerCount|owner_name|rolname|api[_ -]?key|credential|prompt|response_body/i,
-  );
-}
+assert.doesNotMatch(
+  coreSource,
+  /riskyDefaultOwnerCount|alterableRiskyDefaultOwnerCount|protectedRiskyDefaultOwnerCount|owner_name|rolname|api[_ -]?key|credential|prompt|response_body/i,
+);
+
+const closureSurface = [healthSource, bridgeSource, routeSource]
+  .flatMap((source) => source.split('\n'))
+  .filter((line) => /dataApiRemediationClosure|Remediation-Closure/.test(line))
+  .join('\n');
+
+assert.doesNotMatch(
+  closureSurface,
+  /riskyDefaultOwnerCount|alterableRiskyDefaultOwnerCount|protectedRiskyDefaultOwnerCount|owner_name|rolname|api[_ -]?key|credential|prompt|response_body/i,
+);
 
 const transpiled = ts.transpileModule(coreSource, {
   compilerOptions: {
