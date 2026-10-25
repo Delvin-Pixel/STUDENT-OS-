@@ -19,9 +19,7 @@ const academicContext: NexaBridgeAcademicContext = {
   constraints: ["Never modify a mastery decision."],
 };
 
-function call(
-  overrides: Partial<NexaBridgeCall> = {}
-): NexaBridgeCall {
+function call(overrides: Partial<NexaBridgeCall> = {}): NexaBridgeCall {
   return {
     subject: { userId: "owner-a" },
     prompt: "Explain factorisation",
@@ -47,9 +45,7 @@ function successfulResponse(
     };
   };
   const context = overrides.context ?? body.request.academicContext ?? null;
-  const fingerprint = context
-    ? fingerprintNexaAcademicContext(context)
-    : null;
+  const fingerprint = context ? fingerprintNexaAcademicContext(context) : null;
   const metadata = {
     contractVersion: "1.0",
     nexaVersion: "1.96.0",
@@ -81,9 +77,7 @@ function successfulResponse(
       "x-nexa-bridge-contract": "1.0",
       "x-nexa-provider-contract": "1.0",
       "x-nexa-bridge-request-id": body.request.requestId,
-      ...(fingerprint
-        ? { "x-nexa-academic-context-sha256": fingerprint }
-        : {}),
+      ...(fingerprint ? { "x-nexa-academic-context-sha256": fingerprint } : {}),
       ...overrides.headers,
     },
   });
@@ -147,14 +141,10 @@ describe("Track B NEXA bridge v1 contract", () => {
       advisoryOnly: true,
     });
     const [url, init] = vi.mocked(fetchImpl).mock.calls[0];
-    expect(url).toBe(
-      "https://nexa.example.test/api/integrations/student-os"
-    );
+    expect(url).toBe("https://nexa.example.test/api/integrations/student-os");
     const headers = new Headers(init?.headers);
     expect(headers.get("x-nexa-bridge-accept-contract")).toBe("1.0");
-    expect(headers.get("authorization")).toBe(
-      "Bearer " + configuration.secret
-    );
+    expect(headers.get("authorization")).toBe("Bearer " + configuration.secret);
     expect(headers.get("x-student-os-user-id")).toBe("owner-a");
     const body = JSON.parse(String(init?.body));
     expect(body.request.userId).toBe("owner-a");
@@ -197,9 +187,10 @@ describe("Track B NEXA bridge v1 contract", () => {
         },
       })
     );
-    expect(
-      await callNexaBridge(call({ academicContext, fetchImpl }))
-    ).toEqual({ ok: false, reason: "malformed_response" });
+    expect(await callNexaBridge(call({ academicContext, fetchImpl }))).toEqual({
+      ok: false,
+      reason: "malformed_response",
+    });
   });
 
   it("rejects spoofed academic metadata even when the header matches", async () => {
@@ -229,9 +220,10 @@ describe("Track B NEXA bridge v1 contract", () => {
         },
       });
     });
-    expect(
-      await callNexaBridge(call({ academicContext, fetchImpl }))
-    ).toEqual({ ok: false, reason: "malformed_response" });
+    expect(await callNexaBridge(call({ academicContext, fetchImpl }))).toEqual({
+      ok: false,
+      reason: "malformed_response",
+    });
   });
 
   it.each([
@@ -242,9 +234,7 @@ describe("Track B NEXA bridge v1 contract", () => {
     [429, "rate_limited"],
     [503, "unavailable"],
   ] as const)("maps HTTP %i to bounded %s fallback", async (status, reason) => {
-    const fetchImpl = fakeFetch(
-      () => new Response("Unavailable", { status })
-    );
+    const fetchImpl = fakeFetch(() => new Response("Unavailable", { status }));
     expect(await callNexaBridge(call({ fetchImpl }))).toEqual({
       ok: false,
       reason,
@@ -310,9 +300,7 @@ describe("Track B NEXA bridge v1 contract", () => {
       evidence: ["z".repeat(1_201)],
     };
     expect(
-      await callNexaBridge(
-        call({ academicContext: invalid, fetchImpl })
-      )
+      await callNexaBridge(call({ academicContext: invalid, fetchImpl }))
     ).toEqual({ ok: false, reason: "invalid_request" });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -322,9 +310,7 @@ describe("Track B NEXA bridge v1 contract", () => {
     controller.abort();
     const fetchImpl = vi.fn() as unknown as typeof fetch;
     expect(
-      await callNexaBridge(
-        call({ signal: controller.signal, fetchImpl })
-      )
+      await callNexaBridge(call({ signal: controller.signal, fetchImpl }))
     ).toEqual({ ok: false, reason: "cancelled" });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
