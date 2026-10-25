@@ -119,9 +119,9 @@ describe("B62.4 fail-closed mastery readiness", () => {
       expect(result.reasonCodes).toContain("policy_authority_unattested");
       expect(result.reasonCodes).toContain("independence_unverified");
       expect(result.reasonCodes).toContain("assessment_source_unreviewed");
-      expect(
-        result.reasonCodes
-      ).toContain("academic_context_not_bound_to_assessment");
+      expect(result.reasonCodes).toContain(
+        "academic_context_not_bound_to_assessment"
+      );
       expect(JSON.stringify(input)).toBe(unchanged);
       expect(MasteryReadinessSchema.safeParse(result).success).toBe(true);
     }
@@ -245,9 +245,9 @@ describe("B62.4 fail-closed mastery readiness", () => {
         reasonCodes: ["assessment_not_submitted"],
       },
     ];
-    expect(
-      evaluateMasteryReadiness(input).reasonCodes
-    ).toContain("assessment_not_finalized");
+    expect(evaluateMasteryReadiness(input).reasonCodes).toContain(
+      "assessment_not_finalized"
+    );
 
     const future = facts();
     future.assessments = [
@@ -291,9 +291,8 @@ describe("B62.4 fail-closed mastery readiness", () => {
       }).success
     ).toBe(false);
     const oversized = facts();
-    oversized.assessments = Array.from(
-      { length: 65 },
-      (_, index) => review(index + 1)
+    oversized.assessments = Array.from({ length: 65 }, (_, index) =>
+      review(index + 1)
     );
     expect(() => evaluateMasteryReadiness(oversized)).toThrow(RangeError);
   });
