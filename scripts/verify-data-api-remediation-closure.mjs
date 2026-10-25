@@ -2,7 +2,7 @@
 import { pathToFileURL } from 'node:url';
 import { queryDataApiRemediationPlan } from './plan-supabase-data-api-remediation.mjs';
 
-function classifyClosure(plan) {
+export function classifyClosure(plan) {
   if (plan.status === 'no-action') {
     return Object.freeze({
       status: 'closed',
