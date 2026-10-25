@@ -14,8 +14,8 @@ const [pkgText, coreSource, runtimeSource, operatorSource, pgTestSource, readme]
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-96');
-assert.equal(pkg.version, '1.96.0');
+assert.equal(pkg.name, 'nexa-1-97');
+assert.equal(pkg.version, '1.97.0');
 assert.equal(
   pkg.scripts['test:runtime-role-exact-privileges'],
   'node scripts/test-runtime-role-exact-privileges.mjs',

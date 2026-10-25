@@ -17,8 +17,8 @@ const [pkgText, coreSource, effectiveCoreSource, operatorSource, readme] = await
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-96');
-assert.equal(pkg.version, '1.96.0');
+assert.equal(pkg.name, 'nexa-1-97');
+assert.equal(pkg.version, '1.97.0');
 assert.equal(
   pkg.scripts['ops:plan-data-api-remediation'],
   'node scripts/plan-supabase-data-api-remediation.mjs',
