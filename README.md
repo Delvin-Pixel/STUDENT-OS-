@@ -1,3 +1,15 @@
+# NEXA 1.98.0 — Data API Remediation Closure Verification Command
+
+NEXA 1.98.0 adds a read-only operator command for immediately re-verifying the Data API remediation closure state after a protected owner action. The command performs a fresh Supabase Data API platform probe and a fresh PostgreSQL isolation/remediation assessment through the existing operator planner, so it is not dependent on the 60-second runtime readiness caches.
+
+Run `npm run ops:verify-data-api-remediation-closure` with the same runtime database and Supabase probe configuration used by NEXA. The output is deliberately bounded to closure status, closure reason, whether the effective security boundary is closed, whether verification is still required, a check timestamp, and latency. It does not print ACL rows, database role names, risky-owner counts, credentials, API keys, prompts, response bodies, or user data.
+
+Exit status is also bounded for automation: 0 means current live evidence closes the remediation blocker, 2 means verification evidence is still unavailable/pending, 3 means the blocker remains open, and 1 is reserved for command/probe failure. The command never disables the Data API, changes grants, alters default privileges, rotates credentials, or acknowledges an owner action on the user's behalf.
+
+This release complements the v1.97 runtime closure surface: v1.97 continuously reports the bounded closure state, while v1.98 gives an operator an immediate fresh verification path after manual remediation. No database migration is introduced; migrations 001–047 remain immutable. Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.97.0 — Data API Remediation Closure Readiness
 
 NEXA 1.97.0 closes the operator-handoff loop introduced in 1.96 with a bounded, evidence-based remediation closure state. NEXA does not infer that a dashboard action happened because an operator said it did; the blocker closes only when current remediation readiness is independently observed as `no-action`.
