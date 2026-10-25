@@ -83,8 +83,7 @@ export function evaluateMasteryReadiness(
   if (!ownerMatches) add("account_scope_mismatch");
   if (context.status !== "active") add("context_inactive");
   if (!policy) add("policy_missing");
-  else if (!isCompatiblePolicy(context, policy))
-    add("policy_scope_mismatch");
+  else if (!isCompatiblePolicy(context, policy)) add("policy_scope_mismatch");
 
   const seen = new Set<number>();
   let validSignals = 0;
@@ -94,8 +93,7 @@ export function evaluateMasteryReadiness(
     if (seen.has(id)) add("duplicate_assessment_session");
     seen.add(id);
 
-    if (assessment.topicId !== facts.outcomeId)
-      add("mixed_topic_evidence");
+    if (assessment.topicId !== facts.outcomeId) add("mixed_topic_evidence");
     if (
       assessment.disposition === "held_integrity" ||
       assessment.snapshotIntegrity === "held"
@@ -155,9 +153,7 @@ export function evaluateMasteryReadiness(
     policyBundleId: context.policyBundleId,
     outcomeId: facts.outcomeId,
     state,
-    assessmentSessionIds: ownerMatches
-      ? [...seen].sort((a, b) => a - b)
-      : [],
+    assessmentSessionIds: ownerMatches ? [...seen].sort((a, b) => a - b) : [],
     scoreEstimate:
       state === "estimated" ? Math.round(scoreSum / validSignals) : null,
     evaluatedAt: facts.evaluatedAt,
