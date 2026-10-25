@@ -1,3 +1,17 @@
+# NEXA 1.97.0 — Data API Remediation Closure Readiness
+
+NEXA 1.97.0 closes the operator-handoff loop introduced in 1.96 with a bounded, evidence-based remediation closure state. NEXA does not infer that a dashboard action happened because an operator said it did; the blocker closes only when current remediation readiness is independently observed as `no-action`.
+
+The closure state is bounded to `closed`, `open`, or `verification-required`. A secure/no-action state maps to `closed / no-remediation-required`. Project-owner action and security-review states remain `open` with explicit pending reasons. Unavailable platform, isolation, or remediation evidence remains `verification-required` until the corresponding live check succeeds.
+
+Public readiness exposes only the closure status, bounded reason, whether the security boundary is closed, and whether verification remains required. Authenticated Student OS bridge readiness mirrors the same closure object and response headers so orchestration can distinguish an active blocker from a blocker that has been cleared by current evidence.
+
+The closure contract remains non-mutating. NEXA does not disable the Supabase Data API, change grants, alter default privileges, rotate credentials, acknowledge owner actions on the user's behalf, or persist an unverified completion claim. Raw ACL rows, database role names, risky-owner counts, credentials, API keys, prompts, response bodies, and user data remain excluded from readiness.
+
+No database migration is introduced; migrations 001–047 remain immutable. Existing provider, fallback, bridge transport, negotiation, runtime-role security, Data API isolation, remediation-readiness, and remediation-handoff contracts remain unchanged. Student OS deterministic `learningIntelligence` remains the sole academic decision authority.
+
+---
+
 # NEXA 1.96.0 — Data API Remediation Handoff
 
 NEXA 1.96.0 turns the bounded remediation status introduced in 1.95 into an explicit operator handoff contract. Readiness can now state who must act, where the action belongs, the next bounded step, whether a browser/Work-style dashboard handoff is required, and what must be re-verified afterward.
