@@ -41,11 +41,7 @@ type SubmissionFacts = Pick<
 >;
 type QuestionFacts = Pick<
   AssessmentQuestion,
-  | "ordinal"
-  | "prompt"
-  | "options"
-  | "correctOptionIndex"
-  | "explanation"
+  "ordinal" | "prompt" | "options" | "correctOptionIndex" | "explanation"
 >;
 type ResponseFacts = Pick<
   AssessmentResponse,
@@ -74,8 +70,7 @@ function validDate(value: unknown): value is Date {
 export function evaluateAssessmentEvidenceReview(
   facts: AssessmentReviewFacts
 ): AssessmentEvidenceReview {
-  const { session, submission, questions, responses, requestingOpenId } =
-    facts;
+  const { session, submission, questions, responses, requestingOpenId } = facts;
   const reasons: Reason[] = [];
   const reviewBase = {
     schemaVersion: 1 as const,
@@ -150,8 +145,7 @@ export function evaluateAssessmentEvidenceReview(
   }
 
   const responseMap = new Map<number, number>();
-  let responsesValid =
-    responses.length === expectedCount && questionsValid;
+  let responsesValid = responses.length === expectedCount && questionsValid;
   for (const response of responses) {
     if (
       !Number.isInteger(response.questionOrdinal) ||
