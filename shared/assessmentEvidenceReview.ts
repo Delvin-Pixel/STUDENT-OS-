@@ -64,7 +64,8 @@ export const AssessmentEvidenceReviewSchema = z
     ) {
       ctx.addIssue({
         code: "custom",
-        message: "Non-final or integrity-held evidence cannot expose an assessment signal",
+        message:
+          "Non-final or integrity-held evidence cannot expose an assessment signal",
       });
     }
     if (
