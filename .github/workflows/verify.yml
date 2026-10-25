@@ -86,6 +86,12 @@ jobs:
         shell: bash
         run: cmp --silent package-lock.json "$RUNNER_TEMP/package-lock.before"
 
+      - name: Audit complete dependency graph
+        run: npm audit --audit-level=high
+
+      - name: Audit production dependency graph
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Apply PostgreSQL migrations
         shell: bash
         run: |
