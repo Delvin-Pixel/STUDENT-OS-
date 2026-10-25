@@ -117,12 +117,17 @@ describe("B62.2 bounded curriculum graph", () => {
   it.each(["JHS", "SHS", "TERTIARY"] as const)(
     "accepts scoped %s prerequisites without declaring academic authority",
     level => {
-      const result = parseCurriculumGraphManifest(JSON.stringify(fixture(level)));
+      const result = parseCurriculumGraphManifest(
+        JSON.stringify(fixture(level))
+      );
       expect(result).toMatchObject({
         ok: true,
         provenanceStatus: "unverified",
       });
-      if (result.ok) expect(isCurriculumGraphCompatible(context(level), result.graph)).toBe(true);
+      if (result.ok)
+        expect(isCurriculumGraphCompatible(context(level), result.graph)).toBe(
+          true
+        );
     }
   );
 
@@ -130,9 +135,7 @@ describe("B62.2 bounded curriculum graph", () => {
     const draft = fixture("TERTIARY");
     const { programId: _ignored, ...scope } = draft.scope;
     expect(
-      parseCurriculumGraphManifest(
-        JSON.stringify({ ...draft, scope })
-      ).ok
+      parseCurriculumGraphManifest(JSON.stringify({ ...draft, scope })).ok
     ).toBe(false);
     void _ignored;
   });
@@ -186,14 +189,14 @@ describe("B62.2 bounded curriculum graph", () => {
   it("rejects privilege-like fields and malformed or oversized JSON", () => {
     const graph = fixture();
     expect(
-      parseCurriculumGraphManifest(
-        JSON.stringify({ ...graph, official: true })
-      ).ok
+      parseCurriculumGraphManifest(JSON.stringify({ ...graph, official: true }))
+        .ok
     ).toBe(false);
     expect(parseCurriculumGraphManifest("{").ok).toBe(false);
-    expect(
-      parseCurriculumGraphManifest("é".repeat(70_000))
-    ).toEqual({ ok: false, reason: "manifest_too_large" });
+    expect(parseCurriculumGraphManifest("é".repeat(70_000))).toEqual({
+      ok: false,
+      reason: "manifest_too_large",
+    });
     expect(CURRICULUM_GRAPH_LIMITS.nodes).toBeLessThanOrEqual(256);
   });
 
@@ -207,10 +210,7 @@ describe("B62.2 bounded curriculum graph", () => {
       )
     ).toBe(false);
     expect(
-      isCurriculumGraphCompatible(
-        { ...context(), status: "historical" },
-        graph
-      )
+      isCurriculumGraphCompatible({ ...context(), status: "historical" }, graph)
     ).toBe(false);
     const tertiary = parseFixture("TERTIARY");
     expect(
@@ -220,10 +220,10 @@ describe("B62.2 bounded curriculum graph", () => {
       )
     ).toBe(false);
     expect(
-      isCurriculumGraphCompatible(
-        context("TERTIARY"),
-        { ...tertiary, scope: { ...tertiary.scope, institutionId: "campus-a" } }
-      )
+      isCurriculumGraphCompatible(context("TERTIARY"), {
+        ...tertiary,
+        scope: { ...tertiary.scope, institutionId: "campus-a" },
+      })
     ).toBe(false);
   });
 
