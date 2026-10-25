@@ -30,8 +30,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
+    // Authentication must not create a valid session unless the account can
+    // actually be persisted. An absent DB is a hard failure, not a no-op.
+    throw new Error("Account persistence is unavailable.");
   }
 
   try {
