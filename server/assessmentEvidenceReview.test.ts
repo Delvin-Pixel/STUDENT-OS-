@@ -116,15 +116,24 @@ describe("B62.3 server-owned assessment evidence review", () => {
   });
 
   it.each([
-    ["request owner", (facts: AssessmentReviewFacts) => {
-      facts.requestingOpenId = "account-b";
-    }],
-    ["submission owner", (facts: AssessmentReviewFacts) => {
-      if (facts.submission) facts.submission.openId = "account-b";
-    }],
-    ["session owner", (facts: AssessmentReviewFacts) => {
-      facts.session.openId = "account-b";
-    }],
+    [
+      "request owner",
+      (facts: AssessmentReviewFacts) => {
+        facts.requestingOpenId = "account-b";
+      },
+    ],
+    [
+      "submission owner",
+      (facts: AssessmentReviewFacts) => {
+        if (facts.submission) facts.submission.openId = "account-b";
+      },
+    ],
+    [
+      "session owner",
+      (facts: AssessmentReviewFacts) => {
+        facts.session.openId = "account-b";
+      },
+    ],
   ] as const)("rejects mismatched %s", (_label, mutate) => {
     const facts = fixture();
     mutate(facts);
@@ -144,18 +153,30 @@ describe("B62.3 server-owned assessment evidence review", () => {
   });
 
   it.each([
-    ["missing question", (facts: AssessmentReviewFacts) => {
-      facts.questions.pop();
-    }],
-    ["duplicate ordinal", (facts: AssessmentReviewFacts) => {
-      facts.questions[2].ordinal = 1;
-    }],
-    ["missing options", (facts: AssessmentReviewFacts) => {
-      facts.questions[0].options = [];
-    }],
-    ["incorrect count", (facts: AssessmentReviewFacts) => {
-      facts.session.questionCount = 49;
-    }],
+    [
+      "missing question",
+      (facts: AssessmentReviewFacts) => {
+        facts.questions.pop();
+      },
+    ],
+    [
+      "duplicate ordinal",
+      (facts: AssessmentReviewFacts) => {
+        facts.questions[2].ordinal = 1;
+      },
+    ],
+    [
+      "missing options",
+      (facts: AssessmentReviewFacts) => {
+        facts.questions[0].options = [];
+      },
+    ],
+    [
+      "incorrect count",
+      (facts: AssessmentReviewFacts) => {
+        facts.session.questionCount = 49;
+      },
+    ],
   ] as const)("holds structurally invalid questions: %s", (_label, mutate) => {
     const facts = fixture();
     mutate(facts);
@@ -165,15 +186,24 @@ describe("B62.3 server-owned assessment evidence review", () => {
   });
 
   it.each([
-    ["missing response", (facts: AssessmentReviewFacts) => {
-      facts.responses.pop();
-    }],
-    ["duplicate response", (facts: AssessmentReviewFacts) => {
-      facts.responses[1].questionOrdinal = 0;
-    }],
-    ["out-of-range option", (facts: AssessmentReviewFacts) => {
-      facts.responses[2].selectedOptionIndex = 9;
-    }],
+    [
+      "missing response",
+      (facts: AssessmentReviewFacts) => {
+        facts.responses.pop();
+      },
+    ],
+    [
+      "duplicate response",
+      (facts: AssessmentReviewFacts) => {
+        facts.responses[1].questionOrdinal = 0;
+      },
+    ],
+    [
+      "out-of-range option",
+      (facts: AssessmentReviewFacts) => {
+        facts.responses[2].selectedOptionIndex = 9;
+      },
+    ],
   ] as const)("holds compromised response sets: %s", (_label, mutate) => {
     const facts = fixture();
     mutate(facts);
