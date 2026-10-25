@@ -48,6 +48,9 @@ describe("OAuth callback session handoff", () => {
         email: "student@example.test",
       } as any);
       vi.spyOn(db, "upsertUser").mockResolvedValue(undefined as any);
+      vi.spyOn(db, "getUserByOpenId").mockResolvedValue({
+        openId: "provider-account-1",
+      } as any);
 
       await withOAuthServer(async baseUrl => {
         const nonceResponse = await fetch(`${baseUrl}/api/oauth/start`, {
