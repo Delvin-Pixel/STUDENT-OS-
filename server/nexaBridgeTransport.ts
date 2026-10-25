@@ -113,8 +113,7 @@ function normalizeContext(
   context: NexaBridgeAcademicContext | undefined
 ): NormalizedContext | null | false {
   if (context === undefined) return null;
-  if (!context || context.authority !== NEXA_ACADEMIC_AUTHORITY)
-    return false;
+  if (!context || context.authority !== NEXA_ACADEMIC_AUTHORITY) return false;
   const snapshotId =
     context.snapshotId === undefined ||
     context.snapshotId === null ||
@@ -154,10 +153,7 @@ export function fingerprintNexaAcademicContext(
 function validConfiguration(
   config: NexaBridgeConfiguration
 ): { origin: string; secret: string; timeoutMs: number } | null {
-  if (
-    typeof config.secret !== "string" ||
-    config.secret.trim().length < 32
-  )
+  if (typeof config.secret !== "string" || config.secret.trim().length < 32)
     return null;
   let url: URL;
   try {
@@ -183,11 +179,7 @@ function validConfiguration(
   )
     return null;
   const timeoutMs = config.timeoutMs ?? 12_000;
-  if (
-    !Number.isInteger(timeoutMs) ||
-    timeoutMs < 1_000 ||
-    timeoutMs > 18_000
-  )
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 18_000)
     return null;
   return { origin: url.origin, secret: config.secret.trim(), timeoutMs };
 }
@@ -231,8 +223,7 @@ function validReply(
   ok: true;
   content: string;
 } {
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    return false;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const payload = value as Record<string, unknown>;
   if (
     payload.ok !== true ||
@@ -261,8 +252,10 @@ function validReply(
   )
     return false;
   if (!context) {
-    return record.academicContext === null &&
-      response.headers.get("x-nexa-academic-context-sha256") === null;
+    return (
+      record.academicContext === null &&
+      response.headers.get("x-nexa-academic-context-sha256") === null
+    );
   }
   const binding = record.academicContext;
   if (!binding || typeof binding !== "object" || Array.isArray(binding))
@@ -299,9 +292,7 @@ export async function callNexaBridge(
     return fail(input.signal?.aborted ? "cancelled" : "invalid_request");
   const context = normalizeContext(input.academicContext);
   if (context === false) return fail("invalid_request");
-  const fingerprint = context
-    ? fingerprintNexaAcademicContext(context)
-    : null;
+  const fingerprint = context ? fingerprintNexaAcademicContext(context) : null;
   if (context && !fingerprint) return fail("invalid_request");
 
   const requestId = randomUUID();
