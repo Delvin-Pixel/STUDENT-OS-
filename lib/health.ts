@@ -34,6 +34,11 @@ import {
   type NexaDataApiRemediationHandoffSurface,
   type NexaDataApiRemediationHandoffVerification,
 } from '@/lib/supabase-data-api-remediation-handoff-core';
+import {
+  classifyNexaDataApiRemediationClosure,
+  type NexaDataApiRemediationClosureReason,
+  type NexaDataApiRemediationClosureStatus,
+} from '@/lib/supabase-data-api-remediation-closure-core';
 import { NEXA_VERSION } from '@/lib/version';
 
 export type HealthStatus = {
@@ -58,6 +63,10 @@ export type HealthStatus = {
   dataApiRemediationHandoffVerification: NexaDataApiRemediationHandoffVerification;
   dataApiRemediationHandoffRequiresHumanAction: boolean;
   dataApiRemediationHandoffRequiresWorkBrowser: boolean;
+  dataApiRemediationClosureStatus: NexaDataApiRemediationClosureStatus;
+  dataApiRemediationClosureReason: NexaDataApiRemediationClosureReason;
+  dataApiRemediationSecurityBoundaryClosed: boolean;
+  dataApiRemediationClosureRequiresVerification: boolean;
   aiGateway: 'configured' | 'missing';
   aiGatewayOperational: NexaAiGatewayReadiness['status'];
   aiGatewayReason: NexaAiGatewayReadiness['reason'];
@@ -98,6 +107,11 @@ export async function getReadiness(): Promise<HealthStatus> {
     recommendedAction: dataApiRemediation.recommendedAction,
   });
 
+  const dataApiRemediationClosure = classifyNexaDataApiRemediationClosure({
+    status: dataApiRemediation.status,
+    recommendedAction: dataApiRemediation.recommendedAction,
+  });
+
   const healthy = (
     databaseResult === 'ok'
     && runtimeRoleSecurity.status === 'secure'
@@ -128,6 +142,10 @@ export async function getReadiness(): Promise<HealthStatus> {
     dataApiRemediationHandoffVerification: dataApiRemediationHandoff.verification,
     dataApiRemediationHandoffRequiresHumanAction: dataApiRemediationHandoff.requiresHumanAction,
     dataApiRemediationHandoffRequiresWorkBrowser: dataApiRemediationHandoff.requiresWorkBrowser,
+    dataApiRemediationClosureStatus: dataApiRemediationClosure.status,
+    dataApiRemediationClosureReason: dataApiRemediationClosure.reason,
+    dataApiRemediationSecurityBoundaryClosed: dataApiRemediationClosure.securityBoundaryClosed,
+    dataApiRemediationClosureRequiresVerification: dataApiRemediationClosure.requiresVerification,
     aiGateway: gateway.configured ? 'configured' : 'missing',
     aiGatewayOperational: gateway.status,
     aiGatewayReason: gateway.reason,
