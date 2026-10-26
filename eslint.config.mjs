@@ -20,6 +20,8 @@ export default tseslint.config(
   {
     files: [
       "api/**/*.mjs",
+      "e2e/**/*.ts",
+      "playwright.config.ts",
       "client/src/**/*.{ts,tsx}",
       "server/**/*.ts",
       "shared/**/*.ts",

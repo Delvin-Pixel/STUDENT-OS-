@@ -8,7 +8,7 @@
     "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && esbuild server/vercelHandler.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/vercel.mjs",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "pnpm typecheck:app && pnpm typecheck:tests && pnpm typecheck:config",
-    "lint": "eslint \"api/**/*.mjs\" \"client/src/**/*.{ts,tsx}\" \"server/**/*.ts\" \"shared/**/*.ts\" \"scripts/**/*.{js,mjs}\" client/public/sw.js vite.config.ts vitest.config.ts drizzle.config.ts --max-warnings=0",
+    "lint": "eslint \"api/**/*.mjs\" \"client/src/**/*.{ts,tsx}\" \"server/**/*.ts\" \"shared/**/*.ts\" \"scripts/**/*.{js,mjs}\" client/public/sw.js vite.config.ts vitest.config.ts drizzle.config.ts --max-warnings=0 \"e2e/**/*.ts\" playwright.config.ts",
     "format:check": "prettier . --check",
     "lint:audited": "pnpm check && pnpm lint && pnpm format:check && pnpm check:migrations && pnpm scan:credentials",
     "verify:secrets": "bash scripts/check-source-secrets.sh",
@@ -23,7 +23,8 @@
     "db:migrate": "drizzle-kit migrate",
     "verify:bundle": "node scripts/check-production-bundle.mjs",
     "verify:migration-schema": "node scripts/check-subscription-migration.mjs",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "test:browser": "playwright test"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1145.0",
@@ -93,6 +94,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "1.64.1",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
     "@types/express": "4.17.21",
