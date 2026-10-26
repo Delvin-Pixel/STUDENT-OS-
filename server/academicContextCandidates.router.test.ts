@@ -143,16 +143,19 @@ describe("B62.5 protected academic context ownership", () => {
     { policyBundleId: "fake-policy" },
     { verifiedMasteryEligible: true },
     { openId: "other-owner" },
-  ])("rejects forged curriculum authority at the API input: %o", async extra => {
-    const forged = {
-      ...input,
-      context: { ...input.context, ...extra },
-    };
-    await expect(
-      caller("owner-one").academicContexts.propose(forged)
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    expect(proposeAcademicContextCandidate).not.toHaveBeenCalled();
-  });
+  ])(
+    "rejects forged curriculum authority at the API input: %o",
+    async extra => {
+      const forged = {
+        ...input,
+        context: { ...input.context, ...extra },
+      };
+      await expect(
+        caller("owner-one").academicContexts.propose(forged)
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(proposeAcademicContextCandidate).not.toHaveBeenCalled();
+    }
+  );
 
   it("rejects invalid tertiary context rather than silently inferring programme", async () => {
     await expect(
