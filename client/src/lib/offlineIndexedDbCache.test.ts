@@ -292,27 +292,24 @@ describe("B64.2 account-scoped checksummed cache", () => {
 
   it("does not overwrite a concurrent IndexedDB record during migration", async () => {
     const cache = makeHarness();
-    const normal = cache.memory.compareAndSwap;
-    cache.memory.compareAndSwap = async (id, expected, next) => {
-      if (expected === null) {
-        await normal(id, null, {
-          ...next,
-          pending: false,
-          sha256: next.sha256,
-        });
-        return false;
-      }
-      return normal(id, expected, next);
-    };
     const result = await cache.migrateReadOnlyLegacy(
       "account-A",
-      async () => ({
-        json: JSON.stringify(stateFor("Amina")),
-        revision: 3,
-        pending: true,
-      })
+      async () => {
+        expect(
+          await cache.save("account-A", stateFor("Other writer"), 3, false, null)
+        ).toMatchObject({ kind: "saved" });
+        return {
+          json: JSON.stringify(stateFor("Amina")),
+          revision: 3,
+          pending: true,
+        };
+      }
     );
-    expect(result.kind).toBe("recovery_required");
+    expect(result).toEqual({ kind: "raced" });
+    const persisted = await cache.read("account-A");
+    expect(persisted.kind === "ready" && persisted.state.profile?.name).toBe(
+      "Other writer"
+    );
   });
 
   it("fails safely on IndexedDB quota or transaction failure", async () => {
