@@ -32,12 +32,7 @@ export type OfflineCacheReadResult =
     }>;
 
 export type OfflineCacheWriteResult = Readonly<{
-  kind:
-    | "saved"
-    | "conflict"
-    | "invalid"
-    | "denied"
-    | "unavailable";
+  kind: "saved" | "conflict" | "invalid" | "denied" | "unavailable";
   checksum?: string;
 }>;
 
@@ -344,7 +339,9 @@ export function createOfflineIndexedDbCache(access: OfflineCacheAccess) {
     }
   }
 
-  async function clearAccount(accountId: string): Promise<"cleared" | "denied" | "unavailable"> {
+  async function clearAccount(
+    accountId: string
+  ): Promise<"cleared" | "denied" | "unavailable"> {
     if (!permitted(accountId)) return "denied";
     try {
       await access.backend.remove(accountId);
