@@ -55,9 +55,7 @@ describe("B64 offline sync three-way safety preflight", () => {
 
   it("permits only an explicit revision-checked upload when remote is unchanged", () => {
     expect(
-      preflightOfflineSync(
-        input({ local: snapshot(5, [item("task-1", "b")]) })
-      )
+      preflightOfflineSync(input({ local: snapshot(5, [item("task-1", "b")]) }))
     ).toMatchObject({
       kind: "ready_for_revision_checked_write",
       expectedRemoteRevision: 5,
@@ -84,10 +82,7 @@ describe("B64 offline sync three-way safety preflight", () => {
     const result = preflightOfflineSync(
       input({
         local: snapshot(5, [item("task-1", "b")]),
-        remote: snapshot(6, [
-          item("task-1", "a"),
-          item("task-2", "c"),
-        ]),
+        remote: snapshot(6, [item("task-1", "a"), item("task-2", "c")]),
       })
     );
     expect(result).toMatchObject({
@@ -134,9 +129,10 @@ describe("B64 offline sync three-way safety preflight", () => {
   });
 
   it("rejects silent disappearance of a record without a tombstone", () => {
-    expect(
-      preflightOfflineSync(input({ local: snapshot(5, []) }))
-    ).toEqual({ kind: "blocked", reason: "missing_deletion_marker" });
+    expect(preflightOfflineSync(input({ local: snapshot(5, []) }))).toEqual({
+      kind: "blocked",
+      reason: "missing_deletion_marker",
+    });
   });
 
   it("refuses to forget existing tombstones on another device", () => {
@@ -175,12 +171,14 @@ describe("B64 offline sync three-way safety preflight", () => {
   });
 
   it("rejects stale local baselines and server rollback revisions", () => {
-    expect(
-      preflightOfflineSync(input({ local: snapshot(4) }))
-    ).toEqual({ kind: "blocked", reason: "invalid_revision" });
-    expect(
-      preflightOfflineSync(input({ remote: snapshot(4) }))
-    ).toEqual({ kind: "blocked", reason: "invalid_revision" });
+    expect(preflightOfflineSync(input({ local: snapshot(4) }))).toEqual({
+      kind: "blocked",
+      reason: "invalid_revision",
+    });
+    expect(preflightOfflineSync(input({ remote: snapshot(4) }))).toEqual({
+      kind: "blocked",
+      reason: "invalid_revision",
+    });
   });
 
   it("rejects a changed remote snapshot falsely reusing the same revision", () => {
@@ -229,10 +227,7 @@ describe("B64 offline sync three-way safety preflight", () => {
     expect(
       preflightOfflineSync(
         input({
-          local: snapshot(5, [
-            item("task-1", "a"),
-            item("task-1", "b"),
-          ]),
+          local: snapshot(5, [item("task-1", "a"), item("task-1", "b")]),
         })
       )
     ).toEqual({ kind: "blocked", reason: "invalid_snapshot" });
