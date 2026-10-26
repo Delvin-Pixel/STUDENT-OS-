@@ -43,25 +43,32 @@ describe("B62.5 learner-declared academic context contracts", () => {
         educationLevel: level,
         ...(level === "TERTIARY" ? { programId: "bsc-it" } : {}),
       };
-      expect(AcademicContextCandidateFieldsSchema.safeParse(input).success)
-        .toBe(true);
+      expect(
+        AcademicContextCandidateFieldsSchema.safeParse(input).success
+      ).toBe(true);
     }
   );
 
   it("requires programme for tertiary and institution for institutional mode", () => {
-    expect(AcademicContextCandidateFieldsSchema.safeParse({
-      ...context,
-      educationLevel: "TERTIARY",
-    }).success).toBe(false);
-    expect(AcademicContextCandidateFieldsSchema.safeParse({
-      ...context,
-      enrollmentMode: "institutional",
-    }).success).toBe(false);
-    expect(AcademicContextCandidateFieldsSchema.safeParse({
-      ...context,
-      enrollmentMode: "institutional",
-      institutionId: "school-1",
-    }).success).toBe(true);
+    expect(
+      AcademicContextCandidateFieldsSchema.safeParse({
+        ...context,
+        educationLevel: "TERTIARY",
+      }).success
+    ).toBe(false);
+    expect(
+      AcademicContextCandidateFieldsSchema.safeParse({
+        ...context,
+        enrollmentMode: "institutional",
+      }).success
+    ).toBe(false);
+    expect(
+      AcademicContextCandidateFieldsSchema.safeParse({
+        ...context,
+        enrollmentMode: "institutional",
+        institutionId: "school-1",
+      }).success
+    ).toBe(true);
   });
 
   it.each([
@@ -72,45 +79,61 @@ describe("B62.5 learner-declared academic context contracts", () => {
     { openId: "forged-owner" },
     { learnerId: "other-learner" },
   ])("rejects injected authority and ownership claims: %o", extra => {
-    expect(AcademicContextCandidateProposalSchema.safeParse({
-      ...request,
-      context: { ...context, ...extra },
-    }).success).toBe(false);
+    expect(
+      AcademicContextCandidateProposalSchema.safeParse({
+        ...request,
+        context: { ...context, ...extra },
+      }).success
+    ).toBe(false);
   });
 
   it("rejects non-Ghana country, unknown levels and malformed retry keys", () => {
-    expect(AcademicContextCandidateProposalSchema.safeParse({
-      ...request,
-      context: { ...context, countryCode: "US" },
-    }).success).toBe(false);
-    expect(AcademicContextCandidateProposalSchema.safeParse({
-      ...request,
-      context: { ...context, educationLevel: "PRIMARY" },
-    }).success).toBe(false);
-    expect(AcademicContextCandidateProposalSchema.safeParse({
-      ...request,
-      requestKey: "short",
-    }).success).toBe(false);
-    expect(AcademicContextCandidateProposalSchema.safeParse({
-      ...request,
-      requestKey: "x".repeat(129),
-    }).success).toBe(false);
+    expect(
+      AcademicContextCandidateProposalSchema.safeParse({
+        ...request,
+        context: { ...context, countryCode: "US" },
+      }).success
+    ).toBe(false);
+    expect(
+      AcademicContextCandidateProposalSchema.safeParse({
+        ...request,
+        context: { ...context, educationLevel: "PRIMARY" },
+      }).success
+    ).toBe(false);
+    expect(
+      AcademicContextCandidateProposalSchema.safeParse({
+        ...request,
+        requestKey: "short",
+      }).success
+    ).toBe(false);
+    expect(
+      AcademicContextCandidateProposalSchema.safeParse({
+        ...request,
+        requestKey: "x".repeat(129),
+      }).success
+    ).toBe(false);
   });
 
   it("does not permit override of advisory provenance or verified mastery", () => {
     const valid = response();
-    expect(AcademicContextCandidateResponseSchema.safeParse({
-      ...valid,
-      authorityStatus: "approved",
-    }).success).toBe(false);
-    expect(AcademicContextCandidateResponseSchema.safeParse({
-      ...valid,
-      verifiedMasteryEligible: true,
-    }).success).toBe(false);
-    expect(AcademicContextCandidateResponseSchema.safeParse({
-      ...valid,
-      ownerOpenId: "exposed-owner",
-    }).success).toBe(false);
+    expect(
+      AcademicContextCandidateResponseSchema.safeParse({
+        ...valid,
+        authorityStatus: "approved",
+      }).success
+    ).toBe(false);
+    expect(
+      AcademicContextCandidateResponseSchema.safeParse({
+        ...valid,
+        verifiedMasteryEligible: true,
+      }).success
+    ).toBe(false);
+    expect(
+      AcademicContextCandidateResponseSchema.safeParse({
+        ...valid,
+        ownerOpenId: "exposed-owner",
+      }).success
+    ).toBe(false);
   });
 
   it("produces a data-minimized projection for advisory AI only", () => {
