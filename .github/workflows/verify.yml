@@ -75,13 +75,6 @@ jobs:
       - name: Assert dependency install did not modify manifests
         run: git diff --exit-code -- package.json pnpm-lock.yaml
 
-      - name: Temporary capture reviewed B62.6 Prettier diff
-        run: |
-          pnpm exec prettier --write docs/parallel/B62.6-policy-attestation.md server/academicPolicyAttestation.test.ts server/academicPolicyAttestation.ts shared/academicPolicyAttestation.ts
-          echo '===== BEGIN B62.6 FORMAT DIFF ====='
-          git --no-pager diff -- docs/parallel/B62.6-policy-attestation.md server/academicPolicyAttestation.test.ts server/academicPolicyAttestation.ts shared/academicPolicyAttestation.ts
-          echo '===== END B62.6 FORMAT DIFF ====='
-
       - name: Type-check application
         run: pnpm typecheck:app
 
