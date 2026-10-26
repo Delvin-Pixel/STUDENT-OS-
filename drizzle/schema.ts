@@ -60,6 +60,68 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 /**
+ * Append-only, account-owned curriculum *preferences* from onboarding.
+ *
+ * These rows are not official enrolment, source approval, verified policy,
+ * or mastery evidence. Only the authenticated owner can create/read them.
+ * The client cannot set authority or review status.
+ */
+export const academicContextCandidates = mysqlTable(
+  "academic_context_candidates",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    openId: varchar("openId", { length: 64 }).notNull(),
+    candidateId: varchar("candidateId", { length: 36 }).notNull(),
+    requestKey: varchar("requestKey", { length: 128 }).notNull(),
+    countryCode: varchar("countryCode", { length: 2 })
+      .notNull()
+      .default("GH"),
+    educationLevel: mysqlEnum("educationLevel", [
+      "JHS",
+      "SHS",
+      "TERTIARY",
+    ]).notNull(),
+    enrollmentMode: mysqlEnum("enrollmentMode", [
+      "institutional",
+      "remedial",
+      "private_candidate",
+      "transfer",
+    ]).notNull(),
+    institutionId: varchar("institutionId", { length: 160 }),
+    curriculumId: varchar("curriculumId", { length: 160 }).notNull(),
+    curriculumVersion: varchar("curriculumVersion", { length: 64 }).notNull(),
+    academicYear: varchar("academicYear", { length: 80 }),
+    yearOrLevel: varchar("yearOrLevel", { length: 80 }),
+    termOrSemester: varchar("termOrSemester", { length: 80 }),
+    programId: varchar("programId", { length: 160 }),
+    qualificationId: varchar("qualificationId", { length: 160 }),
+    dataOrigin: mysqlEnum("dataOrigin", ["learner_declared"])
+      .notNull()
+      .default("learner_declared"),
+    authorityStatus: mysqlEnum("authorityStatus", ["unverified"])
+      .notNull()
+      .default("unverified"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("academic_context_candidates_owner_key_unique").on(
+      table.openId,
+      table.requestKey
+    ),
+    uniqueIndex("academic_context_candidates_candidate_unique").on(
+      table.candidateId
+    ),
+    index("academic_context_candidates_owner_recent_idx").on(
+      table.openId,
+      table.id
+    ),
+  ]
+);
+
+export type AcademicContextCandidate =
+  typeof academicContextCandidates.$inferSelect;
+
+/**
  * Server-authoritative subscription state. The client never writes this table
  * directly; future payment webhooks/admin reconciliation will own mutations.
  * Accounts without a row resolve to the Free plan.
