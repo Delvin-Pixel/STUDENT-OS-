@@ -110,7 +110,7 @@ async function transaction<T>(
     };
     try {
       action(tx.objectStore(OFFLINE_IDB_STORE), setResult);
-    } catch (error) {
+    } catch {
       tx.abort();
       // Abort handles terminal settlement without disclosing stored data.
     }
