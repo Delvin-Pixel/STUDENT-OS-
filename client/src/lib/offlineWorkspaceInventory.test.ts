@@ -102,8 +102,8 @@ describe("B64.3 canonical workspace inventory", () => {
       expect(result.kind).toBe("ready");
       if (result.kind !== "ready") return;
       expect(result.snapshot.accountId).toBe("owner-1");
-      expect(result.snapshot.records).toHaveLength(1);
-      expect(result.snapshot.records[0].collection).toBe("tasks");
+      expect(result.snapshot.records.filter(r => r.collection === "tasks")).toHaveLength(1);
+      expect(result.snapshot.records.some(r => r.collection === "achievements")).toBe(true);
       expect(result.snapshot.rootDigest).toMatch(/^[0-9a-f]{64}$/);
     }
   );
@@ -208,6 +208,10 @@ describe("B64.3 canonical workspace inventory", () => {
   it("normalizes daily completion and habit-log set order", async () => {
     const source = workspace();
     source.dailyLessonCompletions = ["day-a", "day-b"];
+    source.habits = [
+      { id: "habit-1", name: "Read", emoji: "📘", createdAt: "2026-10-26T00:00:00.000Z" },
+      { id: "habit-2", name: "Practice", emoji: "✏️", createdAt: "2026-10-26T00:00:00.000Z" },
+    ];
     source.habitLog = { "2026-10-25": ["habit-1", "habit-2"] };
     const other = structuredClone(source);
     other.dailyLessonCompletions.reverse();
@@ -231,7 +235,10 @@ describe("B64.3 canonical workspace inventory", () => {
       id: "task-1",
       state: "deleted",
     });
-    expect(result.records[0]).not.toHaveProperty("digest");
+    const tombstone = result.records.find(
+      record => record.collection === "tasks" && record.id === "task-1"
+    );
+    expect(tombstone).not.toHaveProperty("digest");
   });
 
   it("rejects structurally invalid, semantically inconsistent workspaces", async () => {
