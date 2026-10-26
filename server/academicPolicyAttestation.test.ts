@@ -1,8 +1,4 @@
-import {
-  generateKeyPairSync,
-  sign,
-  type KeyObject,
-} from "node:crypto";
+import { generateKeyPairSync, sign, type KeyObject } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   AcademicPolicyVerificationSchema,
@@ -257,12 +253,8 @@ describe("B62.6 academic policy cryptographic governance preflight", () => {
       ),
     };
     expect(
-      reviewAcademicPolicyAttestation(
-        f.document,
-        authority,
-        f.context,
-        now
-      ).reasonCodes
+      reviewAcademicPolicyAttestation(f.document, authority, f.context, now)
+        .reasonCodes
     ).toContain("issuer_not_trusted");
   });
 
@@ -320,12 +312,8 @@ describe("B62.6 academic policy cryptographic governance preflight", () => {
       educationLevel: "JHS" as const,
     };
     expect(
-      reviewAcademicPolicyAttestation(
-        f.document,
-        f.trust,
-        anotherLevel,
-        now
-      ).reasonCodes
+      reviewAcademicPolicyAttestation(f.document, f.trust, anotherLevel, now)
+        .reasonCodes
     ).toContain("context_mismatch");
     expect(
       reviewAcademicPolicyAttestation(
@@ -374,12 +362,8 @@ describe("B62.6 academic policy cryptographic governance preflight", () => {
       })),
     };
     expect(
-      reviewAcademicPolicyAttestation(
-        f.document,
-        withdrawn,
-        f.context,
-        now
-      ).reasonCodes
+      reviewAcademicPolicyAttestation(f.document, withdrawn, f.context, now)
+        .reasonCodes
     ).toContain("source_unreviewed_or_withdrawn");
     const changedManifest = signedAgain({
       ...f.document,
@@ -389,12 +373,8 @@ describe("B62.6 academic policy cryptographic governance preflight", () => {
       },
     });
     expect(
-      reviewAcademicPolicyAttestation(
-        changedManifest,
-        f.trust,
-        f.context,
-        now
-      ).reasonCodes
+      reviewAcademicPolicyAttestation(changedManifest, f.trust, f.context, now)
+        .reasonCodes
     ).toContain("source_unreviewed_or_withdrawn");
   });
 
@@ -434,12 +414,8 @@ describe("B62.6 academic policy cryptographic governance preflight", () => {
       })),
     };
     expect(
-      reviewAcademicPolicyAttestation(
-        f.document,
-        revoked,
-        f.context,
-        now
-      ).reasonCodes
+      reviewAcademicPolicyAttestation(f.document, revoked, f.context, now)
+        .reasonCodes
     ).toContain("signer_expired_or_revoked");
     const expired = {
       ...f.trust,
@@ -449,12 +425,8 @@ describe("B62.6 academic policy cryptographic governance preflight", () => {
       })),
     };
     expect(
-      reviewAcademicPolicyAttestation(
-        f.document,
-        expired,
-        f.context,
-        now
-      ).reasonCodes
+      reviewAcademicPolicyAttestation(f.document, expired, f.context, now)
+        .reasonCodes
     ).toContain("signer_expired_or_revoked");
   });
 
@@ -525,18 +497,24 @@ describe("B62.6 academic policy cryptographic governance preflight", () => {
       f.context,
       now
     );
-    expect(AcademicPolicyVerificationSchema.safeParse({
-      ...response,
-      authoritativeMasteryEligible: true,
-    }).success).toBe(false);
-    expect(AcademicPolicyVerificationSchema.safeParse({
-      ...response,
-      officialApprovalEstablished: true,
-    }).success).toBe(false);
-    expect(AcademicPolicyVerificationSchema.safeParse({
-      ...response,
-      status: "officially_verified",
-    }).success).toBe(false);
+    expect(
+      AcademicPolicyVerificationSchema.safeParse({
+        ...response,
+        authoritativeMasteryEligible: true,
+      }).success
+    ).toBe(false);
+    expect(
+      AcademicPolicyVerificationSchema.safeParse({
+        ...response,
+        officialApprovalEstablished: true,
+      }).success
+    ).toBe(false);
+    expect(
+      AcademicPolicyVerificationSchema.safeParse({
+        ...response,
+        status: "officially_verified",
+      }).success
+    ).toBe(false);
   });
 
   it("requires approval, publication and issuance in chronological order", () => {
@@ -549,12 +527,8 @@ describe("B62.6 academic policy cryptographic governance preflight", () => {
       },
     };
     expect(
-      reviewAcademicPolicyAttestation(
-        malformed,
-        f.trust,
-        f.context,
-        now
-      ).reasonCodes
+      reviewAcademicPolicyAttestation(malformed, f.trust, f.context, now)
+        .reasonCodes
     ).toContain("invalid_document");
   });
 
