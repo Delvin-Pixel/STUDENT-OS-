@@ -75,10 +75,7 @@ async function openDatabase(factory: IDBFactory): Promise<IDBDatabase> {
 async function transaction<T>(
   factory: IDBFactory,
   mode: IDBTransactionMode,
-  action: (
-    store: IDBObjectStore,
-    setResult: (result: T) => void
-  ) => void
+  action: (store: IDBObjectStore, setResult: (result: T) => void) => void
 ): Promise<T> {
   const db = await openDatabase(factory);
   return new Promise<T>((resolve, reject) => {
@@ -149,8 +146,7 @@ export function createIndexedDbOfflineBackend(
           const matches =
             expectedChecksum === null
               ? previous === undefined
-              : actualChecksum === expectedChecksum &&
-                previous !== undefined;
+              : actualChecksum === expectedChecksum && previous !== undefined;
           if (!matches || next.accountId !== accountId) {
             done(false);
             return;
