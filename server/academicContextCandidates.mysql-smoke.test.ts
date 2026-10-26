@@ -31,7 +31,7 @@ const isDisposableCi =
   })();
 
 describe.skipIf(!enabled)("B62.5 disposable MySQL account context integration", () => {
-  if (!isDisposableCi)
+  if (enabled && !isDisposableCi)
     throw new Error(
       "Academic context MySQL smoke tests require disposable localhost CI MySQL."
     );
