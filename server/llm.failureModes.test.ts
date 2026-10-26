@@ -77,4 +77,58 @@ describe("LLM failure-mode hardening", () => {
       kind: "malformed_response",
     });
   });
+
+  it("cancels an oversized streaming response before consuming its remainder", async () => {
+    const cancel = vi.fn();
+    let reads = 0;
+    const body = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          reads += 1;
+          controller.enqueue(new Uint8Array(1_000_001));
+        },
+        cancel,
+      },
+      { highWaterMark: 0 }
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(body, {
+          headers: { "content-type": "application/json" },
+        })
+      )
+    );
+    await expect(listLLMModels()).rejects.toMatchObject({
+      kind: "malformed_response",
+      retryable: false,
+    });
+    expect(reads).toBe(2);
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it("preserves UTF-8 characters split across response chunks", async () => {
+    const bytes = new TextEncoder().encode(
+      JSON.stringify({ data: [{ id: "model-ɛ" }] })
+    );
+    const split = bytes.indexOf(0xc9) + 1;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(bytes.slice(0, split));
+        controller.enqueue(bytes.slice(split));
+        controller.close();
+      },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(body, {
+          headers: { "content-type": "application/json" },
+        })
+      )
+    );
+    await expect(listLLMModels()).resolves.toMatchObject({
+      data: [{ id: "model-ɛ" }],
+    });
+  });
 });

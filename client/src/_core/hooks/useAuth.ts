@@ -1,5 +1,7 @@
 import { startLogin } from "@/const";
 import { syncMirroredAuthIdentity } from "@/lib/authIdentityCache";
+import { clearAccountQueries } from "@/lib/clearAccountQueries";
+import { useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect } from "react";
@@ -16,6 +18,7 @@ export function useAuth(options?: UseAuthOptions) {
   // desync it from an in-flight login's `state`.
   const { redirectOnUnauthenticated = false, redirectPath } = options ?? {};
   const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
@@ -53,10 +56,11 @@ export function useAuth(options?: UseAuthOptions) {
       } catch {
         /* Storage may be unavailable; cookie-backed authentication remains authoritative. */
       }
+      await clearAccountQueries(queryClient);
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
-  }, [logoutMutation, utils]);
+  }, [logoutMutation, queryClient, utils]);
 
   useEffect(() => {
     try {
