@@ -20,7 +20,8 @@ function workspace(level: "JHS" | "SHS" | "Tertiary" = "SHS") {
     classLevel:
       level === "JHS" ? "JHS 2" : level === "SHS" ? "SHS 3" : "Level 200",
     goals: [],
-    subjects: level === "Tertiary" ? ["Information Technology"] : ["Mathematics"],
+    subjects:
+      level === "Tertiary" ? ["Information Technology"] : ["Mathematics"],
     hoursPerDay: "1 hour",
   };
   state.tasks.push({
@@ -266,9 +267,9 @@ describe("B64.3 canonical workspace inventory", () => {
       id: "deck-2",
       cards: [structuredClone(source.decks[0].cards[0])],
     });
-    expect(
-      await buildOfflineWorkspaceInventory("owner-1", source, 5)
-    ).toEqual({ kind: "unavailable" });
+    expect(await buildOfflineWorkspaceInventory("owner-1", source, 5)).toEqual({
+      kind: "unavailable",
+    });
   });
 
   it("binds identical source content to the originating owner", async () => {
