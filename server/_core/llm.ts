@@ -475,13 +475,31 @@ const readJsonResponse = async <T>(
     );
   }
 
-  const text = await response.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_LLM_RESPONSE_BYTES) {
-    throw new StudentOsAiError(
-      "malformed_response",
-      `Student OS AI ${operation === "models" ? "model discovery" : "service"} returned an oversized response.`,
-      { retryable: false }
-    );
+  // Enforce the limit while reading, not after buffering an unbounded body.
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  let bytes = 0;
+  if (reader) {
+    try {
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        bytes += chunk.value.byteLength;
+        if (bytes > MAX_LLM_RESPONSE_BYTES) {
+          await reader.cancel().catch(() => undefined);
+          throw new StudentOsAiError(
+            "malformed_response",
+            `Student OS AI ${operation === "models" ? "model discovery" : "service"} returned an oversized response.`,
+            { retryable: false }
+          );
+        }
+        text += decoder.decode(chunk.value, { stream: true });
+      }
+      text += decoder.decode();
+    } finally {
+      reader.releaseLock();
+    }
   }
 
   try {
