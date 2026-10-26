@@ -162,7 +162,7 @@ describe("B64.3 canonical workspace inventory", () => {
     const second = await inventory(moved);
     const cardDigest = (records: typeof first.records) =>
       records.find(record => record.collection === "cards")?.digest;
-    expect(cardDigest(first)).not.toBe(cardDigest(second));
+    expect(cardDigest(first.records)).not.toBe(cardDigest(second.records));
   });
 
   it("omits device-private answer ratings from shared conflict snapshots", async () => {
@@ -368,6 +368,7 @@ describe("B64.3 three-way preflight from validated workspace source", () => {
       answerId: "lesson-1",
       surface: "lesson",
       rating: "up",
+      answerPreview: "",
       ratedAt: "2026-10-26T00:00:00.000Z",
     });
     expect(
