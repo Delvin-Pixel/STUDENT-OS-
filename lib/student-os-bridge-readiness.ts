@@ -7,6 +7,7 @@ import {
   classifyNexaDataApiRemediationHandoff,
   type NexaDataApiRemediationHandoff,
 } from '@/lib/supabase-data-api-remediation-handoff-core';
+import { classifyNexaDataApiRemediationClosure, type NexaDataApiRemediationClosure } from '@/lib/supabase-data-api-remediation-closure-core';
 import {
   classifyNexaDataApiEffectiveSecurity,
   type NexaDataApiEffectiveSecurity,
@@ -96,6 +97,7 @@ export type StudentOsBridgeOperationalReadiness = StudentOsBridgeReadiness & Rea
     sqlRemediationFeasibility: NexaDataApiRemediationReadiness['sqlRemediationFeasibility'];
   }>;
   dataApiRemediationHandoff: NexaDataApiRemediationHandoff;
+  dataApiRemediationClosure: NexaDataApiRemediationClosure;
   aiGatewayOperational: Readonly<{
     status: NexaAiGatewayReadiness['status'];
     reason: NexaAiGatewayReadiness['reason'];
@@ -212,6 +214,11 @@ export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentO
     recommendedAction: dataApiRemediation.recommendedAction,
   });
 
+  const dataApiRemediationClosure = classifyNexaDataApiRemediationClosure({
+    status: dataApiRemediation.status,
+    recommendedAction: dataApiRemediation.recommendedAction,
+  });
+
   if (dataApiEffectiveSecurity.status !== 'secure') {
     const reason = dataApiEffectiveSecurity.reason ?? 'data_api_isolation_unavailable';
     if (!reasons.includes(reason)) reasons.push(reason);
@@ -281,6 +288,7 @@ export async function getStudentOsBridgeOperationalReadiness(): Promise<StudentO
       sqlRemediationFeasibility: dataApiRemediation.sqlRemediationFeasibility,
     }),
     dataApiRemediationHandoff,
+    dataApiRemediationClosure,
     aiGatewayOperational: Object.freeze({
       status: gateway.status,
       reason: gateway.reason,

@@ -12,8 +12,8 @@ const [pkgText,coreSource,healthSource,bridgeSource,routeSource,readme]=await Pr
   read('README.md'),
 ]);
 const pkg=JSON.parse(pkgText);
-assert.equal(pkg.name,'nexa-1-96');
-assert.equal(pkg.version,'1.96.0');
+assert.equal(pkg.name,'nexa-1-98');
+assert.equal(pkg.version,'1.98.0');
 assert.equal(pkg.scripts['test:data-api-remediation-handoff'],'node scripts/test-data-api-remediation-handoff.mjs');
 assert.match(pkg.scripts.test,/test:data-api-remediation-handoff/);
 assert.match(readme,/NEXA 1\.96\.0 — Data API Remediation Handoff/);

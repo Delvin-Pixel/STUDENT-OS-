@@ -29,6 +29,10 @@ function headers(input?: Readonly<{
   dataApiRemediationHandoffVerification?: string;
   dataApiRemediationHandoffRequiresHumanAction?: boolean;
   dataApiRemediationHandoffRequiresWorkBrowser?: boolean;
+  dataApiRemediationClosureStatus?: string;
+  dataApiRemediationClosureReason?: string;
+  dataApiRemediationSecurityBoundaryClosed?: boolean;
+  dataApiRemediationClosureRequiresVerification?: boolean;
 }>) {
   return {
     'Cache-Control': 'no-store',
@@ -98,6 +102,18 @@ function headers(input?: Readonly<{
     ...(typeof input?.dataApiRemediationHandoffRequiresWorkBrowser === 'boolean'
       ? { 'X-NEXA-Bridge-Data-API-Remediation-Handoff-Requires-Work-Browser': String(input.dataApiRemediationHandoffRequiresWorkBrowser) }
       : {}),
+    ...(input?.dataApiRemediationClosureStatus
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-Closure-Status': input.dataApiRemediationClosureStatus }
+      : {}),
+    ...(input?.dataApiRemediationClosureReason
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-Closure-Reason': input.dataApiRemediationClosureReason }
+      : {}),
+    ...(typeof input?.dataApiRemediationSecurityBoundaryClosed === 'boolean'
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-Security-Boundary-Closed': String(input.dataApiRemediationSecurityBoundaryClosed) }
+      : {}),
+    ...(typeof input?.dataApiRemediationClosureRequiresVerification === 'boolean'
+      ? { 'X-NEXA-Bridge-Data-API-Remediation-Closure-Requires-Verification': String(input.dataApiRemediationClosureRequiresVerification) }
+      : {}),
   };
 }
 
@@ -146,6 +162,10 @@ export async function GET(request: Request) {
       dataApiRemediationHandoffVerification: readiness.dataApiRemediationHandoff.verification,
       dataApiRemediationHandoffRequiresHumanAction: readiness.dataApiRemediationHandoff.requiresHumanAction,
       dataApiRemediationHandoffRequiresWorkBrowser: readiness.dataApiRemediationHandoff.requiresWorkBrowser,
+      dataApiRemediationClosureStatus: readiness.dataApiRemediationClosure.status,
+      dataApiRemediationClosureReason: readiness.dataApiRemediationClosure.reason,
+      dataApiRemediationSecurityBoundaryClosed: readiness.dataApiRemediationClosure.securityBoundaryClosed,
+      dataApiRemediationClosureRequiresVerification: readiness.dataApiRemediationClosure.requiresVerification,
     }),
   });
 }

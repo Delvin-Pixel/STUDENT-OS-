@@ -15,8 +15,8 @@ const [pkgText, coreSource, operatorSource, readme] = await Promise.all([
 ]);
 const pkg = JSON.parse(pkgText);
 
-assert.equal(pkg.name, 'nexa-1-96');
-assert.equal(pkg.version, '1.96.0');
+assert.equal(pkg.name, 'nexa-1-98');
+assert.equal(pkg.version, '1.98.0');
 assert.equal(
   pkg.scripts['ops:attest-data-api-isolation'],
   'node scripts/attest-supabase-data-api-isolation.mjs',
