@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  AcademicContextSchema,
-  EducationLevelSchema,
-} from "./academicContext";
+import { AcademicContextSchema, EducationLevelSchema } from "./academicContext";
 import { AcademicPolicyBundleSchema } from "./academicGovernance";
 
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
@@ -99,9 +96,7 @@ export const SignedAcademicPolicySchema = z
   .refine(data => data.issuerSignature.keyId !== data.reviewerSignature.keyId, {
     message: "Publication and review must use separate signing keys",
   });
-export type SignedAcademicPolicy = z.infer<
-  typeof SignedAcademicPolicySchema
->;
+export type SignedAcademicPolicy = z.infer<typeof SignedAcademicPolicySchema>;
 
 export const TrustedPolicySignerSchema = z
   .object({
@@ -116,9 +111,7 @@ export const TrustedPolicySignerSchema = z
     revokedAt: isoTime.optional(),
   })
   .strict();
-export type TrustedPolicySigner = z.infer<
-  typeof TrustedPolicySignerSchema
->;
+export type TrustedPolicySigner = z.infer<typeof TrustedPolicySignerSchema>;
 
 export const TrustedPolicySourceSchema = z
   .object({
@@ -149,20 +142,28 @@ export const PolicyTrustSnapshotSchema = z
   })
   .strict()
   .superRefine((snapshot, ctx) => {
-    if (new Set(snapshot.signers.map(signer => signer.keyId)).size !== snapshot.signers.length)
+    if (
+      new Set(snapshot.signers.map(signer => signer.keyId)).size !==
+      snapshot.signers.length
+    )
       ctx.addIssue({
         code: "custom",
         message: "Trust snapshot signing keys must have unique IDs",
       });
-    if (new Set(snapshot.sources.map(source => source.manifestSha256)).size !== snapshot.sources.length)
+    if (
+      new Set(snapshot.sources.map(source => source.manifestSha256)).size !==
+      snapshot.sources.length
+    )
       ctx.addIssue({
         code: "custom",
         message: "Source digests must not have ambiguous registry entries",
       });
     if (
-      new Set(snapshot.revocations.map(item =>
-        [item.authorityId, item.policyId, item.version].join("\u0000")
-      )).size !== snapshot.revocations.length
+      new Set(
+        snapshot.revocations.map(item =>
+          [item.authorityId, item.policyId, item.version].join("\u0000")
+        )
+      ).size !== snapshot.revocations.length
     )
       ctx.addIssue({
         code: "custom",
@@ -176,23 +177,25 @@ export const AcademicPolicyVerificationSchema = z
   .object({
     schemaVersion: z.literal(1),
     status: z.enum(["integrity_passed_not_authorized", "held"]),
-    reasonCodes: z.array(
-      z.enum([
-        "invalid_document",
-        "invalid_trust_snapshot",
-        "stale_or_future_trust_snapshot",
-        "context_mismatch",
-        "issuer_not_trusted",
-        "reviewer_not_trusted",
-        "signer_scope_mismatch",
-        "signer_expired_or_revoked",
-        "reviewer_not_independent",
-        "signature_invalid",
-        "source_unreviewed_or_withdrawn",
-        "policy_revoked",
-        "invalid_signing_time",
-      ])
-    ).max(16),
+    reasonCodes: z
+      .array(
+        z.enum([
+          "invalid_document",
+          "invalid_trust_snapshot",
+          "stale_or_future_trust_snapshot",
+          "context_mismatch",
+          "issuer_not_trusted",
+          "reviewer_not_trusted",
+          "signer_scope_mismatch",
+          "signer_expired_or_revoked",
+          "reviewer_not_independent",
+          "signature_invalid",
+          "source_unreviewed_or_withdrawn",
+          "policy_revoked",
+          "invalid_signing_time",
+        ])
+      )
+      .max(16),
     officialApprovalEstablished: z.literal(false),
     authoritativeMasteryEligible: z.literal(false),
   })
