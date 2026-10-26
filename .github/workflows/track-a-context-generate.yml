@@ -1,0 +1,43 @@
+name: Track A B62.5 Drizzle Migration Generator (temporary)
+
+on:
+  push:
+    branches:
+      - track-a/b62-5-academic-context-candidates
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: mysql://root:temporary@localhost:3306/metadata_only
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          run_install: false
+      - name: Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Generate official metadata and emit machine-readable files
+        run: |
+          set -euo pipefail
+          pnpm exec drizzle-kit generate --name=account_academic_context_candidates
+          echo '===TRACK-A-GENERATED-START==='
+          for file in drizzle/0017_*.sql drizzle/meta/0017_snapshot.json drizzle/meta/_journal.json; do
+            echo "===FILE:${file}==="
+            base64 -w0 "${file}"
+            echo
+            echo "===END:${file}==="
+          done
+          echo '===TRACK-A-GENERATED-END==='
