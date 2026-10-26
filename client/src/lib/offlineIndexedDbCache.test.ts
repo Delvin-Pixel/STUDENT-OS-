@@ -31,9 +31,7 @@ function backend(): TestBackend {
       if (service.failWrites) throw new Error("quota exceeded");
       const current = entries.get(id) as OfflineStoredRecord | undefined;
       if (
-        expected === null
-          ? current !== undefined
-          : current?.sha256 !== expected
+        expected === null ? current !== undefined : current?.sha256 !== expected
       )
         return false;
       entries.set(id, structuredClone(next));
@@ -148,7 +146,13 @@ describe("B64.2 account-scoped checksummed cache", () => {
 
   it("prevents stale simultaneous updates from silently overwriting each other", async () => {
     const cache = makeHarness();
-    const first = await cache.save("account-A", stateFor("Amina"), 1, true, null);
+    const first = await cache.save(
+      "account-A",
+      stateFor("Amina"),
+      1,
+      true,
+      null
+    );
     if (first.kind !== "saved") throw new Error("fixture");
     const accepted = await cache.save(
       "account-A",
@@ -175,8 +179,13 @@ describe("B64.2 account-scoped checksummed cache", () => {
   it("detects workspace corruption and preserves the original record for recovery", async () => {
     const cache = makeHarness();
     await cache.save("account-A", stateFor("Amina"), 2, false, null);
-    const original = cache.memory.entries.get("account-A") as OfflineStoredRecord;
-    const corrupt = { ...original, json: original.json.replace("Amina", "Kojo") };
+    const original = cache.memory.entries.get(
+      "account-A"
+    ) as OfflineStoredRecord;
+    const corrupt = {
+      ...original,
+      json: original.json.replace("Amina", "Kojo"),
+    };
     cache.memory.entries.set("account-A", corrupt);
     expect(await cache.read("account-A")).toEqual({
       kind: "recovery_required",
@@ -196,7 +205,9 @@ describe("B64.2 account-scoped checksummed cache", () => {
   it("checks metadata integrity, including revision and ownership", async () => {
     const cache = makeHarness();
     await cache.save("account-A", stateFor("Amina"), 9, true, null);
-    const original = cache.memory.entries.get("account-A") as OfflineStoredRecord;
+    const original = cache.memory.entries.get(
+      "account-A"
+    ) as OfflineStoredRecord;
     cache.memory.entries.set("account-A", { ...original, revision: 99 });
     expect(await cache.read("account-A")).toEqual({
       kind: "recovery_required",
@@ -228,9 +239,9 @@ describe("B64.2 account-scoped checksummed cache", () => {
       status: "todo",
       createdAt: "2026-10-26T00:00:00.000Z",
     });
-    expect(
-      await cache.save("account-A", broken, 2, true, null)
-    ).toEqual({ kind: "invalid" });
+    expect(await cache.save("account-A", broken, 2, true, null)).toEqual({
+      kind: "invalid",
+    });
     expect(cache.memory.entries.size).toBe(0);
   });
 
@@ -246,7 +257,9 @@ describe("B64.2 account-scoped checksummed cache", () => {
       createdAt: "2026-10-26T00:00:00.000Z",
       updatedAt: "2026-10-26T00:00:00.000Z",
     }));
-    expect(JSON.stringify(huge).length).toBeGreaterThan(OFFLINE_CACHE_MAX_BYTES);
+    expect(JSON.stringify(huge).length).toBeGreaterThan(
+      OFFLINE_CACHE_MAX_BYTES
+    );
     expect(await cache.save("account-A", huge, 0, true, null)).toEqual({
       kind: "invalid",
     });
@@ -292,19 +305,16 @@ describe("B64.2 account-scoped checksummed cache", () => {
 
   it("does not overwrite a concurrent IndexedDB record during migration", async () => {
     const cache = makeHarness();
-    const result = await cache.migrateReadOnlyLegacy(
-      "account-A",
-      async () => {
-        expect(
-          await cache.save("account-A", stateFor("Other writer"), 3, false, null)
-        ).toMatchObject({ kind: "saved" });
-        return {
-          json: JSON.stringify(stateFor("Amina")),
-          revision: 3,
-          pending: true,
-        };
-      }
-    );
+    const result = await cache.migrateReadOnlyLegacy("account-A", async () => {
+      expect(
+        await cache.save("account-A", stateFor("Other writer"), 3, false, null)
+      ).toMatchObject({ kind: "saved" });
+      return {
+        json: JSON.stringify(stateFor("Amina")),
+        revision: 3,
+        pending: true,
+      };
+    });
     expect(result).toEqual({ kind: "raced" });
     const persisted = await cache.read("account-A");
     expect(persisted.kind === "ready" && persisted.state.profile?.name).toBe(
