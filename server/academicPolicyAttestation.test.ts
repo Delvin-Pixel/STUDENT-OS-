@@ -575,12 +575,9 @@ describe("B62.6 academic policy cryptographic governance preflight", () => {
     const policy = f.document.payload.policy;
     const reordered = {
       ...f.document.payload,
-      policy: {
-        publishedAt: policy.publishedAt,
-        approvedAt: policy.approvedAt,
-        sourceReferences: policy.sourceReferences,
-        ...policy,
-      },
+      policy: Object.fromEntries(
+        Object.entries(policy).reverse()
+      ) as typeof policy,
     };
     expect(canonicalAcademicPolicyBytes(reordered)).toEqual(
       canonicalAcademicPolicyBytes(f.document.payload)
