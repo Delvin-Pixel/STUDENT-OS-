@@ -153,9 +153,7 @@ describe("B64.2 native IndexedDB transport contract", () => {
     const mock = mockFactory();
     const backend = createIndexedDbOfflineBackend(mock.factory);
     const forged = record("account-B", "c");
-    expect(
-      await backend.compareAndSwap("account-A", null, forged)
-    ).toBe(false);
+    expect(await backend.compareAndSwap("account-A", null, forged)).toBe(false);
     expect(mock.rows.size).toBe(0);
   });
 
