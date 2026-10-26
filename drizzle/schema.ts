@@ -73,9 +73,7 @@ export const academicContextCandidates = mysqlTable(
     openId: varchar("openId", { length: 64 }).notNull(),
     candidateId: varchar("candidateId", { length: 36 }).notNull(),
     requestKey: varchar("requestKey", { length: 128 }).notNull(),
-    countryCode: varchar("countryCode", { length: 2 })
-      .notNull()
-      .default("GH"),
+    countryCode: varchar("countryCode", { length: 2 }).notNull().default("GH"),
     educationLevel: mysqlEnum("educationLevel", [
       "JHS",
       "SHS",
