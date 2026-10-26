@@ -62,9 +62,11 @@ Local verification for this hardening change: 747 Vitest tests in 245 files,
 18 critical entitlement/tombstone tests, TypeScript app/tests/config, lint,
 formatting, 17 migration metadata checks, credential scan (696 source files),
 production build and bundle passed. Frozen strict install passed with Node
-22.23.3 and pnpm 10.4.1. The full audit retains three moderate development-only
-findings; the high severity gate is unchanged. Production audit is clean.
-Clean-MySQL migration execution and exact-head release gates require remote CI.
+22.23.3 and pnpm 10.4.1. The initial revision retained three moderate
+development-only findings; the follow-up resolved all three. Both full and
+production audits are clean. Remote run 40192717724 passed every step for
+`5a5ab5733a75c060a8a5c6a0a3d422675cfd2cd7`, including clean MySQL migration
+execution and schema checks. Audit thresholds remain unchanged.
 
 Remote verification of `7c893362ea426d1d9d73bc6cacb42879385888f8` passed every
 step in run 40150232933, including clean MySQL/schema checks and source artifacts.
@@ -86,7 +88,7 @@ configuration or a separately authorized reconciliation/deployment procedure.
 | Release blocker          | B58.1 credential transfer and live account gates                         | Owner performs direct browser-to-browser copy/paste in one desktop session; Work resumes verification afterward |
 | External service blocker | NEXA Gateway credits exhausted                                           | Owner controls billing; no charge authorized                                                                    |
 | Verification gap         | Cross-tab account switching, live quiz generation, notification delivery | Browser lifecycle tests and dependency-appropriate runtime checks                                               |
-| Moderate dependency risk | Three development-tool advisories at the first PR #7 revision            | Patch Vitest/mocker and validate selector-parser compatibility                                                  |
+| Moderate dependency risk | Three development-tool advisories at the first PR #7 revision            | Resolved in 5a5ab57; not yet integrated into newer Track A/B branches                                           |
 
 | Stage                      | State        | Remaining evidence/work                                                                                        |
 | -------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------- |
@@ -129,3 +131,35 @@ All Student OS live database/auth/session/API verification is **BLOCKED BY B58.1
 EXTERNAL GATE**. AI Quiz HTML-as-JSON behavior, actual push delivery and full
 Student OS↔NEXA runtime integration remain unverified. Safe next work is targeted
 transport/fallback regression coverage and browser account-switch testing.
+
+## Reconciliation update — 2026-10-26
+
+NEXA canonical source advanced independently to 1.98.0 at
+`c89c79332d2a38da12e136764e659d849b00f543`. Draft PR #6 now incorporates this
+complete history and the dependency patch at
+`f88a6364d2bebc07833c36dd607ddfe094b11940`. All 85 local test scripts, dependency
+verification, migration integrity, validation, TypeScript and production build
+passed. Full/production audits report zero vulnerabilities; a credential-signature
+scan of 308 tracked files found no matches. Remote CI 40367643836 is pending at
+this documentation checkpoint; prior CI is not evidence for this new revision.
+
+Canonical 1.98.0 readiness is still HTTP 503: Data API future-default risk and
+open remediation closure require owner action; AI Gateway credits are exhausted.
+The service reports database connectivity and a secure runtime role, which do
+not establish authenticated CRUD, bridge functionality or account persistence.
+No configuration, credential, billing or deployment changes were made.
+
+Newer Student OS work remains isolated from PR #7:
+
+- Draft PR #14, `track-a/b58-1-auth-persistence-gate`,
+  `c59527b7daa668008dc1665ea2b4bd0f0a55e714`: every step of remote CI
+  40203113887 passed, including clean MySQL. Reported local count: 805 tests.
+- Draft PR #15, `parallel/track-b-nexa-transport-verified-b62`,
+  `55f072b040c75f4ae2deb27d566f0f62c9eb869e`: every step of remote CI
+  40203277582 passed, including clean MySQL. Reported local count: 817 tests.
+  Transport remains unwired pending an owner-bound server context contract.
+
+Those test counts belong to their own revisions; they are not a combined suite.
+No cross-track integration, live B58.1 gate, later-stage certification, PR merge
+or production release is implied. Main remains
+`9fd2d2d89e6494e4655e0fee6e1c396345a2afb3`.
