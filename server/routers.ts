@@ -6,6 +6,12 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { ENV } from "./_core/env";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import {
+  latestAcademicContextCandidate,
+  listAcademicContextCandidates,
+  proposeAcademicContextCandidate,
+} from "./academicContextCandidates";
+import { AcademicContextCandidateProposalSchema } from "../shared/academicContextCandidate";
 import { buildLearningStateSnapshot } from "./aiLearningState";
 import { enforceAiRateLimit } from "./aiRateLimit";
 import { readAssessmentEvidenceReview } from "./assessmentEvidenceReview";
@@ -174,6 +180,38 @@ export const appRouter = router({
       .query(({ ctx, input }) => {
         assertRequestAccount(input.expectedAccountId, ctx.user.openId);
         return getAccountEntitlements(ctx.user.openId);
+      }),
+  }),
+
+  academicContexts: router({
+    /** Immutable learner-declared profile; never official policy or mastery. */
+    propose: protectedProcedure
+      .input(AcademicContextCandidateProposalSchema)
+      .mutation(async ({ ctx, input }) => {
+        if ("isCron" in ctx.user && ctx.user.isCron)
+          throw new TRPCError({ code: "FORBIDDEN" });
+        assertRequestAccount(input.expectedAccountId, ctx.user.openId);
+        return proposeAcademicContextCandidate(
+          ctx.user.openId,
+          input.requestKey,
+          input.context
+        );
+      }),
+    latest: protectedProcedure
+      .input(z.object({ expectedAccountId: z.string().min(1).max(64) }))
+      .query(async ({ ctx, input }) => {
+        if ("isCron" in ctx.user && ctx.user.isCron)
+          throw new TRPCError({ code: "FORBIDDEN" });
+        assertRequestAccount(input.expectedAccountId, ctx.user.openId);
+        return latestAcademicContextCandidate(ctx.user.openId);
+      }),
+    versions: protectedProcedure
+      .input(z.object({ expectedAccountId: z.string().min(1).max(64) }))
+      .query(async ({ ctx, input }) => {
+        if ("isCron" in ctx.user && ctx.user.isCron)
+          throw new TRPCError({ code: "FORBIDDEN" });
+        assertRequestAccount(input.expectedAccountId, ctx.user.openId);
+        return listAcademicContextCandidates(ctx.user.openId);
       }),
   }),
 
