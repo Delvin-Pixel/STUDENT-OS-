@@ -75,6 +75,19 @@ jobs:
       - name: Assert dependency install did not modify manifests
         run: git diff --exit-code -- package.json pnpm-lock.yaml
 
+      - name: Temporary generate Drizzle candidate migration metadata
+        run: |
+          set -euo pipefail
+          pnpm exec drizzle-kit generate --name=account_academic_context_candidates
+          echo '===TRACK-A-GENERATED-START==='
+          for file in drizzle/0017_*.sql drizzle/meta/0017_snapshot.json drizzle/meta/_journal.json; do
+            echo "===FILE:${file}==="
+            base64 -w0 "${file}"
+            echo
+            echo "===END:${file}==="
+          done
+          echo '===TRACK-A-GENERATED-END==='
+
       - name: Type-check application
         run: pnpm typecheck:app
 
