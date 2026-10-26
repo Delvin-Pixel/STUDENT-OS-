@@ -234,10 +234,7 @@ export function preflightOfflineSync(
     input.remote.rootDigest
   );
 
-  if (
-    input.remote.revision === input.base.revision &&
-    remoteChanged
-  )
+  if (input.remote.revision === input.base.revision && remoteChanged)
     return { kind: "blocked", reason: "revision_content_mismatch" };
 
   const conflicts: OfflineConflict[] = [];
