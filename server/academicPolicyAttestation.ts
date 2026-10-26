@@ -75,10 +75,7 @@ function signatureMatches(
 ): boolean {
   try {
     const decoded = Buffer.from(encoded, "base64url");
-    if (
-      decoded.length !== 64 ||
-      decoded.toString("base64url") !== encoded
-    )
+    if (decoded.length !== 64 || decoded.toString("base64url") !== encoded)
       return false;
     const imported: KeyObject = createPublicKey(key.publicKeyPem);
     if (imported.asymmetricKeyType !== "ed25519") return false;
@@ -97,8 +94,7 @@ function activeSigner(
     Date.parse(signer.validFrom) <= issuedAt &&
     issuedAt <= Date.parse(signer.validUntil) &&
     asOf <= Date.parse(signer.validUntil) &&
-    (signer.revokedAt === undefined ||
-      Date.parse(signer.revokedAt) > asOf)
+    (signer.revokedAt === undefined || Date.parse(signer.revokedAt) > asOf)
   );
 }
 
@@ -124,10 +120,7 @@ export function reviewAcademicPolicyAttestation(
   const result = (): AcademicPolicyVerification =>
     AcademicPolicyVerificationSchema.parse({
       schemaVersion: 1,
-      status:
-        reasons.length === 0
-          ? "integrity_passed_not_authorized"
-          : "held",
+      status: reasons.length === 0 ? "integrity_passed_not_authorized" : "held",
       reasonCodes: reasons,
       officialApprovalEstablished: false,
       authoritativeMasteryEligible: false,
@@ -158,11 +151,7 @@ export function reviewAcademicPolicyAttestation(
   const issuedAt = Date.parse(payload.issuedAt);
   const approvedAt = Date.parse(payload.policy.approvedAt!);
 
-  if (
-    !Number.isFinite(time) ||
-    time < issuedAt ||
-    issuedAt < approvedAt
-  )
+  if (!Number.isFinite(time) || time < issuedAt || issuedAt < approvedAt)
     add("invalid_signing_time");
   if (
     !Number.isFinite(time) ||
@@ -203,8 +192,12 @@ export function reviewAcademicPolicyAttestation(
     add("signer_scope_mismatch");
 
   if (
-    (publisher && Number.isFinite(time) && !activeSigner(publisher, issuedAt, time)) ||
-    (reviewer && Number.isFinite(time) && !activeSigner(reviewer, issuedAt, time))
+    (publisher &&
+      Number.isFinite(time) &&
+      !activeSigner(publisher, issuedAt, time)) ||
+    (reviewer &&
+      Number.isFinite(time) &&
+      !activeSigner(reviewer, issuedAt, time))
   )
     add("signer_expired_or_revoked");
 
