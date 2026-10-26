@@ -181,7 +181,8 @@ export function reviewAcademicPolicyAttestation(
   if (
     !reviewer ||
     reviewer.role !== "reviewer" ||
-    reviewer.principalId !== payload.policy.approvedBy
+    reviewer.principalId !== payload.policy.approvedBy ||
+    reviewer.authorityId !== payload.policy.authorityId
   )
     add("reviewer_not_trusted");
 
