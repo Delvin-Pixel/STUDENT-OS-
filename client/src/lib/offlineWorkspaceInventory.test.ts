@@ -268,7 +268,7 @@ describe("B64.3 canonical workspace inventory", () => {
       cards: [structuredClone(source.decks[0].cards[0])],
     });
     expect(await buildOfflineWorkspaceInventory("owner-1", source, 5)).toEqual({
-      kind: "unavailable",
+      kind: "invalid_workspace",
     });
   });
 
