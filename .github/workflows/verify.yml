@@ -114,6 +114,11 @@ jobs:
       - name: Verify B58 entitlement migration output
         run: pnpm verify:migration-schema
 
+      - name: Verify account-owned academic candidates on disposable CI MySQL
+        env:
+          STUDENT_OS_CONTEXT_MYSQL_SMOKE: "1"
+        run: pnpm exec vitest run server/academicContextCandidates.mysql-smoke.test.ts
+
       - name: Audit complete dependency graph
         run: pnpm audit --audit-level high
 
