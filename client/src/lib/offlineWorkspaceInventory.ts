@@ -294,8 +294,13 @@ export async function buildOfflineWorkspaceInventory(
         records,
       },
     };
-  } catch {
-    // Includes missing Web Crypto or unexpected validation/size failures.
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === "offline_inventory_duplicate_or_capacity"
+    )
+      return { kind: "invalid_workspace" };
+    // Missing Web Crypto or unexpected digest/storage environment failure.
     return { kind: "unavailable" };
   }
 }
