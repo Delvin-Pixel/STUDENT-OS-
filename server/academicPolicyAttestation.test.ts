@@ -256,6 +256,22 @@ describe("B62.6 academic policy cryptographic governance preflight", () => {
       reviewAcademicPolicyAttestation(f.document, authority, f.context, now)
         .reasonCodes
     ).toContain("issuer_not_trusted");
+    const crossAuthorityReviewer = {
+      ...f.trust,
+      signers: f.trust.signers.map(signer =>
+        signer.role === "reviewer"
+          ? { ...signer, authorityId: "another-authority" }
+          : signer
+      ),
+    };
+    expect(
+      reviewAcademicPolicyAttestation(
+        f.document,
+        crossAuthorityReviewer,
+        f.context,
+        now
+      ).reasonCodes
+    ).toContain("reviewer_not_trusted");
   });
 
   it("rejects a reviewer whose key does not belong to the signed approver identity", () => {
