@@ -119,3 +119,7 @@ client/public/__manus__/version.json
 *.tar.gz
 *.7z
 *.rar
+
+# Browser test artifacts (fixtures only; never upload sessions)
+/test-results/
+/playwright-report/
