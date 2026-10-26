@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  EducationLevelSchema,
-  EnrollmentModeSchema,
-} from "./academicContext";
+import { EducationLevelSchema, EnrollmentModeSchema } from "./academicContext";
 
 /**
  * Onboarding data from the authenticated learner. This is never an approved
