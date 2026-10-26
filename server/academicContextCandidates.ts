@@ -35,9 +35,7 @@ function candidateFieldsFromRow(
     ...(row.yearOrLevel ? { yearOrLevel: row.yearOrLevel } : {}),
     ...(row.termOrSemester ? { termOrSemester: row.termOrSemester } : {}),
     ...(row.programId ? { programId: row.programId } : {}),
-    ...(row.qualificationId
-      ? { qualificationId: row.qualificationId }
-      : {}),
+    ...(row.qualificationId ? { qualificationId: row.qualificationId } : {}),
   });
 }
 
@@ -63,12 +61,10 @@ function sameCandidateFields(
 ): boolean {
   // Both values have been normalized and validated by the same schema.
   const existing = candidateFieldsFromRow(row);
-  return (
-    Object.keys({ ...existing, ...input }).every(
-      key =>
-        existing[key as keyof AcademicContextCandidateFields] ===
-        input[key as keyof AcademicContextCandidateFields]
-    )
+  return Object.keys({ ...existing, ...input }).every(
+    key =>
+      existing[key as keyof AcademicContextCandidateFields] ===
+      input[key as keyof AcademicContextCandidateFields]
   );
 }
 
