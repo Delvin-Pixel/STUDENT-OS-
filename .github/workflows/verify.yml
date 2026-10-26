@@ -75,19 +75,6 @@ jobs:
       - name: Assert dependency install did not modify manifests
         run: git diff --exit-code -- package.json pnpm-lock.yaml
 
-      - name: Temporary emit repository-formatted B62.5 sources
-        run: |
-          set -euo pipefail
-          pnpm exec prettier --write docs/parallel/B62.5-academic-context-candidates.md drizzle/meta/_journal.json drizzle/meta/0017_snapshot.json drizzle/schema.ts server/academicContextCandidates.mysql-smoke.test.ts server/academicContextCandidates.router.test.ts server/academicContextCandidates.ts shared/academicContextCandidate.test.ts shared/academicContextCandidate.ts
-          echo '===TRACK-A-FORMAT-START==='
-          for file in docs/parallel/B62.5-academic-context-candidates.md drizzle/meta/_journal.json drizzle/meta/0017_snapshot.json drizzle/schema.ts server/academicContextCandidates.mysql-smoke.test.ts server/academicContextCandidates.router.test.ts server/academicContextCandidates.ts shared/academicContextCandidate.test.ts shared/academicContextCandidate.ts; do
-            echo "===FILE:${file}==="
-            base64 -w0 "${file}"
-            echo
-            echo "===END:${file}==="
-          done
-          echo '===TRACK-A-FORMAT-END==='
-
       - name: Type-check application
         run: pnpm typecheck:app
 
