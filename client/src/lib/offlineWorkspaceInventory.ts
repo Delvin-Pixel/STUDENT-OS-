@@ -2,7 +2,10 @@ import {
   validateStudyState,
   validateStudyStateSemantics,
 } from "@shared/workspaceSchema";
-import { preflightOfflineSync, type OfflineSnapshot } from "./offlineSyncPreflight";
+import {
+  preflightOfflineSync,
+  type OfflineSnapshot,
+} from "./offlineSyncPreflight";
 import { projectWorkspaceForCloud } from "./workspacePrivacy";
 import type { StudyState, SyncTombstoneCollection } from "./types";
 
@@ -168,8 +171,7 @@ export async function buildOfflineWorkspaceInventory(
   workspace: unknown,
   revision: number
 ): Promise<InventoryResult> {
-  if (!validAccount(accountId))
-    return { kind: "invalid_account" };
+  if (!validAccount(accountId)) return { kind: "invalid_account" };
   if (!Number.isSafeInteger(revision) || revision < 0)
     return { kind: "invalid_workspace" };
 
