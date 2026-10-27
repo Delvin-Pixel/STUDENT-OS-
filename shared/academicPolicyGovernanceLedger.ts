@@ -15,7 +15,9 @@ export const AcademicGovernanceEventTypeSchema = z.enum([
   "signer_revoked",
   "signing_key_rotated",
 ]);
-export type AcademicGovernanceEventType = z.infer<typeof AcademicGovernanceEventTypeSchema>;
+export type AcademicGovernanceEventType = z.infer<
+  typeof AcademicGovernanceEventTypeSchema
+>;
 
 export const AcademicGovernanceLedgerEventSchema = z.object({
   protocol: z.literal("student-os-academic-governance-ledger-v1"),
@@ -51,13 +53,17 @@ export const AcademicGovernanceLedgerEventSchema = z.object({
     ctx.addIssue({ code: "custom", path: ["subjectVersion"], message: "Policy governance events require an immutable policy version" });
   }
 });
-export type AcademicGovernanceLedgerEvent = z.infer<typeof AcademicGovernanceLedgerEventSchema>;
+export type AcademicGovernanceLedgerEvent = z.infer<
+  typeof AcademicGovernanceLedgerEventSchema
+>;
 
 export const AcademicGovernanceLedgerHeadSchema = z.object({
   authorityId: identifier,
   sequence: z.number().int().nonnegative(),
   eventHash: digest,
 }).strict();
-export type AcademicGovernanceLedgerHead = z.infer<typeof AcademicGovernanceLedgerHeadSchema>;
+export type AcademicGovernanceLedgerHead = z.infer<
+  typeof AcademicGovernanceLedgerHeadSchema
+>;
 
 export const GOVERNANCE_LEDGER_GENESIS_HASH = "0".repeat(64);
