@@ -78,7 +78,9 @@ describe("academic governance append-only ledger contract", () => {
       valid: false,
       reason: "sequence_gap",
     });
-    expect(verifyAcademicGovernanceLedger([...events].reverse())).toMatchObject({
+    expect(
+      verifyAcademicGovernanceLedger([...events].reverse())
+    ).toMatchObject({
       valid: false,
       reason: "sequence_gap",
     });
@@ -106,7 +108,9 @@ describe("academic governance append-only ledger contract", () => {
     ).toBe(false);
   });
 
-  it("requires source digests and policy versions for governance events", () => {
+  it(
+    "requires source digests and policy versions for governance events",
+    () => {
     const base = event(1, GOVERNANCE_LEDGER_GENESIS_HASH);
     expect(
       AcademicGovernanceLedgerEventSchema.safeParse({
@@ -126,7 +130,9 @@ describe("academic governance append-only ledger contract", () => {
   it("documents that hash integrity is not signature authority", () => {
     const events = chain();
     expect(verifyAcademicGovernanceLedger(events).valid).toBe(true);
-    expect(createHash("sha256").update(events[0].actorSignature).digest("hex")).toHaveLength(64);
-    // Synthetic signatures intentionally are not accepted as proof of real-world signer identity.
+    expect(
+      createHash("sha256").update(events[0].actorSignature).digest("hex")
+    ).toHaveLength(64);
+    // Synthetic signatures do not prove real-world signer identity.
   });
 });
