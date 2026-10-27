@@ -5,9 +5,15 @@ import {
   GOVERNANCE_LEDGER_GENESIS_HASH,
   type AcademicGovernanceLedgerEvent,
 } from "../shared/academicPolicyGovernanceLedger";
-import { governanceEventHash, verifyAcademicGovernanceLedger } from "./academicPolicyGovernanceLedger";
+import {
+  governanceEventHash,
+  verifyAcademicGovernanceLedger,
+} from "./academicPolicyGovernanceLedger";
 
-function event(sequence: number, previousEventHash: string): AcademicGovernanceLedgerEvent {
+function event(
+  sequence: number,
+  previousEventHash: string
+): AcademicGovernanceLedgerEvent {
   const unsigned = {
     protocol: "student-os-academic-governance-ledger-v1" as const,
     eventId: randomUUID(),
@@ -46,33 +52,75 @@ function chain() {
 describe("academic governance append-only ledger contract", () => {
   it("verifies an ordered chain and rejects a sequence gap", () => {
     const events = chain();
-    expect(verifyAcademicGovernanceLedger(events)).toEqual({ valid: true, eventCount: 2, reason: "valid" });
-    expect(verifyAcademicGovernanceLedger([events[1]])).toMatchObject({ valid: false, reason: "sequence_gap" });
+    expect(verifyAcademicGovernanceLedger(events)).toEqual({
+      valid: true,
+      eventCount: 2,
+      reason: "valid",
+    });
+    expect(verifyAcademicGovernanceLedger([events[1]])).toMatchObject({
+      valid: false,
+      reason: "sequence_gap",
+    });
   });
 
   it("detects event tampering even when the prior hash is retained", () => {
     const events = chain();
     const tampered = [{ ...events[0], subjectId: "forged-policy" }, events[1]];
-    expect(verifyAcademicGovernanceLedger(tampered)).toMatchObject({ valid: false, reason: "event_hash_mismatch" });
+    expect(verifyAcademicGovernanceLedger(tampered)).toMatchObject({
+      valid: false,
+      reason: "event_hash_mismatch",
+    });
   });
 
   it("detects removal, reordering and previous-hash substitution", () => {
     const events = chain();
-    expect(verifyAcademicGovernanceLedger(events.slice(1))).toMatchObject({ valid: false, reason: "sequence_gap" });
-    expect(verifyAcademicGovernanceLedger([...events].reverse())).toMatchObject({ valid: false, reason: "sequence_gap" });
-    expect(verifyAcademicGovernanceLedger([{ ...events[0], previousEventHash: "f".repeat(64) }, events[1])).toMatchObject({ valid: false, reason: "previous_hash_mismatch" });
+    expect(verifyAcademicGovernanceLedger(events.slice(1))).toMatchObject({
+      valid: false,
+      reason: "sequence_gap",
+    });
+    expect(verifyAcademicGovernanceLedger([...events].reverse())).toMatchObject({
+      valid: false,
+      reason: "sequence_gap",
+    });
+    expect(
+      verifyAcademicGovernanceLedger([
+        { ...events[0], previousEventHash: "f".repeat(64) },
+        events[1],
+      ])
+    ).toMatchObject({ valid: false, reason: "previous_hash_mismatch" });
   });
 
   it("rejects cross-authority mixing and same-principal review", () => {
     const events = chain();
-    expect(verifyAcademicGovernanceLedger([events[0], { ...events[1], authorityId: "other-authority" }])).toMatchObject({ valid: false, reason: "authority_mismatch" });
-    expect(AcademicGovernanceLedgerEventSchema.safeParse({ ...events[0], reviewerPrincipalId: events[0].actorPrincipalId }).success).toBe(false);
+    expect(
+      verifyAcademicGovernanceLedger([
+        events[0],
+        { ...events[1], authorityId: "other-authority" },
+      ])
+    ).toMatchObject({ valid: false, reason: "authority_mismatch" });
+    expect(
+      AcademicGovernanceLedgerEventSchema.safeParse({
+        ...events[0],
+        reviewerPrincipalId: events[0].actorPrincipalId,
+      }).success
+    ).toBe(false);
   });
 
   it("requires source digests and policy versions for governance events", () => {
     const base = event(1, GOVERNANCE_LEDGER_GENESIS_HASH);
-    expect(AcademicGovernanceLedgerEventSchema.safeParse({ ...base, eventType: "source_manifest_reviewed", sourceManifestSha256: undefined }).success).toBe(false);
-    expect(AcademicGovernanceLedgerEventSchema.safeParse({ ...base, subjectVersion: undefined }).success).toBe(false);
+    expect(
+      AcademicGovernanceLedgerEventSchema.safeParse({
+        ...base,
+        eventType: "source_manifest_reviewed",
+        sourceManifestSha256: undefined,
+      }).success
+    ).toBe(false);
+    expect(
+      AcademicGovernanceLedgerEventSchema.safeParse({
+        ...base,
+        subjectVersion: undefined,
+      }).success
+    ).toBe(false);
   });
 
   it("documents that hash integrity is not signature authority", () => {
