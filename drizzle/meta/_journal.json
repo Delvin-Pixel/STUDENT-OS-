@@ -127,6 +127,13 @@
       "when": 1793038047882,
       "tag": "0017_account_academic_context_candidates",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1793120000000,
+      "tag": "0018_academic_policy_governance_events",
+      "breakpoints": true
     }
   ]
 }

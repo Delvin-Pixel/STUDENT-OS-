@@ -1,3 +1,5 @@
+import type { AcademicGovernanceEventType } from "../shared/academicPolicyGovernanceLedger";
+
 import {
   boolean,
   customType,
@@ -118,6 +120,72 @@ export const academicContextCandidates = mysqlTable(
 
 export type AcademicContextCandidate =
   typeof academicContextCandidates.$inferSelect;
+
+/**
+ * Append-only governance event envelopes. Application writers must only INSERT;
+ * production DB roles must separately deny UPDATE/DELETE and protect checkpoints.
+ * Rows alone do not establish signer authority or official curriculum approval.
+ */
+export const academicPolicyGovernanceEvents = mysqlTable(
+  "academic_policy_governance_events",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    eventId: varchar("eventId", { length: 36 }).notNull(),
+    authorityId: varchar("authorityId", { length: 160 }).notNull(),
+    sequence: int("sequence").notNull(),
+    eventType: mysqlEnum("eventType", [
+      "source_manifest_reviewed",
+      "policy_attestation_recorded",
+      "policy_published",
+      "policy_suspended",
+      "policy_revoked",
+      "signer_registered",
+      "signer_revoked",
+      "signing_key_rotated",
+    ])
+      .$type<AcademicGovernanceEventType>()
+      .notNull(),
+    subjectId: varchar("subjectId", { length: 160 }).notNull(),
+    subjectVersion: varchar("subjectVersion", { length: 64 }),
+    scope: json("scope").$type<Record<string, unknown>>().notNull(),
+    sourceManifestSha256: varchar("sourceManifestSha256", { length: 64 }),
+    actorPrincipalId: varchar("actorPrincipalId", { length: 160 }).notNull(),
+    reviewerPrincipalId: varchar("reviewerPrincipalId", {
+      length: 160,
+    }).notNull(),
+    actorKeyId: varchar("actorKeyId", { length: 160 }).notNull(),
+    reviewerKeyId: varchar("reviewerKeyId", { length: 160 }).notNull(),
+    actorSignature: varchar("actorSignature", { length: 128 }).notNull(),
+    reviewerSignature: varchar("reviewerSignature", { length: 128 }).notNull(),
+    requestKey: varchar("requestKey", { length: 128 }).notNull(),
+    occurredAt: timestamp("occurredAt").notNull(),
+    previousEventHash: varchar("previousEventHash", { length: 64 }).notNull(),
+    eventHash: varchar("eventHash", { length: 64 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("academic_policy_governance_event_id_unique").on(table.eventId),
+    uniqueIndex("academic_policy_governance_authority_sequence_unique").on(
+      table.authorityId,
+      table.sequence
+    ),
+    uniqueIndex("academic_policy_governance_authority_request_unique").on(
+      table.authorityId,
+      table.requestKey
+    ),
+    uniqueIndex("academic_policy_governance_authority_hash_unique").on(
+      table.authorityId,
+      table.eventHash
+    ),
+    index("academic_policy_governance_authority_created_idx").on(
+      table.authorityId,
+      table.createdAt
+    ),
+  ]
+);
+
+export type AcademicPolicyGovernanceEvent =
+  typeof academicPolicyGovernanceEvents.$inferSelect;
 
 /**
  * Server-authoritative subscription state. The client never writes this table
