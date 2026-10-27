@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { z } from "zod";
 import { PolicyAttestationScopeSchema } from "./academicPolicyAttestation";
 
@@ -62,15 +61,6 @@ export const AcademicGovernanceLedgerHeadSchema = z.object({
 export type AcademicGovernanceLedgerHead = z.infer<typeof AcademicGovernanceLedgerHeadSchema>;
 
 export const GOVERNANCE_LEDGER_GENESIS_HASH = "0".repeat(64);
-
-export function governanceEventHash(
-  event: Omit<AcademicGovernanceLedgerEvent, "eventHash">
-): string {
-  return createHash("sha256")
-    .update("student-os/academic-governance-ledger/v1\n", "utf8")
-    .update(JSON.stringify(event), "utf8")
-    .digest("hex");
-}
 
 /** Checks byte-level event integrity and ordering only; it does not validate signer authority. */
 export function verifyAcademicGovernanceLedger(
