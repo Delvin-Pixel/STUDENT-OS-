@@ -121,7 +121,6 @@ export const academicContextCandidates = mysqlTable(
 export type AcademicContextCandidate =
   typeof academicContextCandidates.$inferSelect;
 
-
 /**
  * Append-only governance event envelopes. Application writers must only INSERT;
  * production DB roles must separately deny UPDATE/DELETE and protect checkpoints.
