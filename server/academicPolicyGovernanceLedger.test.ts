@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   AcademicGovernanceLedgerEventSchema,
   GOVERNANCE_LEDGER_GENESIS_HASH,
-  governanceEventHash,
   verifyAcademicGovernanceLedger,
   type AcademicGovernanceLedgerEvent,
 } from "../shared/academicPolicyGovernanceLedger";
+import { governanceEventHash } from "./academicPolicyGovernanceLedger";
 
 function event(sequence: number, previousEventHash: string): AcademicGovernanceLedgerEvent {
   const unsigned = {
