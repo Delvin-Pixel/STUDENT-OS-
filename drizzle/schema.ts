@@ -1,4 +1,6 @@
-import type { AcademicGovernanceEventType } from "../shared/academicPolicyGovernanceLedger";
+import type {
+  AcademicGovernanceEventType,
+} from "../shared/academicPolicyGovernanceLedger";
 
 import {
   boolean,
