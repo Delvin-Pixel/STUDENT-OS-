@@ -23,10 +23,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prettier --write drizzle/meta/0018_snapshot.json drizzle/schema.ts server/academicPolicyGovernanceLedger.test.ts server/academicPolicyGovernanceLedger.ts shared/academicPolicyGovernanceLedger.ts
       - run: |
-          mkdir -p /tmp/b62-format
-          cp drizzle/meta/0018_snapshot.json drizzle/schema.ts server/academicPolicyGovernanceLedger.test.ts server/academicPolicyGovernanceLedger.ts shared/academicPolicyGovernanceLedger.ts /tmp/b62-format/
+          mkdir -p /tmp/b62-format/drizzle/meta /tmp/b62-format/server /tmp/b62-format/shared
+          cp drizzle/meta/0018_snapshot.json /tmp/b62-format/drizzle/meta/
+          cp drizzle/schema.ts /tmp/b62-format/drizzle/
+          cp server/academicPolicyGovernanceLedger.test.ts server/academicPolicyGovernanceLedger.ts /tmp/b62-format/server/
+          cp shared/academicPolicyGovernanceLedger.ts /tmp/b62-format/shared/
           cd /tmp/b62-format
-          zip -q /tmp/b62-format.zip *
+          zip -qr /tmp/b62-format.zip .
       - uses: actions/upload-artifact@v4
         with:
           name: b62-formatted-files
