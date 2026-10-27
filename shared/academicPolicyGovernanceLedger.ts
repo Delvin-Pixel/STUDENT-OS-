@@ -41,16 +41,40 @@ export const AcademicGovernanceLedgerEventSchema = z.object({
   eventHash: digest,
 }).strict().superRefine((event, ctx) => {
   if (event.actorPrincipalId === event.reviewerPrincipalId) {
-    ctx.addIssue({ code: "custom", path: ["reviewerPrincipalId"], message: "Actor and reviewer must be distinct principals" });
+    ctx.addIssue({
+      code: "custom",
+      path: ["reviewerPrincipalId"],
+      message: "Actor and reviewer must be distinct principals",
+    });
   }
   if (event.actorKeyId === event.reviewerKeyId) {
-    ctx.addIssue({ code: "custom", path: ["reviewerKeyId"], message: "Actor and reviewer must use distinct keys" });
+    ctx.addIssue({
+      code: "custom",
+      path: ["reviewerKeyId"],
+      message: "Actor and reviewer must use distinct keys",
+    });
   }
   if (event.eventType === "source_manifest_reviewed" && !event.sourceManifestSha256) {
-    ctx.addIssue({ code: "custom", path: ["sourceManifestSha256"], message: "Source review events require a source manifest digest" });
+    ctx.addIssue({
+      code: "custom",
+      path: ["sourceManifestSha256"],
+      message: "Source review events require a source manifest digest",
+    });
   }
-  if (["policy_published", "policy_suspended", "policy_revoked", "policy_attestation_recorded"].includes(event.eventType) && !event.subjectVersion) {
-    ctx.addIssue({ code: "custom", path: ["subjectVersion"], message: "Policy governance events require an immutable policy version" });
+  if (
+    [
+      "policy_published",
+      "policy_suspended",
+      "policy_revoked",
+      "policy_attestation_recorded",
+    ].includes(event.eventType) &&
+    !event.subjectVersion
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["subjectVersion"],
+      message: "Policy governance events require an immutable policy version",
+    });
   }
 });
 export type AcademicGovernanceLedgerEvent = z.infer<
