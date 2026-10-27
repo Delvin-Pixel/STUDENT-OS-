@@ -78,12 +78,12 @@ describe("academic governance append-only ledger contract", () => {
       valid: false,
       reason: "sequence_gap",
     });
-    expect(
-      verifyAcademicGovernanceLedger([...events].reverse())
-    ).toMatchObject({
-      valid: false,
-      reason: "sequence_gap",
-    });
+    expect(verifyAcademicGovernanceLedger([...events].reverse())).toMatchObject(
+      {
+        valid: false,
+        reason: "sequence_gap",
+      }
+    );
     expect(
       verifyAcademicGovernanceLedger([
         { ...events[0], previousEventHash: "f".repeat(64) },
@@ -108,9 +108,7 @@ describe("academic governance append-only ledger contract", () => {
     ).toBe(false);
   });
 
-  it(
-    "requires source digests and policy versions for governance events",
-    () => {
+  it("requires source digests and policy versions for governance events", () => {
     const base = event(1, GOVERNANCE_LEDGER_GENESIS_HASH);
     expect(
       AcademicGovernanceLedgerEventSchema.safeParse({

@@ -19,9 +19,7 @@ export function governanceEventHash(
  * Checks byte-level event integrity and ordering only; it does not validate
  * signer authority.
  */
-export function verifyAcademicGovernanceLedger(
-  input: unknown
-): {
+export function verifyAcademicGovernanceLedger(input: unknown): {
   valid: boolean;
   eventCount: number;
   reason:

@@ -1,6 +1,4 @@
-import type {
-  AcademicGovernanceEventType,
-} from "../shared/academicPolicyGovernanceLedger";
+import type { AcademicGovernanceEventType } from "../shared/academicPolicyGovernanceLedger";
 
 import {
   boolean,
@@ -144,13 +142,17 @@ export const academicPolicyGovernanceEvents = mysqlTable(
       "signer_registered",
       "signer_revoked",
       "signing_key_rotated",
-    ]).$type<AcademicGovernanceEventType>().notNull(),
+    ])
+      .$type<AcademicGovernanceEventType>()
+      .notNull(),
     subjectId: varchar("subjectId", { length: 160 }).notNull(),
     subjectVersion: varchar("subjectVersion", { length: 64 }),
     scope: json("scope").$type<Record<string, unknown>>().notNull(),
     sourceManifestSha256: varchar("sourceManifestSha256", { length: 64 }),
     actorPrincipalId: varchar("actorPrincipalId", { length: 160 }).notNull(),
-    reviewerPrincipalId: varchar("reviewerPrincipalId", { length: 160 }).notNull(),
+    reviewerPrincipalId: varchar("reviewerPrincipalId", {
+      length: 160,
+    }).notNull(),
     actorKeyId: varchar("actorKeyId", { length: 160 }).notNull(),
     reviewerKeyId: varchar("reviewerKeyId", { length: 160 }).notNull(),
     actorSignature: varchar("actorSignature", { length: 128 }).notNull(),
