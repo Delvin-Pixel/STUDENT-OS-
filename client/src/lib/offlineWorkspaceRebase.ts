@@ -232,11 +232,9 @@ function mergeNode(
 
     if (arrays.every(keyedArray)) {
       type Identified = Array<Record<string, unknown> & { id: string }>;
-      const before: Identified = base === MISSING ? [] : (base as Identified);
-      const onDevice: Identified =
-        local === MISSING ? [] : (local as Identified);
-      const onServer: Identified =
-        remote === MISSING ? [] : (remote as Identified);
+      const before: Identified = base === MISSING ? [] : base as Identified;
+      const onDevice: Identified = local === MISSING ? [] : local as Identified;
+      const onServer: Identified = remote === MISSING ? [] : remote as Identified;
 
       const beforeMap = new Map(before.map(item => [item.id, item]));
       const localMap = new Map(onDevice.map(item => [item.id, item]));
