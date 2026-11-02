@@ -43,9 +43,6 @@ export type OfflineWorkspaceRebaseResult =
 
 const MISSING = Symbol("offline-rebase-missing");
 type Missing = typeof MISSING;
-type JsonValue = null | boolean | number | string | JsonValue[] | {
-  [key: string]: JsonValue;
-};
 const MAX_MERGE_NODES = 50_000;
 const MAX_DEPTH = 64;
 const MAX_CHANGED_PATHS = 64;
@@ -155,13 +152,13 @@ function mergeNode(
     throw new RebaseFailure("complexity_limit");
   }
 
-  if (equal(local, base)) return clone(remote);
-  if (equal(remote, base)) return clone(local);
-  if (equal(local, remote)) return clone(local);
-
   if (path === "syncTombstones") {
     return mergeTombstones(base, local, remote);
   }
+
+  if (equal(local, base)) return clone(remote);
+  if (equal(remote, base)) return clone(local);
+  if (equal(local, remote)) return clone(local);
 
   if (path && budget.changedPaths.length < MAX_CHANGED_PATHS &&
       !budget.changedPaths.includes(path)) {
@@ -205,9 +202,10 @@ function mergeNode(
       (value): value is unknown[] => Array.isArray(value)
     );
     if (arrays.every(keyedArray)) {
-      const before = base === MISSING ? [] : base;
-      const onDevice = local === MISSING ? [] : local;
-      const onServer = remote === MISSING ? [] : remote;
+      type Identified = Array<Record<string, unknown> & { id: string }>;
+      const before: Identified = base === MISSING ? [] : base as Identified;
+      const onDevice: Identified = local === MISSING ? [] : local as Identified;
+      const onServer: Identified = remote === MISSING ? [] : remote as Identified;
       const beforeMap = new Map(before.map(item => [item.id, item]));
       const localMap = new Map(onDevice.map(item => [item.id, item]));
       const remoteMap = new Map(onServer.map(item => [item.id, item]));
