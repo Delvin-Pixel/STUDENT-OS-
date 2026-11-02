@@ -245,6 +245,23 @@ describe("B64.4 pure conflict-safe offline rebase proposal", () => {
     expect(result).toEqual({ kind: "held", reason: "account_mismatch" });
   });
 
+  it("withholds a proposal if the account changes during reconciliation", async () => {
+    const base = workspace();
+    const local = structuredClone(base);
+    const remote = structuredClone(base);
+    local.tasks.push(task("local-task", "Local study"));
+    remote.tasks.push(task("remote-task", "Remote study"));
+    let checks = 0;
+
+    const result = await proposeOfflineWorkspaceRebase(
+      request(base, local, remote, () =>
+        ++checks <= 10 ? "owner-1" : "owner-2"
+      )
+    );
+
+    expect(result).toEqual({ kind: "held", reason: "account_mismatch" });
+  });
+
   it("does not return write authorization for unchanged snapshots", async () => {
     const base = workspace();
     expect(
