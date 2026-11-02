@@ -56,7 +56,9 @@ describe("B64.4 pure conflict-safe offline rebase proposal", () => {
     local.tasks.push(task("local-task", "Local study"));
     remote.tasks.push(task("remote-task", "Remote study"));
 
-    const result = await proposeOfflineWorkspaceRebase(request(base, local, remote));
+    const result = await proposeOfflineWorkspaceRebase(
+      request(base, local, remote)
+    );
 
     expect(result.kind).toBe("proposal");
     if (result.kind !== "proposal") return;
@@ -73,7 +75,7 @@ describe("B64.4 pure conflict-safe offline rebase proposal", () => {
     expect(remote.tasks.map(item => item.id)).toEqual(["remote-task"]);
   });
 
-  it("combines edits to different nested flashcards while retaining parent identity", async () => {
+  it("combines edits to different nested flashcards and retains parent identity", async () => {
     const base = workspace();
     base.decks.push({
       id: "deck-1",
@@ -81,8 +83,18 @@ describe("B64.4 pure conflict-safe offline rebase proposal", () => {
       subject: "Mathematics",
       createdAt: "2026-10-26T00:00:00.000Z",
       cards: [
-        { id: "card-1", front: "x + 2 = 5", back: "x = 3", status: "new" },
-        { id: "card-2", front: "2x = 8", back: "x = 4", status: "new" },
+        {
+          id: "card-1",
+          front: "x + 2 = 5",
+          back: "x = 3",
+          status: "new",
+        },
+        {
+          id: "card-2",
+          front: "2x = 8",
+          back: "x = 4",
+          status: "new",
+        },
       ],
     });
     const local = structuredClone(base);
@@ -90,13 +102,25 @@ describe("B64.4 pure conflict-safe offline rebase proposal", () => {
     local.decks[0].cards[0].back = "Subtract 2 from both sides";
     remote.decks[0].cards[1].back = "Divide both sides by 2";
 
-    const result = await proposeOfflineWorkspaceRebase(request(base, local, remote));
+    const result = await proposeOfflineWorkspaceRebase(
+      request(base, local, remote)
+    );
 
     expect(result.kind).toBe("proposal");
     if (result.kind !== "proposal") return;
     expect(result.workspace.decks[0].cards).toEqual([
-      { id: "card-1", front: "x + 2 = 5", back: "Subtract 2 from both sides", status: "new" },
-      { id: "card-2", front: "2x = 8", back: "Divide both sides by 2", status: "new" },
+      {
+        id: "card-1",
+        front: "x + 2 = 5",
+        back: "Subtract 2 from both sides",
+        status: "new",
+      },
+      {
+        id: "card-2",
+        front: "2x = 8",
+        back: "Divide both sides by 2",
+        status: "new",
+      },
     ]);
   });
 
@@ -108,7 +132,9 @@ describe("B64.4 pure conflict-safe offline rebase proposal", () => {
     local.tasks[0].title = "Local title";
     remote.tasks[0].title = "Remote title";
 
-    expect(await proposeOfflineWorkspaceRebase(request(base, local, remote))).toMatchObject({
+    expect(
+      await proposeOfflineWorkspaceRebase(request(base, local, remote))
+    ).toMatchObject({
       kind: "held",
       reason: "manual_review",
     });
@@ -127,13 +153,15 @@ describe("B64.4 pure conflict-safe offline rebase proposal", () => {
     });
     remote.tasks[0].title = "Remote edit";
 
-    expect(await proposeOfflineWorkspaceRebase(request(base, local, remote))).toMatchObject({
+    expect(
+      await proposeOfflineWorkspaceRebase(request(base, local, remote))
+    ).toMatchObject({
       kind: "held",
       reason: "manual_review",
     });
   });
 
-  it("preserves deletion tombstones while adopting a disjoint remote addition", async () => {
+  it("preserves tombstones while proposing a disjoint remote addition", async () => {
     const base = workspace();
     base.tasks.push(task("task-1", "Remove this"));
     const local = structuredClone(base);
@@ -146,7 +174,9 @@ describe("B64.4 pure conflict-safe offline rebase proposal", () => {
     });
     remote.tasks.push(task("task-2", "Remote addition"));
 
-    const result = await proposeOfflineWorkspaceRebase(request(base, local, remote));
+    const result = await proposeOfflineWorkspaceRebase(
+      request(base, local, remote)
+    );
 
     expect(result.kind).toBe("proposal");
     if (result.kind !== "proposal") return;
@@ -165,13 +195,15 @@ describe("B64.4 pure conflict-safe offline rebase proposal", () => {
     local.settings.theme = "dark";
     remote.xp = 25;
 
-    expect(await proposeOfflineWorkspaceRebase(request(base, local, remote))).toMatchObject({
+    expect(
+      await proposeOfflineWorkspaceRebase(request(base, local, remote))
+    ).toMatchObject({
       kind: "held",
       reason: "manual_review",
     });
   });
 
-  it("does not include device-private AI feedback or transient signed URLs in the proposal", async () => {
+  it("excludes device-private feedback and transient signed URLs", async () => {
     const base = workspace();
     if (!base.profile) throw new Error("fixture profile missing");
     base.profile.profilePhotoUrl = "https://signed.example/old";
@@ -190,7 +222,9 @@ describe("B64.4 pure conflict-safe offline rebase proposal", () => {
     if (!remote.profile) throw new Error("fixture profile missing");
     remote.profile.profilePhotoUrl = "https://signed.example/new";
 
-    const result = await proposeOfflineWorkspaceRebase(request(base, local, remote));
+    const result = await proposeOfflineWorkspaceRebase(
+      request(base, local, remote)
+    );
 
     expect(result.kind).toBe("proposal");
     if (result.kind !== "proposal") return;
@@ -201,17 +235,25 @@ describe("B64.4 pure conflict-safe offline rebase proposal", () => {
   it("blocks immediately when the authenticated account does not match", async () => {
     const base = workspace();
     const result = await proposeOfflineWorkspaceRebase(
-      request(base, structuredClone(base), structuredClone(base), () => "owner-2")
+      request(
+        base,
+        structuredClone(base),
+        structuredClone(base),
+        () => "owner-2"
+      )
     );
     expect(result).toEqual({ kind: "held", reason: "account_mismatch" });
   });
 
-  it("does not return a write authorization for an unchanged workspace", async () => {
+  it("does not return write authorization for unchanged snapshots", async () => {
     const base = workspace();
     expect(
       await proposeOfflineWorkspaceRebase(
         request(base, structuredClone(base), structuredClone(base))
       )
-    ).toMatchObject({ kind: "held", reason: "not_rebase_required" });
+    ).toMatchObject({
+      kind: "held",
+      reason: "not_rebase_required",
+    });
   });
 });
