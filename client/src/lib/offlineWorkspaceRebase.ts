@@ -48,9 +48,7 @@ const MAX_DEPTH = 64;
 const MAX_CHANGED_PATHS = 64;
 
 class RebaseFailure extends Error {
-  constructor(
-    readonly reason: "merge_conflict" | "complexity_limit"
-  ) {
+  constructor(readonly reason: "merge_conflict" | "complexity_limit") {
     super(reason);
   }
 }
@@ -62,12 +60,15 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function canonical(value: unknown): string {
-  if (Array.isArray(value)) return "[" + value.map(canonical).join(",") + "]";
+  if (Array.isArray(value)) {
+    return "[" + value.map(canonical).join(",") + "]";
+  }
   if (isPlainRecord(value)) {
-    return "{" + Object.keys(value).sort()
+    const fields = Object.keys(value)
+      .sort()
       .filter(key => value[key] !== undefined)
-      .map(key => JSON.stringify(key) + ":" + canonical(value[key]))
-      .join(",") + "}";
+      .map(key => JSON.stringify(key) + ":" + canonical(value[key]));
+    return "{" + fields.join(",") + "}";
   }
   const serialized = JSON.stringify(value);
   return serialized === undefined ? "undefined" : serialized;
@@ -80,7 +81,9 @@ function equal(a: unknown | Missing, b: unknown | Missing): boolean {
 
 function clone(value: unknown | Missing): unknown | Missing {
   if (value === MISSING) return MISSING;
-  if (Array.isArray(value)) return value.map(entry => clone(entry));
+  if (Array.isArray(value)) {
+    return value.map(entry => clone(entry));
+  }
   if (isPlainRecord(value)) {
     return Object.fromEntries(
       Object.entries(value).map(([key, entry]) => [key, clone(entry)])
@@ -89,11 +92,17 @@ function clone(value: unknown | Missing): unknown | Missing {
   return value;
 }
 
-function keyedArray(value: unknown): value is Array<Record<string, unknown> & { id: string }> {
+function keyedArray(
+  value: unknown
+): value is Array<Record<string, unknown> & { id: string }> {
   if (!Array.isArray(value)) return false;
   const seen = new Set<string>();
   for (const entry of value) {
-    if (!isPlainRecord(entry) || typeof entry.id !== "string" || !entry.id.trim()) {
+    if (
+      !isPlainRecord(entry) ||
+      typeof entry.id !== "string" ||
+      !entry.id.trim()
+    ) {
       return false;
     }
     if (seen.has(entry.id)) return false;
@@ -107,15 +116,21 @@ function mergeTombstones(
   local: unknown | Missing,
   remote: unknown | Missing
 ): SyncTombstone[] {
-  const values = [base, local, remote].filter(
-    (value): value is unknown[] => Array.isArray(value)
-  );
-  if ([base, local, remote].some(value => value !== MISSING && !Array.isArray(value))) {
+  const sources = [base, local, remote];
+  if (
+    sources.some(
+      value => value !== MISSING && !Array.isArray(value)
+    )
+  ) {
     throw new RebaseFailure("merge_conflict");
   }
 
+  const lists = sources.filter(
+    (value): value is unknown[] => Array.isArray(value)
+  );
   const byKey = new Map<string, SyncTombstone>();
-  for (const list of values) {
+
+  for (const list of lists) {
     for (const value of list) {
       if (
         !isPlainRecord(value) ||
@@ -128,11 +143,15 @@ function mergeTombstones(
       const marker = value as unknown as SyncTombstone;
       const key = JSON.stringify([marker.collection, marker.id]);
       const previous = byKey.get(key);
+
       // A deletion marker is durable evidence. Never discard it because one
       // peer omitted it; choose a deterministic timestamp if both have one.
-      if (!previous || marker.deletedAt < previous.deletedAt) byKey.set(key, marker);
+      if (!previous || marker.deletedAt < previous.deletedAt) {
+        byKey.set(key, marker);
+      }
     }
   }
+
   return [...byKey.values()].sort((a, b) =>
     JSON.stringify([a.collection, a.id]).localeCompare(
       JSON.stringify([b.collection, b.id])
@@ -153,6 +172,8 @@ function mergeNode(
     throw new RebaseFailure("complexity_limit");
   }
 
+  // Tombstones are a monotonic set: an existing deletion marker is never
+  // removed by a peer's omission.
   if (path === "syncTombstones") {
     return mergeTombstones(base, local, remote);
   }
@@ -161,8 +182,11 @@ function mergeNode(
   if (equal(remote, base)) return clone(local);
   if (equal(local, remote)) return clone(local);
 
-  if (path && budget.changedPaths.length < MAX_CHANGED_PATHS &&
-      !budget.changedPaths.includes(path)) {
+  if (
+    path &&
+    budget.changedPaths.length < MAX_CHANGED_PATHS &&
+    !budget.changedPaths.includes(path)
+  ) {
     budget.changedPaths.push(path);
   }
 
@@ -180,11 +204,18 @@ function mergeNode(
       ...Object.keys(onServer),
     ]);
     const merged: Record<string, unknown> = {};
+
     for (const key of keys) {
       const next = mergeNode(
-        Object.prototype.hasOwnProperty.call(before, key) ? before[key] : MISSING,
-        Object.prototype.hasOwnProperty.call(onDevice, key) ? onDevice[key] : MISSING,
-        Object.prototype.hasOwnProperty.call(onServer, key) ? onServer[key] : MISSING,
+        Object.prototype.hasOwnProperty.call(before, key)
+          ? before[key]
+          : MISSING,
+        Object.prototype.hasOwnProperty.call(onDevice, key)
+          ? onDevice[key]
+          : MISSING,
+        Object.prototype.hasOwnProperty.call(onServer, key)
+          ? onServer[key]
+          : MISSING,
         path ? path + "." + key : key,
         depth + 1,
         budget
@@ -202,24 +233,32 @@ function mergeNode(
     const arrays = [base, local, remote].filter(
       (value): value is unknown[] => Array.isArray(value)
     );
+
     if (arrays.every(keyedArray)) {
       type Identified = Array<Record<string, unknown> & { id: string }>;
-      const before: Identified = base === MISSING ? [] : base as Identified;
-      const onDevice: Identified = local === MISSING ? [] : local as Identified;
-      const onServer: Identified = remote === MISSING ? [] : remote as Identified;
+      const before: Identified = base === MISSING ? [] : (base as Identified);
+      const onDevice: Identified =
+        local === MISSING ? [] : (local as Identified);
+      const onServer: Identified =
+        remote === MISSING ? [] : (remote as Identified);
+
       const beforeMap = new Map(before.map(item => [item.id, item]));
       const localMap = new Map(onDevice.map(item => [item.id, item]));
       const remoteMap = new Map(onServer.map(item => [item.id, item]));
-      // Server order is retained; local-only additions are appended in a
-      // deterministic ID order. Ordering itself is not academic data.
+
+      // Keep server ordering; append local-only additions deterministically.
       const order = [
         ...onServer.map(item => item.id),
-        ...onDevice.map(item => item.id).filter(id => !remoteMap.has(id)).sort(),
-        ...before.map(item => item.id).filter(
-          id => !remoteMap.has(id) && !localMap.has(id)
-        ),
+        ...onDevice
+          .map(item => item.id)
+          .filter(id => !remoteMap.has(id))
+          .sort(),
+        ...before
+          .map(item => item.id)
+          .filter(id => !remoteMap.has(id) && !localMap.has(id)),
       ];
       const merged: unknown[] = [];
+
       for (const id of [...new Set(order)]) {
         const next = mergeNode(
           beforeMap.has(id) ? beforeMap.get(id)! : MISSING,
@@ -259,9 +298,8 @@ function cloudSafeWorkspace(state: StudyState): StudyState {
 }
 
 /**
- * Builds a deterministic candidate only when B64.1/B64.3 classify the three
- * snapshots as disjoint concurrent changes. Conflicting records, scalar
- * conflicts, tombstone ambiguity and invalid provenance remain held.
+ * Builds a candidate only when B64.1/B64.3 classify the snapshots as
+ * disjoint concurrent changes. Conflicting edits remain held for review.
  */
 export async function proposeOfflineWorkspaceRebase(
   request: OfflineWorkspaceRebaseRequest
@@ -277,17 +315,19 @@ export async function proposeOfflineWorkspaceRebase(
   if (request.currentAuthenticatedAccountId() !== request.accountId) {
     return { kind: "held", reason: "account_mismatch" };
   }
+
   if (preflight.kind === "blocked") {
+    const reason =
+      preflight.reason === "account_mismatch"
+        ? "account_mismatch"
+        : preflight.reason === "invalid_workspace"
+          ? "invalid_workspace"
+          : preflight.reason === "unavailable"
+            ? "unavailable"
+            : "preflight_blocked";
     return {
       kind: "held",
-      reason:
-        preflight.reason === "account_mismatch"
-          ? "account_mismatch"
-          : preflight.reason === "invalid_workspace"
-            ? "invalid_workspace"
-            : preflight.reason === "unavailable"
-              ? "unavailable"
-              : "preflight_blocked",
+      reason,
       preflightReason: preflight.reason,
     };
   }
@@ -299,6 +339,7 @@ export async function proposeOfflineWorkspaceRebase(
       conflicts: preflight.decision.conflicts,
     };
   }
+
   if (preflight.decision.kind !== "rebase_required") {
     return {
       kind: "held",
@@ -311,8 +352,11 @@ export async function proposeOfflineWorkspaceRebase(
     const baseParsed = validateStudyState(request.base.workspace);
     const localParsed = validateStudyState(request.local.workspace);
     const remoteParsed = validateStudyState(request.remote.workspace);
+
     if (
-      !baseParsed.success || !localParsed.success || !remoteParsed.success ||
+      !baseParsed.success ||
+      !localParsed.success ||
+      !remoteParsed.success ||
       !validateStudyStateSemantics(baseParsed.data).success ||
       !validateStudyStateSemantics(localParsed.data).success ||
       !validateStudyStateSemantics(remoteParsed.data).success
@@ -324,21 +368,24 @@ export async function proposeOfflineWorkspaceRebase(
     const local = cloudSafeWorkspace(localParsed.data as StudyState);
     const remote = cloudSafeWorkspace(remoteParsed.data as StudyState);
     const budget = { nodes: 0, changedPaths: [] as string[] };
-    const merged = mergeNode(
-      base,
-      local,
-      remote,
-      "",
-      0,
-      budget
-    );
-    if (!merged || merged === MISSING || !validateStudyState(merged).success) {
+    const merged = mergeNode(base, local, remote, "", 0, budget);
+
+    if (
+      !merged ||
+      merged === MISSING ||
+      !validateStudyState(merged).success
+    ) {
       return { kind: "held", reason: "merge_conflict" };
     }
+
     const parsed = validateStudyState(merged);
-    if (!parsed.success || !validateStudyStateSemantics(parsed.data).success) {
+    if (
+      !parsed.success ||
+      !validateStudyStateSemantics(parsed.data).success
+    ) {
       return { kind: "held", reason: "merge_conflict" };
     }
+
     if (request.currentAuthenticatedAccountId() !== request.accountId) {
       return { kind: "held", reason: "account_mismatch" };
     }
