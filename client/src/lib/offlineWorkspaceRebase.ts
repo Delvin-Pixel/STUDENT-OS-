@@ -69,7 +69,8 @@ function canonical(value: unknown): string {
       .map(key => JSON.stringify(key) + ":" + canonical(value[key]))
       .join(",") + "}";
   }
-  return JSON.stringify(value);
+  const serialized = JSON.stringify(value);
+  return serialized === undefined ? "undefined" : serialized;
 }
 
 function equal(a: unknown | Missing, b: unknown | Missing): boolean {
