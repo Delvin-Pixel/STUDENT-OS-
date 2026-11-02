@@ -117,11 +117,7 @@ function mergeTombstones(
   remote: unknown | Missing
 ): SyncTombstone[] {
   const sources = [base, local, remote];
-  if (
-    sources.some(
-      value => value !== MISSING && !Array.isArray(value)
-    )
-  ) {
+  if (sources.some(value => value !== MISSING && !Array.isArray(value))) {
     throw new RebaseFailure("merge_conflict");
   }
 
@@ -370,11 +366,7 @@ export async function proposeOfflineWorkspaceRebase(
     const budget = { nodes: 0, changedPaths: [] as string[] };
     const merged = mergeNode(base, local, remote, "", 0, budget);
 
-    if (
-      !merged ||
-      merged === MISSING ||
-      !validateStudyState(merged).success
-    ) {
+    if (!merged || merged === MISSING || !validateStudyState(merged).success) {
       return { kind: "held", reason: "merge_conflict" };
     }
 
