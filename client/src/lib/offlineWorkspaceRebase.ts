@@ -371,10 +371,7 @@ export async function proposeOfflineWorkspaceRebase(
     }
 
     const parsed = validateStudyState(merged);
-    if (
-      !parsed.success ||
-      !validateStudyStateSemantics(parsed.data).success
-    ) {
+    if (!parsed.success || !validateStudyStateSemantics(parsed.data).success) {
       return { kind: "held", reason: "merge_conflict" };
     }
 
